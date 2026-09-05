@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# OS / editor noise
+.DS_Store
+*~
+.idea/
+.vscode/
+
+# Logs and temp files
+*.log
+.tmp/
+tmp/
+~$*
+
+# TypeScript build info
+*.tsbuildinfo
+
+# The spinner dist is committed; nothing else built is
+spinner/src/**/*.js
