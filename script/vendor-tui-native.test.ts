@@ -1,8 +1,10 @@
 import { describe, expect, test } from "vitest"
-import { readFileSync } from "node:fs"
+import { spawnSync } from "node:child_process"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { assertBinaryFormat, checkVendorTree } from "./vendor-tui-native"
+import { assertBinaryFormat, checkVendorTree, listTarballNames } from "./vendor-tui-native"
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 const VENDOR = join(ROOT, "vendor")
@@ -21,6 +23,26 @@ describe("script.vendor-tui-native", () => {
       expect(entry.lib.sha256, key).toMatch(/^[0-9a-f]{64}$/)
       expect(entry.lib.size, key).toBeGreaterThan(1_000_000)
       expect(entry.licenseSha256, key).toMatch(/^[0-9a-f]{64}$/)
+    }
+  })
+
+  test("tar listing preserves full entry names, including paths with spaces", () => {
+    const fixture = mkdtempSync(join(tmpdir(), "ax-tui-tar-listing-"))
+    try {
+      mkdirSync(join(fixture, "package"), { recursive: true })
+      writeFileSync(join(fixture, "package", "my file.txt"), "x")
+      writeFileSync(join(fixture, "package", "plain.txt"), "x")
+      const tgz = join(fixture, "pkg.tgz")
+      const res = spawnSync("tar", ["-czf", tgz, "-C", fixture, "package"], { encoding: "utf8" })
+      expect(res.status, res.stderr).toBe(0)
+
+      const names = listTarballNames(tgz)
+      // A whitespace-split verbose listing would truncate this to "file.txt",
+      // defeating the traversal and duplicate-entry checks.
+      expect(names).toContain("package/my file.txt")
+      expect(names).toContain("package/plain.txt")
+    } finally {
+      rmSync(fixture, { recursive: true, force: true })
     }
   })
 

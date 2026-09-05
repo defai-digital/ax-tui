@@ -120,10 +120,14 @@ export function testRemnantsAbsent(coreDir = CORE_DIR) {
   return !existsSync(join(coreDir, "tests")) && !existsSync(join(coreDir, "native-event-worker-repro.worker.d.ts"))
 }
 
-function identityFiles(coreDir = CORE_DIR) {
+export function identityFiles(coreDir = CORE_DIR) {
   const files: string[] = []
   const visit = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      // Dot-directories (.git, .ax-code, …) hold tooling state, not shipped
+      // renderer artifacts — walking them slows the check down and would let
+      // --apply rewrite files outside the package.
+      if (entry.name.startsWith(".")) continue
       if (entry.name === "node_modules" || entry.name === "vendor" || entry.name === "patches") continue
       const file = join(dir, entry.name)
       if (entry.isDirectory()) {

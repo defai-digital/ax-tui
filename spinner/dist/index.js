@@ -42,8 +42,10 @@ export class SpinnerRenderable extends Renderable {
             this._frames = options.frames?.length ? [...options.frames] : [...DEFAULT_FRAMES];
             this._interval = options.interval ?? DEFAULT_INTERVAL;
         }
-        if (this._interval <= 0) {
-            throw new Error(`Spinner interval must be positive, got ${this._interval}`);
+        // NaN/Infinity pass a plain `<= 0` check; Node coerces them to a 1ms
+        // timer, which would spin the render loop at full speed.
+        if (!Number.isFinite(this._interval) || this._interval <= 0) {
+            throw new Error(`Spinner interval must be a positive finite number, got ${this._interval}`);
         }
         this._autoplay = options.autoplay ?? true;
         this._backgroundColor = options.backgroundColor ?? "transparent";
@@ -96,7 +98,7 @@ export class SpinnerRenderable extends Renderable {
         return this._interval;
     }
     set interval(value) {
-        if (value <= 0)
+        if (!Number.isFinite(value) || value <= 0)
             return;
         const wasRunning = this._intervalId !== null;
         this.stop();

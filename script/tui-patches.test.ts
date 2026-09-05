@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
-import { readFileSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   applyKittyKeyboardOptOut,
@@ -10,6 +11,7 @@ import {
   findFfiModule,
   findRendererModule,
   geometryGuardApplied,
+  identityFiles,
   nativeResolverApplied,
   kittyKeyboardOptOutApplied,
   pointerPinApplied,
@@ -92,6 +94,30 @@ if (node instanceof SelectRenderable2) {
     expect(next).toContain("TabSelectRenderableEvents")
     expect(next).toContain("SelectRenderable as SelectRenderable2")
     expect(next).toContain("SelectRenderable2")
+  })
+
+  test("identityFiles skips dot-directories, node_modules, vendor, and patches", () => {
+    const fixture = mkdtempSync(join(tmpdir(), "ax-tui-identity-"))
+    try {
+      mkdirSync(join(fixture, ".git", "hooks"), { recursive: true })
+      mkdirSync(join(fixture, ".ax-code"), { recursive: true })
+      mkdirSync(join(fixture, "node_modules", "dep"), { recursive: true })
+      mkdirSync(join(fixture, "vendor", "darwin-arm64"), { recursive: true })
+      mkdirSync(join(fixture, "patches"), { recursive: true })
+      mkdirSync(join(fixture, "solid"), { recursive: true })
+      writeFileSync(join(fixture, "index.js"), "")
+      writeFileSync(join(fixture, "solid", "components.js"), "")
+      writeFileSync(join(fixture, ".git", "hooks", "hook.js"), "")
+      writeFileSync(join(fixture, ".ax-code", "cached.js"), "")
+      writeFileSync(join(fixture, "node_modules", "dep", "index.js"), "")
+      writeFileSync(join(fixture, "vendor", "darwin-arm64", "shim.js"), "")
+      writeFileSync(join(fixture, "patches", "notes.d.ts"), "")
+
+      const found = identityFiles(fixture).map((file) => relative(fixture, file)).sort()
+      expect(found).toEqual([join("index.js"), join("solid", "components.js")].sort())
+    } finally {
+      rmSync(fixture, { recursive: true, force: true })
+    }
   })
 
   test("Solid catalogue does not register unused TUI widgets", () => {

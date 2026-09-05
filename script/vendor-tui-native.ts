@@ -138,8 +138,22 @@ async function download(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer())
 }
 
-/** List tarball entries as "type path" lines; rejects links and traversal. */
-function listTarball(tgz: string): string[] {
+/**
+ * List tarball entry names, one full path per line (`tar -tf`).
+ *
+ * The plain listing is the only portable way to get whole entry names: the
+ * verbose `-tvzf` columns differ between bsdtar and GNU tar, and splitting a
+ * verbose line on whitespace truncates paths that contain spaces, which would
+ * run the traversal/duplicate checks against the wrong string.
+ */
+export function listTarballNames(tgz: string): string[] {
+  const res = spawnSync("tar", ["-tf", tgz], { encoding: "utf8" })
+  if (res.status !== 0) fail(`tar listing failed: ${res.stderr?.trim()}`)
+  return res.stdout.split("\n").filter((line) => line.length > 0)
+}
+
+/** List verbose tarball lines; the first character is the entry type. */
+function listTarballVerbose(tgz: string): string[] {
   const res = spawnSync("tar", ["-tvzf", tgz], { encoding: "utf8" })
   if (res.status !== 0) fail(`tar listing failed: ${res.stderr?.trim()}`)
   return res.stdout.trim().split("\n")
@@ -163,18 +177,17 @@ async function updateTarget(target: Target): Promise<Record<string, unknown>> {
     const tgz = join(tmp, "pkg.tgz")
     writeFileSync(tgz, tarball)
 
-    const entries = listTarball(tgz)
     const wanted = new Set([`package/${target.libFile}`, "package/LICENSE", "package/package.json"])
     const seen = new Set<string>()
-    for (const line of entries) {
-      // bsdtar/GNU tar verbose: first column is mode string (e.g. -rw-r--r--, l..., h...)
-      const type = line[0]
-      const name = line.split(/\s+/).pop()
-      if (!name) fail(`${target.key}: unparseable tar listing line: ${line}`)
-      if (type === "l" || type === "h") fail(`${target.key}: tarball contains a link entry: ${name}`)
+    for (const name of listTarballNames(tgz)) {
       if (name.includes("..") || name.startsWith("/")) fail(`${target.key}: unsafe tarball path: ${name}`)
       if (seen.has(name)) fail(`${target.key}: duplicate tarball entry: ${name}`)
       seen.add(name)
+    }
+    for (const line of listTarballVerbose(tgz)) {
+      // bsdtar/GNU tar verbose: first column is mode string (e.g. -rw-r--r--, l..., h...)
+      const type = line[0]
+      if (type === "l" || type === "h") fail(`${target.key}: tarball contains a link entry: ${line.trim()}`)
     }
     for (const w of wanted) if (!seen.has(w)) fail(`${target.key}: tarball is missing ${w}`)
 

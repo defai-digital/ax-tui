@@ -90,6 +90,34 @@ describe("SpinnerRenderable frame lifecycle", () => {
     expect(spinner.currentFrameIndex).toBe(0)
   })
 
+  test("rejects NaN and Infinity intervals in the constructor", () => {
+    // A plain `<= 0` check passes NaN/Infinity; Node coerces them to a 1ms
+    // timer, which would spin the render loop at full speed.
+    expect(() => new SpinnerRenderable(ctx as never, { interval: NaN, autoplay: false })).toThrow(
+      /positive finite/,
+    )
+    expect(() => new SpinnerRenderable(ctx as never, { interval: Infinity, autoplay: false })).toThrow(
+      /positive finite/,
+    )
+    expect(() => new SpinnerRenderable(ctx as never, { interval: -1, autoplay: false })).toThrow(
+      /positive finite/,
+    )
+  })
+
+  test("interval setter ignores NaN and Infinity but accepts finite values", () => {
+    const spinner = new SpinnerRenderable(ctx as never, { interval: 100, autoplay: false })
+
+    spinner.interval = NaN
+    expect(spinner.interval).toBe(100)
+    spinner.interval = Infinity
+    expect(spinner.interval).toBe(100)
+    spinner.interval = 0
+    expect(spinner.interval).toBe(100)
+
+    spinner.interval = 250
+    expect(spinner.interval).toBe(250)
+  })
+
   test("supports custom frames that collide with Object prototype keys", () => {
     const spinner = new SpinnerRenderable(ctx as never, { name: "dots", autoplay: false })
     native.encodeUnicode.mockClear()
