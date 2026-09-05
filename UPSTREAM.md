@@ -4,6 +4,9 @@
 project under the MIT license. Public package identity, release staging, patches, and product integration are maintained
 by DEFAI Digital; derivation and copyright notices remain intact.
 
+Design input (read-only, no code extraction) also comes from other coding-agent CLIs, notably Kimi Code and
+Grok Build, as documented in the README's design-influences section.
+
 ## Pinned native baseline
 
 The authoritative native record is [`vendor/manifest.json`](./vendor/manifest.json). It records:

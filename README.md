@@ -97,3 +97,13 @@ and its hashes are recorded in [`vendor/manifest.json`](./vendor/manifest.json).
 ```sh
 pnpm run check   # vendor integrity + patch contracts + spinner dist freshness
 ```
+
+## Design influences
+
+Beyond OpenTUI, the framework's ergonomics and feature direction are informed
+by studying other coding-agent CLIs as read-only design input — in particular
+[Kimi Code](https://www.kimi.com/code) and
+[Grok Build](https://docs.x.ai/docs/grok-code) — alongside the AX Code TUI
+that ax-tui was extracted from. These projects influence design choices only;
+no code is extracted from them, and their respective licenses and terms apply
+to their own distributions.
