@@ -1,0 +1,66 @@
+name: Publish ax-tui to JSR
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag, for example v0.1.0
+        required: true
+        type: string
+
+concurrency:
+  group: ax-tui-jsr-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AX_TUI_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TUI_VERSION="$(node -p "require('./jsr.json').version")"
+          EXPECTED_TAG="v${TUI_VERSION}"
+          if [ "$AX_TUI_RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "::error::Release tag must be $EXPECTED_TAG, received $AX_TUI_RELEASE_TAG"
+            exit 1
+          fi
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Check vendor integrity, patches, and spinner dist
+        run: pnpm run check
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Verify JSR package
+        run: pnpm run check:jsr
+
+      - name: Publish JSR package with provenance
+        run: pnpm run publish:jsr

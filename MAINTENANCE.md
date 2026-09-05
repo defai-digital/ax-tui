@@ -83,3 +83,22 @@ enabled in both profiles unless `AX_CODE_TUI_KITTY_KEYBOARD=0` explicitly disabl
 Terminal teardown is ordered and best-effort: title cleanup, renderer destruction, mouse reset, main-screen clearing,
 and output flushing are separate failure domains. Deferred work, timers, subscriptions, process handlers, and renderable
 access must use the named TUI lifecycle and safety helpers so route changes and shutdown cannot leave stale work behind.
+
+## Releasing to JSR
+
+The package is published to JSR as [`@defai-digital/ax-tui`](https://jsr.io/@defai-digital/ax-tui) from the
+`.github/workflows/jsr.yml` workflow using GitHub OIDC trusted publishing (no long-lived tokens).
+
+1. Bump `version` in both `package.json` and `jsr.json` (they must match).
+2. Commit, push `main`, then create the matching tag (`v<version>`) and push it.
+3. The workflow validates the tag against `jsr.json`, rebuilds the spinner dist, runs `check` and the test
+   suite, dry-runs the JSR publish, and then publishes with provenance.
+
+The JSR tarball ships JavaScript, type declarations, tree-sitter assets, and `vendor/manifest.json` only — the
+native renderer libraries exceed JSR size limits and are distributed out-of-band (GitHub Releases), with the
+manifest recording the expected artifacts. See `UPSTREAM.md` and the extraction PRD/ADR in the AX Code monorepo
+(`.internal/prd/PRD-2026-09-05-ax-tui-extraction.md`, `ADR-074`).
+
+```sh
+pnpm run check:jsr        # local dry run of the exact publish payload
+```

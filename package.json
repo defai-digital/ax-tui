@@ -7,6 +7,7 @@
   "module": "index.js",
   "main": "index.js",
   "types": "index.d.ts",
+  "packageManager": "pnpm@10.20.0",
   "files": [
     "index.js",
     "index.d.ts",
@@ -145,6 +146,8 @@
     "check:patches": "tsx script/tui-patches.ts --check",
     "check:spinner-dist": "tsx script/check-tui-spinner-dist.ts",
     "check": "pnpm run check:vendor && pnpm run check:patches && pnpm run check:spinner-dist",
+    "check:jsr": "jsr publish --dry-run",
+    "publish:jsr": "jsr publish",
     "test": "vitest run"
   },
   "dependencies": {
@@ -161,6 +164,7 @@
   },
   "devDependencies": {
     "@types/node": "24.13.2",
+    "jsr": "0.14.3",
     "tsx": "4.22.4",
     "typescript": "5.9.3",
     "vitest": "4.1.9"
