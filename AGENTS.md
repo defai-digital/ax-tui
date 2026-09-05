@@ -92,7 +92,10 @@ Rules that must hold at all times:
 - `pnpm run build` — rebuild `spinner/dist` from `spinner/src`.
 - `pnpm run typecheck` — typecheck spinner sources (`tsc -p spinner/tsconfig.json`).
 - `pnpm run check` — vendor + patches + spinner-dist verification.
-- `pnpm test` — vitest over `script/*.test.ts`.
+- `pnpm test` — vitest over `test/*.test.ts` (framework-internal guards) and
+  `script/*.test.ts` (maintenance tools), per `vitest.config.ts`. The config
+  aliases the `ax-tui` self-reference to the package root because vite-node
+  does not apply Node's package self-reference resolution.
 - Formatting: Prettier, `semi: false`, `printWidth: 120` (matching the AX Code
   style this repo was extracted from); ESM only; `import type` for
   type-only imports.
