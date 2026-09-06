@@ -23,48 +23,59 @@ import {
 import { TextNodeRenderable } from "../TextNode.js"
 import { type VChild } from "./vnode.js"
 import type { RGBA } from "../../lib/RGBA.js"
+/** Generic. */
 export declare function Generic(
   props?: VRenderableOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof VRenderable>
+/** Box. */
 export declare function Box(
   props?: BoxOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof BoxRenderable>
+/** Text. */
 export declare function Text(
   props?: TextOptions & {
     content?: any
   },
   ...children: VChild[] | TextNodeRenderable[]
 ): import("./vnode.js").ProxiedVNode<typeof TextRenderable>
+/** ASCIIFont. */
 export declare function ASCIIFont(
   props?: ASCIIFontOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof ASCIIFontRenderable>
+/** Input. */
 export declare function Input(
   props?: InputRenderableOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof InputRenderable>
+/** Select. */
 export declare function Select(
   props?: SelectRenderableOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof SelectRenderable>
+/** Tab select. */
 export declare function TabSelect(
   props?: TabSelectRenderableOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof TabSelectRenderable>
+/** Frame buffer. */
 export declare function FrameBuffer(
   props: FrameBufferOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof FrameBufferRenderable>
+/** Code. */
 export declare function Code(
   props: CodeOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof CodeRenderable>
+/** Scroll box. */
 export declare function ScrollBox(
   props?: ScrollBoxOptions,
   ...children: VChild[]
 ): import("./vnode.js").ProxiedVNode<typeof ScrollBoxRenderable>
+/** Vstyles. */
 export declare const vstyles: {
   bold: (...children: (string | TextNodeRenderable)[]) => TextNodeRenderable
   italic: (...children: (string | TextNodeRenderable)[]) => TextNodeRenderable

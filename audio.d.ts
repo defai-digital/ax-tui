@@ -1,11 +1,13 @@
 import { EventEmitter } from "events"
 import type { AudioStats } from "./zig-structs.js"
+/** Audio setup options. */
 export interface AudioSetupOptions {
   autoStart?: boolean
   sampleRate?: number
   playbackChannels?: number
   startOptions?: AudioStartOptions
 }
+/** Audio start options. */
 export interface AudioStartOptions {
   periodSizeInFrames?: number
   periodSizeInMilliseconds?: number
@@ -23,20 +25,26 @@ export interface AudioStartOptions {
   alsaNoAutoChannels?: boolean
   alsaNoAutoResample?: boolean
 }
+/** Audio play options. */
 export interface AudioPlayOptions {
   volume?: number
   pan?: number
   loop?: boolean
   groupId?: number
 }
+/** Audio group. */
 export type AudioGroup = number
+/** Audio voice. */
 export type AudioVoice = number
+/** Audio sound. */
 export type AudioSound = number
+/** Audio playback device. */
 export interface AudioPlaybackDevice {
   index: number
   name: string
   isDefault: boolean
 }
+/** Audio action. */
 export type AudioAction =
   | "createAudioEngine"
   | "start"
@@ -58,10 +66,12 @@ export type AudioAction =
   | "selectPlaybackDevice"
   | "clearPlaybackDeviceSelection"
   | "getStats"
+/** Audio error context. */
 export interface AudioErrorContext {
   action: AudioAction
   status?: number
 }
+/** Audio events. */
 export interface AudioEvents {
   error: [error: Error, context: AudioErrorContext]
   started: []
@@ -69,6 +79,7 @@ export interface AudioEvents {
   stopped: []
   disposed: []
 }
+/** Native audio engine wrapper. */
 export declare class Audio extends EventEmitter<AudioEvents> {
   static create(options?: AudioSetupOptions): Audio
   private readonly lib
@@ -109,4 +120,5 @@ export declare class Audio extends EventEmitter<AudioEvents> {
   getStats(): AudioStats | null
   dispose(): void
 }
+/** Setup audio. */
 export declare function setupAudio(options?: AudioSetupOptions): Audio

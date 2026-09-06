@@ -4,6 +4,7 @@ import { RGBA } from "../lib/RGBA.js"
 import { StyledText } from "../lib/styled-text.js"
 import { type TextChunk } from "../text-buffer.js"
 import type { RenderContext } from "../types.js"
+/** Text node options. */
 export interface TextNodeOptions extends BaseRenderableOptions {
   fg?: string | RGBA
   bg?: string | RGBA
@@ -13,7 +14,9 @@ export interface TextNodeOptions extends BaseRenderableOptions {
   }
 }
 declare const BrandedTextNodeRenderable: unique symbol
+/** Is text node renderable. */
 export declare function isTextNodeRenderable(obj: any): obj is TextNodeRenderable
+/** Inline text fragment used inside styled text trees. */
 export declare class TextNodeRenderable extends BaseRenderable {
   [BrandedTextNodeRenderable]: boolean
   private _fg?
@@ -88,6 +91,7 @@ export declare class TextNodeRenderable extends BaseRenderable {
     | undefined
   findDescendantById(id: string): BaseRenderable | undefined
 }
+/** Root text node renderable class. */
 export declare class RootTextNodeRenderable extends TextNodeRenderable {
   private readonly ctx
   textParent: TextRenderable

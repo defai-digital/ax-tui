@@ -1,6 +1,7 @@
 import { RGBA } from "./lib/RGBA.js"
 import { type EditorViewHandle, type RenderLib, type VisualCursor, type LineInfo } from "./zig.js"
 import type { EditBuffer } from "./edit-buffer.js"
+/** Viewport. */
 export interface Viewport {
   offsetY: number
   offsetX: number
@@ -8,6 +9,7 @@ export interface Viewport {
   width: number
 }
 export type { VisualCursor }
+/** Viewport over an {@link EditBuffer}. */
 export declare class EditorView {
   private lib
   private viewPtr

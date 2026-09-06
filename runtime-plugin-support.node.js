@@ -1,3 +1,4 @@
+// @ts-self-types="./runtime-plugin-support.d.ts"
 const errorMessage =
   "ax-tui/runtime-plugin-support is Bun-only and is not available in Node.js. Use Bun to import this entrypoint."
 

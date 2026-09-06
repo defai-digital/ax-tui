@@ -1,5 +1,6 @@
 import type { EditBuffer } from "../edit-buffer.js"
 import type { EditorView } from "../editor-view.js"
+/** Extmark. */
 export interface Extmark {
   id: number
   start: number
@@ -10,6 +11,7 @@ export interface Extmark {
   data?: any
   typeId: number
 }
+/** Extmark options. */
 export interface ExtmarkOptions {
   start: number
   end: number
@@ -87,4 +89,5 @@ export declare class ExtmarksController {
   getMetadataFor(extmarkId: number): any
   destroy(): void
 }
+/** Create extmarks controller. */
 export declare function createExtmarksController(editBuffer: EditBuffer, editorView: EditorView): ExtmarksController

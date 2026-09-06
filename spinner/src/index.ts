@@ -1,3 +1,8 @@
+/**
+ * Animated spinner renderable and preset catalogue for ax-tui.
+ *
+ * @module
+ */
 import { Renderable, parseColor, resolveRenderLib } from "ax-tui"
 import type { ColorInput, LayoutOptions, OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui"
 import presets, { type SpinnerName, getSpinnerPreset } from "./presets.js"
@@ -7,12 +12,13 @@ export type { ColorGenerator } from "./utils.js"
 export { createPulse, createWave, createStatic, createRainbow, maxFrameDisplayWidth } from "./utils.js"
 export { type SpinnerName, type SpinnerPreset, getSpinnerPreset, getSpinnerNames, randomSpinner } from "./presets.js"
 
-// Re-export preset map for advanced use (e.g. custom iteration)
+/** Built-in spinner animation presets keyed by {@link SpinnerName}. */
 export { presets }
 
 type RenderLib = ReturnType<typeof resolveRenderLib>
 type EncodedHandle = NonNullable<ReturnType<RenderLib["encodeUnicode"]>>
 
+/** Construction options for {@link SpinnerRenderable}. */
 export interface SpinnerOptions
   extends Omit<RenderableOptions<SpinnerRenderable>, "width" | "height" | "buffered" | "live" | keyof LayoutOptions> {
   /** Use a named preset (e.g. "dots", "line", "arc"). Overrides `frames` and `interval`. */
@@ -32,6 +38,7 @@ export interface SpinnerOptions
 const DEFAULT_FRAMES = presets.dots.frames
 const DEFAULT_INTERVAL = presets.dots.interval
 
+/** Terminal spinner renderable with named presets, custom frames, and per-character colors. */
 export class SpinnerRenderable extends Renderable {
   private _name: SpinnerName | undefined
   private _frames: string[]

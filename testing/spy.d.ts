@@ -1,3 +1,4 @@
+/** Create spy. */
 export declare function createSpy(): {
   (...args: any[]): void
   calls: any[][]

@@ -1,8 +1,10 @@
+/** Download result. */
 export interface DownloadResult {
   content?: Buffer
   filePath?: string
   error?: string
 }
+/** Download utils class. */
 export declare class DownloadUtils {
   private static hashUrl
   /**

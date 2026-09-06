@@ -1,3 +1,4 @@
+/** ANSI. */
 export declare const ANSI: {
   switchToAlternateScreen: string
   switchToMainScreen: string

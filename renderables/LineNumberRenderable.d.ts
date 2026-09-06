@@ -2,16 +2,19 @@ import { Renderable, type RenderableOptions } from "../Renderable.js"
 import { OptimizedBuffer } from "../buffer.js"
 import type { RenderContext, LineInfoProvider } from "../types.js"
 import { RGBA } from "../lib/RGBA.js"
+/** Line sign. */
 export interface LineSign {
   before?: string
   beforeColor?: string | RGBA
   after?: string
   afterColor?: string | RGBA
 }
+/** Line color config. */
 export interface LineColorConfig {
   gutter?: string | RGBA
   content?: string | RGBA
 }
+/** Line number options. */
 export interface LineNumberOptions extends RenderableOptions<LineNumberRenderable> {
   target?: Renderable & LineInfoProvider
   fg?: string | RGBA
@@ -25,6 +28,7 @@ export interface LineNumberOptions extends RenderableOptions<LineNumberRenderabl
   lineNumbers?: Map<number, number>
   showLineNumbers?: boolean
 }
+/** Gutter that displays line numbers next to a text buffer. */
 export declare class LineNumberRenderable extends Renderable {
   private gutter
   private target

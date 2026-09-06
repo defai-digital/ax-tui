@@ -1,5 +1,7 @@
 import type { CliRenderer } from "../renderer.js"
+/** Paste bytes. */
 export declare function pasteBytes(text: string): Uint8Array
+/** Key codes. */
 export declare const KeyCodes: {
   readonly RETURN: "\r"
   readonly LINEFEED: "\n"
@@ -26,11 +28,14 @@ export declare const KeyCodes: {
   readonly F11: "\u001B[23~"
   readonly F12: "\u001B[24~"
 }
+/** Key input. */
 export type KeyInput = string | keyof typeof KeyCodes
+/** Mock keys options. */
 export interface MockKeysOptions {
   kittyKeyboard?: boolean
   otherModifiersMode?: boolean
 }
+/** Create mock keys. */
 export declare function createMockKeys(
   renderer: CliRenderer,
   options?: MockKeysOptions,

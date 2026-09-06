@@ -13,7 +13,50 @@ export interface SpinnerPreset {
   readonly frames: readonly string[]
 }
 
-const presets = {
+/** Name of a built-in spinner preset. */
+export type SpinnerName =
+  | "dots"
+  | "dots2"
+  | "dots3"
+  | "dots4"
+  | "dots5"
+  | "dots9"
+  | "dots10"
+  | "dots11"
+  | "line"
+  | "line2"
+  | "pipe"
+  | "simpleDots"
+  | "star"
+  | "star2"
+  | "flip"
+  | "hamburger"
+  | "growVertical"
+  | "growHorizontal"
+  | "balloon"
+  | "balloon2"
+  | "bounce"
+  | "boxBounce"
+  | "boxBounce2"
+  | "triangle"
+  | "arc"
+  | "circle"
+  | "squareCorners"
+  | "circleQuarters"
+  | "circleHalves"
+  | "squish"
+  | "toggle"
+  | "toggle2"
+  | "toggle3"
+  | "toggle4"
+  | "toggle5"
+  | "arrow"
+  | "arrow3"
+  | "bouncingBar"
+  | "bouncingBall"
+  | "aesthetic"
+
+const presets: Record<SpinnerName, SpinnerPreset> = {
   dots: { interval: 80, frames: ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] },
   dots2: { interval: 80, frames: ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"] },
   dots3: { interval: 80, frames: ["⠋", "⠙", "⠚", "⠞", "⠖", "⠦", "⠴", "⠲", "⠳", "⠓"] },
@@ -103,9 +146,7 @@ const presets = {
     interval: 80,
     frames: ["▰▱▱▱▱▱▱", "▰▰▱▱▱▱▱", "▰▰▰▱▱▱▱", "▰▰▰▰▱▱▱", "▰▰▰▰▰▱▱", "▰▰▰▰▰▰▱", "▰▰▰▰▰▰▰", "▰▱▱▱▱▱▱"],
   },
-} as const satisfies Record<string, SpinnerPreset>
-
-export type SpinnerName = keyof typeof presets
+}
 
 /**
  * Returns the preset for the given spinner name, or `undefined` if not found.
@@ -133,4 +174,5 @@ export function randomSpinner(): SpinnerPreset {
   return presets[names[Math.floor(Math.random() * names.length)]!]
 }
 
+/** Built-in spinner animation presets keyed by {@link SpinnerName}. */
 export default presets

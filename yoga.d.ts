@@ -1,4 +1,10 @@
+/**
+ * Direct Yoga layout bindings used by the ax-tui renderer.
+ *
+ * @module
+ */
 import type { Pointer } from "./platform/ffi.js"
+/** Yoga alignment. */
 export declare enum Align {
   Auto = 0,
   FlexStart = 1,
@@ -10,24 +16,29 @@ export declare enum Align {
   SpaceAround = 7,
   SpaceEvenly = 8,
 }
+/** Yoga box-sizing mode. */
 export declare enum BoxSizing {
   BorderBox = 0,
   ContentBox = 1,
 }
+/** Yoga width/height dimension selector. */
 export declare enum Dimension {
   Width = 0,
   Height = 1,
 }
+/** Yoga layout direction (LTR/RTL). */
 export declare enum Direction {
   Inherit = 0,
   LTR = 1,
   RTL = 2,
 }
+/** Yoga display mode. */
 export declare enum Display {
   Flex = 0,
   None = 1,
   Contents = 2,
 }
+/** Yoga edge selector for margin, padding, and border. */
 export declare enum Edge {
   Left = 0,
   Top = 1,
@@ -39,6 +50,7 @@ export declare enum Edge {
   Vertical = 7,
   All = 8,
 }
+/** Yoga compatibility errata flags. */
 export declare enum Errata {
   None = 0,
   StretchFlexBasis = 1,
@@ -47,20 +59,24 @@ export declare enum Errata {
   All = 2147483647,
   Classic = 2147483646,
 }
+/** Yoga experimental feature flags. */
 export declare enum ExperimentalFeature {
   WebFlexBasis = 0,
 }
+/** Yoga flex direction. */
 export declare enum FlexDirection {
   Column = 0,
   ColumnReverse = 1,
   Row = 2,
   RowReverse = 3,
 }
+/** Yoga gap gutter selector. */
 export declare enum Gutter {
   Column = 0,
   Row = 1,
   All = 2,
 }
+/** Yoga main-axis justification. */
 export declare enum Justify {
   FlexStart = 0,
   Center = 1,
@@ -69,6 +85,7 @@ export declare enum Justify {
   SpaceAround = 4,
   SpaceEvenly = 5,
 }
+/** Yoga or renderer log level. */
 export declare enum LogLevel {
   Error = 0,
   Warn = 1,
@@ -77,109 +94,188 @@ export declare enum LogLevel {
   Verbose = 4,
   Fatal = 5,
 }
+/** Yoga measure-function constraint. */
 export declare enum MeasureMode {
   Undefined = 0,
   Exactly = 1,
   AtMost = 2,
 }
+/** Yoga node type. */
 export declare enum NodeType {
   Default = 0,
   Text = 1,
 }
+/** Yoga overflow mode. */
 export declare enum Overflow {
   Visible = 0,
   Hidden = 1,
   Scroll = 2,
 }
+/** Yoga position type. */
 export declare enum PositionType {
   Static = 0,
   Relative = 1,
   Absolute = 2,
 }
+/** Yoga numeric unit (point, percent, auto). */
 export declare enum Unit {
   Undefined = 0,
   Point = 1,
   Percent = 2,
   Auto = 3,
 }
+/** Yoga flex wrap mode. */
 export declare enum Wrap {
   NoWrap = 0,
   Wrap = 1,
   WrapReverse = 2,
 }
+/** Numeric alias for {@link Align.Auto}. */
 export declare const ALIGN_AUTO = Align.Auto
+/** Numeric alias for {@link Align.FlexStart}. */
 export declare const ALIGN_FLEX_START = Align.FlexStart
+/** Numeric alias for {@link Align.Center}. */
 export declare const ALIGN_CENTER = Align.Center
+/** Numeric alias for {@link Align.FlexEnd}. */
 export declare const ALIGN_FLEX_END = Align.FlexEnd
+/** Numeric alias for {@link Align.Stretch}. */
 export declare const ALIGN_STRETCH = Align.Stretch
+/** Numeric alias for {@link Align.Baseline}. */
 export declare const ALIGN_BASELINE = Align.Baseline
+/** Numeric alias for {@link Align.SpaceBetween}. */
 export declare const ALIGN_SPACE_BETWEEN = Align.SpaceBetween
+/** Numeric alias for {@link Align.SpaceAround}. */
 export declare const ALIGN_SPACE_AROUND = Align.SpaceAround
+/** Numeric alias for {@link Align.SpaceEvenly}. */
 export declare const ALIGN_SPACE_EVENLY = Align.SpaceEvenly
+/** Numeric alias for {@link BoxSizing.BorderBox}. */
 export declare const BOX_SIZING_BORDER_BOX = BoxSizing.BorderBox
+/** Numeric alias for {@link BoxSizing.ContentBox}. */
 export declare const BOX_SIZING_CONTENT_BOX = BoxSizing.ContentBox
+/** Numeric alias for {@link Dimension.Width}. */
 export declare const DIMENSION_WIDTH = Dimension.Width
+/** Numeric alias for {@link Dimension.Height}. */
 export declare const DIMENSION_HEIGHT = Dimension.Height
+/** Numeric alias for {@link Direction.Inherit}. */
 export declare const DIRECTION_INHERIT = Direction.Inherit
+/** Numeric alias for {@link Direction.LTR}. */
 export declare const DIRECTION_LTR = Direction.LTR
+/** Numeric alias for {@link Direction.RTL}. */
 export declare const DIRECTION_RTL = Direction.RTL
+/** Numeric alias for {@link Display.Flex}. */
 export declare const DISPLAY_FLEX = Display.Flex
+/** Numeric alias for {@link Display.None}. */
 export declare const DISPLAY_NONE = Display.None
+/** Numeric alias for {@link Display.Contents}. */
 export declare const DISPLAY_CONTENTS = Display.Contents
+/** Numeric alias for {@link Edge.Left}. */
 export declare const EDGE_LEFT = Edge.Left
+/** Numeric alias for {@link Edge.Top}. */
 export declare const EDGE_TOP = Edge.Top
+/** Numeric alias for {@link Edge.Right}. */
 export declare const EDGE_RIGHT = Edge.Right
+/** Numeric alias for {@link Edge.Bottom}. */
 export declare const EDGE_BOTTOM = Edge.Bottom
+/** Numeric alias for {@link Edge.Start}. */
 export declare const EDGE_START = Edge.Start
+/** Numeric alias for {@link Edge.End}. */
 export declare const EDGE_END = Edge.End
+/** Numeric alias for {@link Edge.Horizontal}. */
 export declare const EDGE_HORIZONTAL = Edge.Horizontal
+/** Numeric alias for {@link Edge.Vertical}. */
 export declare const EDGE_VERTICAL = Edge.Vertical
+/** Numeric alias for {@link Edge.All}. */
 export declare const EDGE_ALL = Edge.All
+/** Numeric alias for {@link Errata.None}. */
 export declare const ERRATA_NONE = Errata.None
+/** Numeric alias for {@link Errata.StretchFlexBasis}. */
 export declare const ERRATA_STRETCH_FLEX_BASIS = Errata.StretchFlexBasis
+/** ERRATA ABSOLUTE POSITION WITHOUT INSETS EXCLUDES PADDING. */
 export declare const ERRATA_ABSOLUTE_POSITION_WITHOUT_INSETS_EXCLUDES_PADDING =
   Errata.AbsolutePositionWithoutInsetsExcludesPadding
+/** Numeric alias for {@link Errata.AbsolutePercentAgainstInnerSize}. */
 export declare const ERRATA_ABSOLUTE_PERCENT_AGAINST_INNER_SIZE = Errata.AbsolutePercentAgainstInnerSize
+/** Numeric alias for {@link Errata.All}. */
 export declare const ERRATA_ALL = Errata.All
+/** Numeric alias for {@link Errata.Classic}. */
 export declare const ERRATA_CLASSIC = Errata.Classic
+/** Numeric alias for {@link ExperimentalFeature.WebFlexBasis}. */
 export declare const EXPERIMENTAL_FEATURE_WEB_FLEX_BASIS = ExperimentalFeature.WebFlexBasis
+/** Numeric alias for {@link FlexDirection.Column}. */
 export declare const FLEX_DIRECTION_COLUMN = FlexDirection.Column
+/** Numeric alias for {@link FlexDirection.ColumnReverse}. */
 export declare const FLEX_DIRECTION_COLUMN_REVERSE = FlexDirection.ColumnReverse
+/** Numeric alias for {@link FlexDirection.Row}. */
 export declare const FLEX_DIRECTION_ROW = FlexDirection.Row
+/** Numeric alias for {@link FlexDirection.RowReverse}. */
 export declare const FLEX_DIRECTION_ROW_REVERSE = FlexDirection.RowReverse
+/** Numeric alias for {@link Gutter.Column}. */
 export declare const GUTTER_COLUMN = Gutter.Column
+/** Numeric alias for {@link Gutter.Row}. */
 export declare const GUTTER_ROW = Gutter.Row
+/** Numeric alias for {@link Gutter.All}. */
 export declare const GUTTER_ALL = Gutter.All
+/** Numeric alias for {@link Justify.FlexStart}. */
 export declare const JUSTIFY_FLEX_START = Justify.FlexStart
+/** Numeric alias for {@link Justify.Center}. */
 export declare const JUSTIFY_CENTER = Justify.Center
+/** Numeric alias for {@link Justify.FlexEnd}. */
 export declare const JUSTIFY_FLEX_END = Justify.FlexEnd
+/** Numeric alias for {@link Justify.SpaceBetween}. */
 export declare const JUSTIFY_SPACE_BETWEEN = Justify.SpaceBetween
+/** Numeric alias for {@link Justify.SpaceAround}. */
 export declare const JUSTIFY_SPACE_AROUND = Justify.SpaceAround
+/** Numeric alias for {@link Justify.SpaceEvenly}. */
 export declare const JUSTIFY_SPACE_EVENLY = Justify.SpaceEvenly
+/** Numeric alias for {@link LogLevel.Error}. */
 export declare const LOG_LEVEL_ERROR = LogLevel.Error
+/** Numeric alias for {@link LogLevel.Warn}. */
 export declare const LOG_LEVEL_WARN = LogLevel.Warn
+/** Numeric alias for {@link LogLevel.Info}. */
 export declare const LOG_LEVEL_INFO = LogLevel.Info
+/** Numeric alias for {@link LogLevel.Debug}. */
 export declare const LOG_LEVEL_DEBUG = LogLevel.Debug
+/** Numeric alias for {@link LogLevel.Verbose}. */
 export declare const LOG_LEVEL_VERBOSE = LogLevel.Verbose
+/** Numeric alias for {@link LogLevel.Fatal}. */
 export declare const LOG_LEVEL_FATAL = LogLevel.Fatal
+/** Numeric alias for {@link MeasureMode.Undefined}. */
 export declare const MEASURE_MODE_UNDEFINED = MeasureMode.Undefined
+/** Numeric alias for {@link MeasureMode.Exactly}. */
 export declare const MEASURE_MODE_EXACTLY = MeasureMode.Exactly
+/** Numeric alias for {@link MeasureMode.AtMost}. */
 export declare const MEASURE_MODE_AT_MOST = MeasureMode.AtMost
+/** Numeric alias for {@link NodeType.Default}. */
 export declare const NODE_TYPE_DEFAULT = NodeType.Default
+/** Numeric alias for {@link NodeType.Text}. */
 export declare const NODE_TYPE_TEXT = NodeType.Text
+/** Numeric alias for {@link Overflow.Visible}. */
 export declare const OVERFLOW_VISIBLE = Overflow.Visible
+/** Numeric alias for {@link Overflow.Hidden}. */
 export declare const OVERFLOW_HIDDEN = Overflow.Hidden
+/** Numeric alias for {@link Overflow.Scroll}. */
 export declare const OVERFLOW_SCROLL = Overflow.Scroll
+/** Numeric alias for {@link PositionType.Static}. */
 export declare const POSITION_TYPE_STATIC = PositionType.Static
+/** Numeric alias for {@link PositionType.Relative}. */
 export declare const POSITION_TYPE_RELATIVE = PositionType.Relative
+/** Numeric alias for {@link PositionType.Absolute}. */
 export declare const POSITION_TYPE_ABSOLUTE = PositionType.Absolute
+/** Numeric alias for {@link Unit.Undefined}. */
 export declare const UNIT_UNDEFINED = Unit.Undefined
+/** Numeric alias for {@link Unit.Point}. */
 export declare const UNIT_POINT = Unit.Point
+/** Numeric alias for {@link Unit.Percent}. */
 export declare const UNIT_PERCENT = Unit.Percent
+/** Numeric alias for {@link Unit.Auto}. */
 export declare const UNIT_AUTO = Unit.Auto
+/** Numeric alias for {@link Wrap.NoWrap}. */
 export declare const WRAP_NO_WRAP = Wrap.NoWrap
+/** Numeric alias for {@link Wrap.Wrap}. */
 export declare const WRAP_WRAP = Wrap.Wrap
+/** Numeric alias for {@link Wrap.WrapReverse}. */
 export declare const WRAP_WRAP_REVERSE = Wrap.WrapReverse
+/** Layout. */
 export interface Layout {
   left: number
   right: number
@@ -188,18 +284,23 @@ export interface Layout {
   width: number
   height: number
 }
+/** Size. */
 export interface Size {
   width: number
   height: number
 }
+/** Value. */
 export interface Value {
   unit: Unit
   value: number
 }
+/** Measure function. */
 export type MeasureFunction = (width: number, widthMode: MeasureMode, height: number, heightMode: MeasureMode) => Size
+/** Dirtied function. */
 export type DirtiedFunction = (node: Node) => void
 type ValueInput = number | "auto" | `${number}%` | Value | undefined
 type ValueInputNoAuto = number | `${number}%` | Value | undefined
+/** Yoga layout configuration object. */
 export declare class Config {
   readonly ptr: Pointer
   private freed
@@ -216,6 +317,7 @@ export declare class Config {
   setExperimentalFeatureEnabled(feature: ExperimentalFeature, enabled: boolean): void
   isExperimentalFeatureEnabled(feature: ExperimentalFeature): boolean
 }
+/** Yoga layout node. */
 export declare class Node {
   readonly ptr: Pointer
   private freed
@@ -438,4 +540,5 @@ declare const Yoga: {
   WRAP_WRAP: Wrap
   WRAP_WRAP_REVERSE: Wrap
 }
+/** Yoga layout engine namespace containing layout classes, enums, and numeric aliases. */
 export default Yoga

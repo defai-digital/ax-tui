@@ -1,13 +1,16 @@
+/** Highlight range. */
 export interface HighlightRange {
   startCol: number
   endCol: number
   group: string
 }
+/** Highlight response. */
 export interface HighlightResponse {
   line: number
   highlights: HighlightRange[]
   droppedHighlights: HighlightRange[]
 }
+/** Highlight meta. */
 export interface HighlightMeta {
   isInjection?: boolean
   injectionLang?: string
@@ -15,7 +18,9 @@ export interface HighlightMeta {
   conceal?: string | null
   concealLines?: string | null
 }
+/** Simple highlight. */
 export type SimpleHighlight = [number, number, string, HighlightMeta?]
+/** Injection mapping. */
 export interface InjectionMapping {
   nodeTypes?: {
     [nodeType: string]: string
@@ -24,6 +29,7 @@ export interface InjectionMapping {
     [infoString: string]: string
   }
 }
+/** Filetype parser options. */
 export interface FiletypeParserOptions {
   filetype: string
   aliases?: string[]
@@ -34,6 +40,7 @@ export interface FiletypeParserOptions {
   wasm: string
   injectionMapping?: InjectionMapping
 }
+/** Buffer state. */
 export interface BufferState {
   id: number
   version: number
@@ -41,10 +48,13 @@ export interface BufferState {
   filetype: string
   hasParser: boolean
 }
+/** Parsed buffer. */
 export interface ParsedBuffer extends BufferState {
   hasParser: true
 }
+/** Tree sitter worker log type. */
 export type TreeSitterWorkerLogType = "log" | "error" | "warn"
+/** Tree sitter worker request. */
 export type TreeSitterWorkerRequest =
   | {
       type: "INIT"
@@ -104,6 +114,7 @@ export type TreeSitterWorkerRequest =
       type: "CLEAR_CACHE"
       messageId: string
     }
+/** Tree sitter worker response. */
 export type TreeSitterWorkerResponse =
   | {
       type: "INIT_RESPONSE"
@@ -170,6 +181,7 @@ export type TreeSitterWorkerResponse =
       logType: TreeSitterWorkerLogType
       data: unknown[]
     }
+/** Tree sitter client events. */
 export interface TreeSitterClientEvents {
   "highlights:response": [bufferId: number, version: number, highlights: HighlightResponse[]]
   "buffer:initialized": [bufferId: number, hasParser: boolean]
@@ -178,11 +190,13 @@ export interface TreeSitterClientEvents {
   error: [error: string, bufferId?: number]
   warning: [warning: string, bufferId?: number]
 }
+/** Tree sitter client options. */
 export interface TreeSitterClientOptions {
   dataPath: string
   workerPath?: string | URL
   initTimeout?: number
 }
+/** Edit. */
 export interface Edit {
   startIndex: number
   oldEndIndex: number
@@ -200,6 +214,7 @@ export interface Edit {
     column: number
   }
 }
+/** Performance stats. */
 export interface PerformanceStats {
   averageParseTime: number
   parseTimes: number[]

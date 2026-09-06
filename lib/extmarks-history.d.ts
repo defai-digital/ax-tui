@@ -1,8 +1,10 @@
 import type { Extmark } from "./extmarks.js"
+/** Extmarks snapshot. */
 export interface ExtmarksSnapshot {
   extmarks: Map<number, Extmark>
   nextId: number
 }
+/** Extmarks history class. */
 export declare class ExtmarksHistory {
   private undoStack
   private redoStack

@@ -1,6 +1,7 @@
 import { type Pointer } from "./platform/ffi.js"
 import type { NativeSpanFeedOptions } from "./zig-structs.js"
 export type { GrowthPolicy, NativeSpanFeedOptions, NativeSpanFeedStats } from "./zig-structs.js"
+/** Data handler. */
 export type DataHandler = (data: Uint8Array) => void | Promise<void>
 /**
  * Zero-copy wrapper over Zig memory; not a full stream interface.

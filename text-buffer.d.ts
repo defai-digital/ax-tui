@@ -3,6 +3,7 @@ import { RGBA } from "./lib/RGBA.js"
 import { type RenderLib, type TextBufferHandle } from "./zig.js"
 import { type WidthMethod, type Highlight } from "./types.js"
 import type { SyntaxStyle } from "./syntax-style.js"
+/** Text chunk. */
 export interface TextChunk {
   __isChunk: true
   text: string
@@ -13,6 +14,7 @@ export interface TextChunk {
     url: string
   }
 }
+/** Native styled text buffer. */
 export declare class TextBuffer {
   private lib
   private bufferPtr

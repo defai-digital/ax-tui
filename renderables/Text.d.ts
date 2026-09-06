@@ -5,9 +5,11 @@ import { RGBA } from "../lib/RGBA.js"
 import { type RenderContext } from "../types.js"
 import { RootTextNodeRenderable, TextNodeRenderable } from "./TextNode.js"
 import { TextBufferRenderable, type TextBufferOptions } from "./TextBufferRenderable.js"
+/** Construction options for {@link TextRenderable}. */
 export interface TextOptions extends TextBufferOptions {
   content?: StyledText | string
 }
+/** Text node that renders styled strings, selection, and wrapping. */
 export declare class TextRenderable extends TextBufferRenderable {
   private _text
   private _hasManualStyledText

@@ -1,3 +1,8 @@
+/**
+ * Headless test renderer, mock input, and frame capture for ax-tui.
+ *
+ * @module
+ */
 export * from "./testing/test-renderer.js"
 export * from "./testing/mock-keys.js"
 export * from "./testing/mock-mouse.js"

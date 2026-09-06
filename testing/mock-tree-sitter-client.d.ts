@@ -1,6 +1,7 @@
 import { TreeSitterClient } from "../lib/tree-sitter/index.js"
 import { type Clock } from "../lib/clock.js"
 import type { SimpleHighlight } from "../lib/tree-sitter/types.js"
+/** Mock tree sitter client class. */
 export declare class MockTreeSitterClient extends TreeSitterClient {
   private _highlightPromises
   private _mockResult

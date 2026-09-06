@@ -1,8 +1,11 @@
+/** Mouse event type. */
 export type MouseEventType = "down" | "up" | "move" | "drag" | "drag-end" | "drop" | "over" | "out" | "scroll"
+/** Scroll info. */
 export interface ScrollInfo {
   direction: "up" | "down" | "left" | "right"
   delta: number
 }
+/** Raw mouse event. */
 export type RawMouseEvent = {
   type: MouseEventType
   button: number
@@ -15,6 +18,7 @@ export type RawMouseEvent = {
   }
   scroll?: ScrollInfo
 }
+/** Mouse parser class. */
 export declare class MouseParser {
   private mouseButtonsPressed
   private static readonly SCROLL_DIRECTIONS

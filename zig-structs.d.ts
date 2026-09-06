@@ -12,6 +12,7 @@ type StyledChunkInput = {
     | string
     | null
 }
+/** Styled chunk struct. */
 export declare const StyledChunkStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["text", "char*"],
@@ -66,6 +67,7 @@ export declare const StyledChunkStruct: import("bun-ffi-structs").DefineStructRe
     readonly mapValue: (chunk: StyledChunkInput) => StyledChunkInput
   }
 >
+/** Highlight struct. */
 export declare const HighlightStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["start", "u32"],
@@ -88,10 +90,12 @@ export declare const HighlightStruct: import("bun-ffi-structs").DefineStructRetu
   ],
   {}
 >
+/** Logical cursor struct. */
 export declare const LogicalCursorStruct: import("bun-ffi-structs").DefineStructReturnType<
   [readonly ["row", "u32"], readonly ["col", "u32"], readonly ["offset", "u32"]],
   {}
 >
+/** Visual cursor struct. */
 export declare const VisualCursorStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["visualRow", "u32"],
@@ -102,6 +106,7 @@ export declare const VisualCursorStruct: import("bun-ffi-structs").DefineStructR
   ],
   {}
 >
+/** Terminal capabilities struct. */
 export declare const TerminalCapabilitiesStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["kitty_keyboard", "bool_u8"],
@@ -158,10 +163,12 @@ export declare const TerminalCapabilitiesStruct: import("bun-ffi-structs").Defin
   ],
   {}
 >
+/** Encoded char struct. */
 export declare const EncodedCharStruct: import("bun-ffi-structs").DefineStructReturnType<
   [readonly ["width", "u8"], readonly ["char", "u32"]],
   {}
 >
+/** Line info struct. */
 export declare const LineInfoStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["startCols", readonly ["u32"]],
@@ -200,10 +207,12 @@ export declare const LineInfoStruct: import("bun-ffi-structs").DefineStructRetur
   ],
   {}
 >
+/** Measure result struct. */
 export declare const MeasureResultStruct: import("bun-ffi-structs").DefineStructReturnType<
   [readonly ["lineCount", "u32"], readonly ["widthColsMax", "u32"]],
   {}
 >
+/** Cursor state struct. */
 export declare const CursorStateStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["x", "u32"],
@@ -218,6 +227,7 @@ export declare const CursorStateStruct: import("bun-ffi-structs").DefineStructRe
   ],
   {}
 >
+/** Cursor style options struct. */
 export declare const CursorStyleOptionsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly [
@@ -253,6 +263,7 @@ export declare const CursorStyleOptionsStruct: import("bun-ffi-structs").DefineS
   ],
   {}
 >
+/** Grid draw options struct. */
 export declare const GridDrawOptionsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly [
@@ -272,14 +283,17 @@ export declare const GridDrawOptionsStruct: import("bun-ffi-structs").DefineStru
   ],
   {}
 >
+/** Build options. */
 export type BuildOptions = {
   gpaSafeStats: boolean
   gpaMemoryLimitTracking: boolean
 }
+/** Build options struct. */
 export declare const BuildOptionsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [readonly ["gpaSafeStats", "bool_u8"], readonly ["gpaMemoryLimitTracking", "bool_u8"]],
   {}
 >
+/** Allocator stats. */
 export type AllocatorStats = {
   totalRequestedBytes: number
   activeAllocations: number
@@ -287,6 +301,7 @@ export type AllocatorStats = {
   largeAllocations: number
   requestedBytesValid: boolean
 }
+/** Allocator stats struct. */
 export declare const AllocatorStatsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["totalRequestedBytes", "u64"],
@@ -297,6 +312,7 @@ export declare const AllocatorStatsStruct: import("bun-ffi-structs").DefineStruc
   ],
   {}
 >
+/** Native render stats. */
 export type NativeRenderStats = {
   nativeLastFrameTime: number
   nativeAverageFrameTime: number
@@ -306,6 +322,7 @@ export type NativeRenderStats = {
   nativeRenderTime?: number
   nativeStdoutWriteTime?: number
 }
+/** Native render stats struct. */
 export declare const NativeRenderStatsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["lastFrameTime", "f64"],
@@ -320,7 +337,9 @@ export declare const NativeRenderStatsStruct: import("bun-ffi-structs").DefineSt
   ],
   {}
 >
+/** Growth policy. */
 export type GrowthPolicy = "grow" | "block"
+/** Native span feed options. */
 export type NativeSpanFeedOptions = {
   chunkSize?: number
   initialChunks?: number
@@ -329,22 +348,26 @@ export type NativeSpanFeedOptions = {
   autoCommitOnFull?: boolean
   spanQueueCapacity?: number
 }
+/** Native span feed stats. */
 export type NativeSpanFeedStats = {
   bytesWritten: bigint
   spansCommitted: bigint
   chunks: number
   pendingSpans: number
 }
+/** Span info. */
 export type SpanInfo = {
   chunkPtr: Pointer
   offset: number
   len: number
   chunkIndex: number
 }
+/** Reserve info. */
 export type ReserveInfo = {
   ptr: Pointer
   len: number
 }
+/** Native span feed options struct. */
 export declare const NativeSpanFeedOptionsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly [
@@ -395,6 +418,7 @@ export declare const NativeSpanFeedOptionsStruct: import("bun-ffi-structs").Defi
   ],
   {}
 >
+/** Native span feed stats struct. */
 export declare const NativeSpanFeedStatsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["bytesWritten", "u64"],
@@ -404,6 +428,7 @@ export declare const NativeSpanFeedStatsStruct: import("bun-ffi-structs").Define
   ],
   {}
 >
+/** Span info struct. */
 export declare const SpanInfoStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["chunkPtr", "pointer"],
@@ -427,6 +452,7 @@ export declare const SpanInfoStruct: import("bun-ffi-structs").DefineStructRetur
     }
   }
 >
+/** Reserve info struct. */
 export declare const ReserveInfoStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["ptr", "pointer"],
@@ -446,10 +472,12 @@ export declare const ReserveInfoStruct: import("bun-ffi-structs").DefineStructRe
     }
   }
 >
+/** Audio create options. */
 export type AudioCreateOptions = {
   sampleRate?: number
   playbackChannels?: number
 }
+/** Audio start options. */
 export type AudioStartOptions = {
   periodSizeInFrames?: number
   periodSizeInMilliseconds?: number
@@ -467,12 +495,14 @@ export type AudioStartOptions = {
   alsaNoAutoChannels?: boolean
   alsaNoAutoResample?: boolean
 }
+/** Audio voice options. */
 export type AudioVoiceOptions = {
   volume?: number
   pan?: number
   loop?: boolean
   groupId?: number
 }
+/** Audio stats. */
 export type AudioStats = {
   soundsLoaded: number
   voicesActive: number
@@ -481,6 +511,7 @@ export type AudioStats = {
   lastPeak: number
   lastRms: number
 }
+/** Audio create options struct. */
 export declare const AudioCreateOptionsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly [
@@ -500,6 +531,7 @@ export declare const AudioCreateOptionsStruct: import("bun-ffi-structs").DefineS
   ],
   {}
 >
+/** Audio start options struct. */
 export declare const AudioStartOptionsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly [
@@ -610,6 +642,7 @@ export declare const AudioStartOptionsStruct: import("bun-ffi-structs").DefineSt
   ],
   {}
 >
+/** Audio voice options struct. */
 export declare const AudioVoiceOptionsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly [
@@ -643,6 +676,7 @@ export declare const AudioVoiceOptionsStruct: import("bun-ffi-structs").DefineSt
   ],
   {}
 >
+/** Audio stats struct. */
 export declare const AudioStatsStruct: import("bun-ffi-structs").DefineStructReturnType<
   [
     readonly ["soundsLoaded", "u32"],

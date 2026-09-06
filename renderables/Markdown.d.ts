@@ -8,7 +8,9 @@ import { type TextTableColumnFitter, type TextTableColumnWidthMode, type TextTab
 import type { TreeSitterClient } from "../lib/tree-sitter/index.js"
 import { type ParseState } from "./markdown-parser.js"
 import type { OptimizedBuffer } from "../buffer.js"
+/** Markdown table style. */
 export type MarkdownTableStyle = "grid" | "columns"
+/** Markdown table options. */
 export interface MarkdownTableOptions {
   /**
    * Visual style preset for markdown tables.
@@ -65,6 +67,7 @@ export interface MarkdownTableOptions {
    */
   selectable?: boolean
 }
+/** Markdown options. */
 export interface MarkdownOptions extends RenderableOptions<MarkdownRenderable> {
   content?: string
   syntaxStyle: SyntaxStyle
@@ -105,6 +108,7 @@ export interface MarkdownOptions extends RenderableOptions<MarkdownRenderable> {
    */
   internalBlockMode?: "coalesced" | "top-level"
 }
+/** Render node context. */
 export interface RenderNodeContext {
   syntaxStyle: SyntaxStyle
   conceal: boolean
@@ -113,13 +117,16 @@ export interface RenderNodeContext {
   /** Creates default renderable for this token */
   defaultRender: () => Renderable | null
 }
+/** Markdown code block renderer. */
 export type MarkdownCodeBlockRenderer = (
   token: Tokens.Code,
   context: RenderNodeContext,
 ) => Renderable | undefined | null
+/** Markdown code block renderer map. */
 export type MarkdownCodeBlockRendererMap =
   | ReadonlyMap<string, MarkdownCodeBlockRenderer>
   | Readonly<Record<string, MarkdownCodeBlockRenderer>>
+/** Create markdown code block renderer. */
 export declare function createMarkdownCodeBlockRenderer(
   renderers: MarkdownCodeBlockRendererMap,
 ): MarkdownOptions["renderNode"]
@@ -127,6 +134,7 @@ interface TableContentCache {
   content: TextTableContent
   cellKeys: Uint32Array[]
 }
+/** Block state. */
 export interface BlockState {
   token: MarkedToken
   tokenRaw: string
@@ -138,6 +146,7 @@ export interface BlockState {
   canUpdateInPlace: boolean
 }
 export type { ParseState }
+/** Markdown document renderable with syntax highlighting. */
 export declare class MarkdownRenderable extends Renderable {
   private _content
   private _syntaxStyle

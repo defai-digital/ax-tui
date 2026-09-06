@@ -5,6 +5,7 @@ import { RGBA } from "../lib/RGBA.js"
 import { SyntaxStyle } from "../syntax-style.js"
 import type { TreeSitterClient } from "../lib/tree-sitter/index.js"
 import type { MouseEvent } from "../renderer.js"
+/** Diff renderable options. */
 export interface DiffRenderableOptions extends RenderableOptions<DiffRenderable> {
   diff?: string
   syncScroll?: boolean
@@ -31,6 +32,7 @@ export interface DiffRenderableOptions extends RenderableOptions<DiffRenderable>
   addedLineNumberBg?: string | RGBA
   removedLineNumberBg?: string | RGBA
 }
+/** Unified-diff renderable. */
 export declare class DiffRenderable extends Renderable {
   private _diff
   private _syncScroll

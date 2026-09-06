@@ -1,3 +1,4 @@
+// @ts-self-types="./solid-transform.d.ts"
 import { transformAsync } from "@babel/core"
 // @ts-expect-error - Types not important.
 import ts from "@babel/preset-typescript"

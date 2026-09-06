@@ -10,7 +10,8 @@ general-purpose package. It combines:
   (`ax-tui/solid`);
 - headless test utilities for rendering and asserting on frames without a real
   terminal (`ax-tui/testing`, plus `testRender` from `ax-tui/solid`);
-- a spinner component (`ax-tui/spinner`, `ax-tui/spinner/solid`).
+- a spinner component (`ax-tui/spinner`, `ax-tui/spinner/solid`);
+- ratatui-style chart widgets (`ax-tui/chart`, `ax-tui/chart/solid`).
 
 The renderer and native libraries are derived from the
 [OpenTUI](https://github.com/sst/opentui) project (pinned to the 0.4.1 native
@@ -30,8 +31,8 @@ native backend through the test utilities and does not require a TTY.
 
 On first use, registry installations download the current platform's native library and license from the matching
 GitHub release and verify them against the package manifest. Use `AX_CODE_TUI_NATIVE_CACHE_DIR` to choose a cache
-location and `AX_CODE_TUI_NATIVE_OFFLINE=1` to require already prepared assets. Native delivery requires a fixed
-release after 0.1.0; 0.1.0's registry artifact is not installable without workarounds.
+location and `AX_CODE_TUI_NATIVE_OFFLINE=1` to require already prepared assets. 0.1.0 has no matching native-asset
+release and is not installable without workarounds; use 0.1.1 or later.
 
 ## Quick start
 
@@ -74,6 +75,8 @@ import { RGBA, TextRenderable } from "ax-tui"
 import { render, useKeyboard } from "ax-tui/solid"
 import { SpinnerRenderable } from "ax-tui/spinner"
 import "ax-tui/spinner/solid"
+import { ChartRenderable, SparklineRenderable } from "ax-tui/chart"
+import "ax-tui/chart/solid"
 ```
 
 ### Subpath exports
@@ -86,6 +89,8 @@ import "ax-tui/spinner/solid"
 | `ax-tui/solid/transform`      | Build-time JSX/Solid transform (Babel)                      |
 | `ax-tui/spinner`              | `SpinnerRenderable` and presets                             |
 | `ax-tui/spinner/solid`        | Solid `<spinner>` intrinsic registration                    |
+| `ax-tui/chart`                | Ratatui-style charts: `ChartRenderable`, `SparklineRenderable`, `BarChartRenderable`, `GaugeRenderable`, braille grid |
+| `ax-tui/chart/solid`          | Solid `<chart>`, `<sparkline>`, `<barchart>`, `<gauge>` intrinsic registration |
 | `ax-tui/testing`              | Headless test renderer, mock input, frame capture           |
 | `ax-tui/yoga`                 | Direct Yoga layout bindings                                 |
 | `ax-tui/runtime-plugin`       | Runtime plugin glue (Bun/Node)                              |
@@ -101,7 +106,7 @@ commands are in [MAINTENANCE.md](./MAINTENANCE.md); the pinned native baseline
 and its hashes are recorded in [`vendor/manifest.json`](./vendor/manifest.json).
 
 ```sh
-pnpm run check   # vendor integrity + patch contracts + spinner dist freshness
+pnpm run check   # vendor integrity + patch contracts + spinner/chart dist freshness
 ```
 
 ## Design influences

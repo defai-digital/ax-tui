@@ -1,20 +1,24 @@
 import type { TestRenderer } from "./test-renderer.js"
+/** Record buffers options. */
 export interface RecordBuffersOptions {
   fg?: boolean
   bg?: boolean
   attributes?: boolean
 }
+/** Recorded buffers. */
 export interface RecordedBuffers {
   fg?: Uint16Array
   bg?: Uint16Array
   attributes?: Uint8Array
 }
+/** Recorded frame. */
 export interface RecordedFrame {
   frame: string
   timestamp: number
   frameNumber: number
   buffers?: RecordedBuffers
 }
+/** Test recorder options. */
 export interface TestRecorderOptions {
   recordBuffers?: RecordBuffersOptions
   now?: () => number

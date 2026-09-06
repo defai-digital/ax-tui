@@ -74,16 +74,24 @@ interface ExpectApi {
   <T>(received: T): Expectation<T>
   any(expectedType: unknown): AsymmetricMatcher
 }
+/** Expect. */
 export declare const expect: ExpectApi
+/** Mock. */
 export declare function mock<Fn extends AnyFunction = () => undefined>(implementation?: Fn): MockedFunction<Fn>
+/** Spy on. */
 export declare function spyOn(object: object, key: string | symbol): MockedFunction
+/** Before all. */
 export declare const beforeAll: typeof before
+/** After all. */
 export declare const afterAll: typeof after
+/** Test. */
 export declare const test: typeof nodeTest & {
   each: ReturnType<typeof createEach>
 }
+/** It. */
 export declare const it: typeof nodeTest & {
   each: ReturnType<typeof createEach>
 }
+/** Describe. */
 export declare const describe: typeof nodeDescribe
 export { afterEach, beforeEach }

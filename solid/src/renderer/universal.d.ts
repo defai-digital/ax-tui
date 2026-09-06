@@ -1,3 +1,4 @@
+/** Create renderer. */
 export function createRenderer({
   createElement,
   createTextNode,

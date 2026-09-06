@@ -15,6 +15,7 @@ const DENY_PREFIXES = [
   "lib/tree-sitter/assets",
   "solid/patches",
   "spinner/src",
+  "chart/src",
 ] as const
 
 const TUI_TRANSFORM_DEPENDENCIES = new Set([

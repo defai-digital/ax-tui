@@ -8,5 +8,6 @@ declare class Expectation<T> {
   toEqual(expected: unknown): void
   toThrow(expected?: ThrowMatcher): void
 }
+/** Expect. */
 export declare function expect<T>(received: T): Expectation<T>
 export { after, afterEach, before, beforeEach, describe, it, test }

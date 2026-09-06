@@ -1,6 +1,7 @@
 import { Renderable } from "../Renderable.js"
 import type { ViewportBounds } from "../types.js"
 import { fonts } from "./ascii.font.js"
+/** Text selection range in a renderable tree. */
 export declare class Selection {
   private _anchor
   private _focus
@@ -42,6 +43,7 @@ export declare class Selection {
   get touchedRenderables(): Renderable[]
   getSelectedText(): string
 }
+/** Local selection bounds. */
 export interface LocalSelectionBounds {
   anchorX: number
   anchorY: number
@@ -49,11 +51,13 @@ export interface LocalSelectionBounds {
   focusY: number
   isActive: boolean
 }
+/** Convert global to local selection. */
 export declare function convertGlobalToLocalSelection(
   globalSelection: Selection | null,
   localX: number,
   localY: number,
 ): LocalSelectionBounds | null
+/** ASCIIFont selection helper class. */
 export declare class ASCIIFontSelectionHelper {
   private getText
   private getFont

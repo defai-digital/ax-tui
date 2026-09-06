@@ -1,3 +1,8 @@
+/**
+ * Native terminal renderer, renderables, and Yoga helpers for ax-tui.
+ *
+ * @module
+ */
 export * from "./Renderable.js"
 export * from "./types.js"
 export * from "./utils.js"
@@ -21,4 +26,5 @@ export * from "./audio.js"
 export * from "./renderables/index.js"
 export * from "./zig.js"
 export * from "./console.js"
+/** Yoga layout engine namespace used by the renderer. */
 export * as Yoga from "./yoga.js"

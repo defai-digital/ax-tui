@@ -6,22 +6,27 @@ import { TextBufferRenderable, type TextBufferOptions } from "./TextBufferRender
 import type { OptimizedBuffer } from "../buffer.js"
 import type { SimpleHighlight } from "../lib/tree-sitter/types.js"
 import type { TextChunk } from "../text-buffer.js"
+/** Highlight context. */
 export interface HighlightContext {
   content: string
   filetype: string
   syntaxStyle: SyntaxStyle
 }
+/** On highlight callback. */
 export type OnHighlightCallback = (
   highlights: SimpleHighlight[],
   context: HighlightContext,
 ) => SimpleHighlight[] | undefined | Promise<SimpleHighlight[] | undefined>
+/** Chunk render context. */
 export interface ChunkRenderContext extends HighlightContext {
   highlights: SimpleHighlight[]
 }
+/** On chunks callback. */
 export type OnChunksCallback = (
   chunks: TextChunk[],
   context: ChunkRenderContext,
 ) => TextChunk[] | undefined | Promise<TextChunk[] | undefined>
+/** Code options. */
 export interface CodeOptions extends TextBufferOptions {
   content?: string
   filetype?: string
@@ -35,6 +40,7 @@ export interface CodeOptions extends TextBufferOptions {
   onHighlight?: OnHighlightCallback
   onChunks?: OnChunksCallback
 }
+/** Syntax-highlighted source code renderable. */
 export declare class CodeRenderable extends TextBufferRenderable {
   private _content
   private _filetype?

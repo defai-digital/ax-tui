@@ -15,26 +15,31 @@ import { type VNode } from "./renderables/composition/vnode.js"
 import type { MouseEvent } from "./renderer.js"
 import type { RenderContext } from "./types.js"
 declare const BrandedRenderable: unique symbol
+/** Layout events enumeration. */
 export declare enum LayoutEvents {
   LAYOUT_CHANGED = "layout-changed",
   ADDED = "added",
   REMOVED = "removed",
   RESIZED = "resized",
 }
+/** Renderable events enumeration. */
 export declare enum RenderableEvents {
   FOCUSED = "focused",
   BLURRED = "blurred",
   DESTROYED = "destroyed",
 }
+/** Position. */
 export interface Position {
   top?: number | "auto" | `${number}%`
   right?: number | "auto" | `${number}%`
   bottom?: number | "auto" | `${number}%`
   left?: number | "auto" | `${number}%`
 }
+/** Base renderable options. */
 export interface BaseRenderableOptions {
   id?: string
 }
+/** Layout options. */
 export interface LayoutOptions extends BaseRenderableOptions {
   flexGrow?: number
   flexShrink?: number
@@ -70,6 +75,7 @@ export interface LayoutOptions extends BaseRenderableOptions {
   paddingLeft?: number | `${number}%`
   enableLayout?: boolean
 }
+/** Renderable options. */
 export interface RenderableOptions<T extends BaseRenderable = BaseRenderable> extends Partial<LayoutOptions> {
   width?: number | "auto" | `${number}%`
   height?: number | "auto" | `${number}%`
@@ -94,7 +100,9 @@ export interface RenderableOptions<T extends BaseRenderable = BaseRenderable> ex
   onKeyDown?: (key: KeyEvent) => void
   onSizeChange?: (this: T) => void
 }
+/** Is renderable. */
 export declare function isRenderable(obj: any): obj is Renderable
+/** Minimal renderable node used by the layout tree. */
 export declare abstract class BaseRenderable extends EventEmitter {
   [BrandedRenderable]: boolean
   private static renderableNumber
@@ -122,6 +130,7 @@ export declare abstract class BaseRenderable extends EventEmitter {
   get visible(): boolean
   set visible(value: boolean)
 }
+/** Base class for layout-aware terminal UI nodes. */
 export declare abstract class Renderable extends BaseRenderable {
   static renderablesByNumber: Map<number, Renderable>
   protected _isDestroyed: boolean
@@ -341,12 +350,14 @@ interface RenderCommandPushOpacity extends RenderCommandBase {
 interface RenderCommandPopOpacity extends RenderCommandBase {
   action: "popOpacity"
 }
+/** Render command. */
 export type RenderCommand =
   | RenderCommandPushScissorRect
   | RenderCommandPopScissorRect
   | RenderCommandRender
   | RenderCommandPushOpacity
   | RenderCommandPopOpacity
+/** Root of the renderable tree attached to a {@link CliRenderer}. */
 export declare class RootRenderable extends Renderable {
   private renderList
   private appliedLayoutGeneration

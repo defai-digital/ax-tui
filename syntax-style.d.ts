@@ -1,5 +1,6 @@
 import { RGBA, type ColorInput } from "./lib/RGBA.js"
 import { type RenderLib, type SyntaxStyleHandle } from "./zig.js"
+/** Style definition. */
 export interface StyleDefinition {
   fg?: RGBA
   bg?: RGBA
@@ -8,6 +9,7 @@ export interface StyleDefinition {
   underline?: boolean
   dim?: boolean
 }
+/** Style definition input. */
 export interface StyleDefinitionInput {
   fg?: ColorInput
   bg?: ColorInput
@@ -16,11 +18,13 @@ export interface StyleDefinitionInput {
   underline?: boolean
   dim?: boolean
 }
+/** Merged style. */
 export interface MergedStyle {
   fg?: RGBA
   bg?: RGBA
   attributes: number
 }
+/** Theme token style. */
 export interface ThemeTokenStyle {
   scope: string[]
   style: {
@@ -32,7 +36,9 @@ export interface ThemeTokenStyle {
     dim?: boolean
   }
 }
+/** Convert theme to styles. */
 export declare function convertThemeToStyles(theme: ThemeTokenStyle[]): Record<string, StyleDefinition>
+/** Named highlight style set applied to syntax-highlighted text. */
 export declare class SyntaxStyle {
   private lib
   private stylePtr

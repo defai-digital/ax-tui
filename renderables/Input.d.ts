@@ -6,8 +6,11 @@ import {
   type TextareaAction,
   type KeyBinding as TextareaKeyBinding,
 } from "./Textarea.js"
+/** Input action. */
 export type InputAction = TextareaAction
+/** Input key binding. */
 export type InputKeyBinding = TextareaKeyBinding
+/** Input renderable options. */
 export interface InputRenderableOptions
   extends Omit<TextareaOptions, "height" | "minHeight" | "maxHeight" | "initialValue"> {
   /** Initial text value (newlines are stripped) */
@@ -19,6 +22,7 @@ export interface InputRenderableOptions
   /** Placeholder text (Input only supports string, not StyledText) */
   placeholder?: string
 }
+/** Input renderable events enumeration. */
 export declare enum InputRenderableEvents {
   INPUT = "input",
   CHANGE = "change",

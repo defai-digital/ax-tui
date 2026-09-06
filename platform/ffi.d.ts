@@ -1,10 +1,13 @@
 declare const pointerBrand: unique symbol
+/** Pointer input. */
 export type PointerInput = number | bigint
+/** Pointer. */
 export type Pointer = PointerInput & {
   readonly [pointerBrand]: "Pointer"
 }
 type PointerSource = ArrayBufferLike | ArrayBufferView
 type BunPointer = number
+/** FFIType. */
 export declare const FFIType: {
   readonly char: "char"
   readonly int8_t: "int8_t"
@@ -40,19 +43,24 @@ export declare const FFIType: {
   readonly napi_value: "napi_value"
   readonly buffer: "buffer"
 }
+/** FFIType. */
 export type FFIType = (typeof FFIType)[keyof typeof FFIType]
+/** FFIType or string. */
 export type FFITypeOrString = FFIType
+/** FFIFunction. */
 export interface FFIFunction {
   readonly args?: readonly FFITypeOrString[]
   readonly returns?: FFITypeOrString
   readonly ptr?: Pointer
   readonly threadsafe?: boolean
 }
+/** FFICallback instance. */
 export interface FFICallbackInstance {
   readonly ptr: Pointer | null
   readonly threadsafe: boolean
   close(): void
 }
+/** Library. */
 export interface Library<Fns extends Record<string, FFIFunction>> {
   symbols: {
     [K in keyof Fns]: (...args: any[]) => any
@@ -104,29 +112,51 @@ interface NodeFfiBackend {
   suffix: string
   toArrayBuffer(pointer: bigint, length: number, copy?: boolean): ArrayBuffer
 }
+/** FFI UNAVAILABLE. */
 export declare const FFI_UNAVAILABLE = "AX Code TUI native FFI is not available for this runtime yet"
+/** BUN DLOPEN NULL. */
 export declare const BUN_DLOPEN_NULL = "Bun FFI backend does not support dlopen(null)"
+/** LIBRARY CLOSED. */
 export declare const LIBRARY_CLOSED = "Cannot create FFI callback after library.close() has been called"
+/** NODE CALLBACK THREADSAFE. */
 export declare const NODE_CALLBACK_THREADSAFE =
   "Node FFI callbacks are same-thread only and do not support threadsafe callbacks"
+/** NODE NAPI UNSUPPORTED. */
 export declare const NODE_NAPI_UNSUPPORTED = "Node FFI backend does not support Bun N-API FFI types"
+/** NODE POINTER OVERRIDE. */
 export declare const NODE_POINTER_OVERRIDE = "Node FFI backend does not support FFIFunction.ptr overrides"
+/** NODE POINTER ARGUMENT. */
 export declare const NODE_POINTER_ARGUMENT =
   "Node FFI pointer arguments must be a Pointer, ArrayBuffer, or ArrayBufferView"
+/** NODE PTR VALUE. */
 export declare const NODE_PTR_VALUE =
   "node:ffi ptr() only supports ArrayBuffer and ArrayBufferView values backed by ArrayBuffer"
+/** NODE STRING RETURN. */
 export declare const NODE_STRING_RETURN = "Node FFI backend does not normalize string return values (yet)"
+/** NODE USIZE UNSUPPORTED. */
 export declare const NODE_USIZE_UNSUPPORTED = "Node FFI backend does not support usize yet"
+/** POINTER NEGATIVE. */
 export declare const POINTER_NEGATIVE = "Pointer must be non-negative"
+/** POINTER OFFSET NEGATIVE. */
 export declare const POINTER_OFFSET_NEGATIVE = "Pointer offset must be non-negative"
+/** POINTER OFFSET UNSAFE. */
 export declare const POINTER_OFFSET_UNSAFE = "Pointer offset must be a safe integer"
+/** POINTER UNSAFE. */
 export declare const POINTER_UNSAFE = "Pointer exceeds safe integer range"
+/** To pointer. */
 export declare function toPointer(value: PointerInput): Pointer
+/** Ffi bool. */
 export declare function ffiBool(value: boolean): 0 | 1
+/** Create bun backend. */
 export declare function createBunBackend(bun: BunFfiBackend): FfiBackend
+/** Create node backend. */
 export declare function createNodeBackend(nodeFfi: NodeFfiBackend): FfiBackend
+/** Dlopen. */
 export declare const dlopen: <Fns extends Record<string, FFIFunction>>(path: string | URL, symbols: Fns) => Library<Fns>
+/** Ptr. */
 export declare const ptr: (value: PointerSource) => Pointer
+/** Suffix. */
 export declare const suffix: string
+/** To array buffer. */
 export declare const toArrayBuffer: (pointer: Pointer, offset: number | undefined, length: number) => ArrayBuffer
 export {}

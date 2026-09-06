@@ -9,6 +9,7 @@ import type { ValidComponent, ComponentProps } from "solid-js"
  * @description https://docs.solidjs.com/reference/components/portal
  */
 export declare function Portal(props: { mount?: DomNode; ref?: (el: {}) => void; children: JSX.Element }): JSX.Element
+/** Dynamic props. */
 export type DynamicProps<T extends ValidComponent, P = ComponentProps<T>> = {
   [K in keyof P]: P[K]
 } & {

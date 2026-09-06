@@ -7,11 +7,13 @@ import type {
   ResolvedSlotRenderer,
   SlotRenderer,
 } from "./types.js"
+/** Slot registry options. */
 export interface SlotRegistryOptions {
   onPluginError?: (event: PluginErrorEvent) => void
   debugPluginErrors?: boolean
   maxPluginErrors?: number
 }
+/** Slot registry class. */
 export declare class SlotRegistry<TNode, TSlots extends object, TContext extends PluginContext = PluginContext> {
   private plugins
   private sortedPluginsCache
@@ -46,6 +48,7 @@ export declare class SlotRegistry<TNode, TSlots extends object, TContext extends
   private notifyListeners
   private flushListeners
 }
+/** Create slot registry. */
 export declare function createSlotRegistry<
   TNode,
   TSlots extends object,

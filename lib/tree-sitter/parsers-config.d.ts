@@ -54,4 +54,5 @@ declare const _default: {
       }
   )[]
 }
+/** Default export for this module. */
 export default _default

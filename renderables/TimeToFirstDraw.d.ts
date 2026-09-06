@@ -2,11 +2,13 @@ import type { OptimizedBuffer } from "../buffer.js"
 import { type ColorInput } from "../lib/RGBA.js"
 import { Renderable, type RenderableOptions } from "../Renderable.js"
 import type { RenderContext } from "../types.js"
+/** Time to first draw options. */
 export interface TimeToFirstDrawOptions extends RenderableOptions<TimeToFirstDrawRenderable> {
   fg?: ColorInput
   label?: string
   precision?: number
 }
+/** Time to first draw renderable class. */
 export declare class TimeToFirstDrawRenderable extends Renderable {
   private _runtimeMs
   private textColor

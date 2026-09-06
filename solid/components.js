@@ -1,3 +1,4 @@
+// @ts-self-types="./components.d.ts"
 // src/elements/catalogue.ts
 import {
   BoxRenderable,

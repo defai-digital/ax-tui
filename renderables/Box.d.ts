@@ -3,6 +3,7 @@ import type { OptimizedBuffer } from "../buffer.js"
 import { type BorderCharacters, type BorderSides, type BorderSidesConfig, type BorderStyle } from "../lib/index.js"
 import { type ColorInput, RGBA } from "../lib/RGBA.js"
 import type { RenderContext } from "../types.js"
+/** Construction options for {@link BoxRenderable}. */
 export interface BoxOptions<TRenderable extends Renderable = BoxRenderable> extends RenderableOptions<TRenderable> {
   backgroundColor?: string | RGBA
   borderStyle?: BorderStyle
@@ -21,6 +22,7 @@ export interface BoxOptions<TRenderable extends Renderable = BoxRenderable> exte
   rowGap?: number | `${number}%`
   columnGap?: number | `${number}%`
 }
+/** Box container with optional border, title, background, and flex layout. */
 export declare class BoxRenderable extends Renderable {
   protected _backgroundColor: RGBA
   protected _border: boolean | BorderSides[]

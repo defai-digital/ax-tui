@@ -85,24 +85,30 @@ type ComponentProps<TOptions extends RenderableOptions<TRenderable>, TRenderable
 } & ElementProps<TRenderable>
 /** Valid text content types for Text component children */
 type TextChildren = string | number | boolean | null | undefined | JSX.Element
+/** Text props. */
 export type TextProps = ComponentProps<TextOptions, TextRenderable> & {
   children?: TextChildren | Array<TextChildren>
 }
+/** Span props. */
 export type SpanProps = ComponentProps<{}, TextNodeRenderable> & {
   children?: TextChildren | Array<TextChildren>
 }
+/** Link props. */
 export type LinkProps = SpanProps & {
   href: string
 }
+/** Box props. */
 export type BoxProps = ComponentProps<ContainerProps<BoxOptions>, BoxRenderable> & {
   focused?: boolean
 }
+/** Input props. */
 export type InputProps = ComponentProps<InputRenderableOptions, InputRenderable> & {
   focused?: boolean
   onInput?: (value: string) => void
   onChange?: (value: string) => void
   onSubmit?: (value: string) => void
 }
+/** Textarea props. */
 export type TextareaProps = ComponentProps<TextareaOptions, TextareaRenderable> & {
   focused?: boolean
   onSubmit?: () => void
@@ -111,23 +117,29 @@ export type TextareaProps = ComponentProps<TextareaOptions, TextareaRenderable> 
   onKeyDown?: (event: KeyEvent) => void
   onKeyPress?: (event: KeyEvent) => void
 }
+/** Select props. */
 export type SelectProps = ComponentProps<SelectRenderableOptions, SelectRenderable> & {
   focused?: boolean
   onChange?: (index: number, option: SelectOption | null) => void
   onSelect?: (index: number, option: SelectOption | null) => void
 }
+/** Ascii font props. */
 export type AsciiFontProps = ComponentProps<ASCIIFontOptions, ASCIIFontRenderable>
+/** Tab select props. */
 export type TabSelectProps = ComponentProps<TabSelectRenderableOptions, TabSelectRenderable> & {
   focused?: boolean
   onChange?: (index: number, option: TabSelectOption | null) => void
   onSelect?: (index: number, option: TabSelectOption | null) => void
 }
+/** Scroll box props. */
 export type ScrollBoxProps = ComponentProps<ContainerProps<ScrollBoxOptions>, ScrollBoxRenderable> & {
   focused?: boolean
   stickyScroll?: boolean
   stickyStart?: "bottom" | "top" | "left" | "right"
 }
+/** Code props. */
 export type CodeProps = ComponentProps<CodeOptions, CodeRenderable>
+/** Markdown props. */
 export type MarkdownProps = ComponentProps<MarkdownOptions, MarkdownRenderable>
 /** Convert renderable constructor to component props with proper style exclusions */
 export type ExtendedComponentProps<

@@ -5,6 +5,7 @@ import { type BorderStyle, type BorderSides } from "./lib/index.js"
 import { TargetChannel, type WidthMethod, type CapturedLine } from "./types.js"
 import type { TextBufferView } from "./text-buffer-view.js"
 import type { EditorView } from "./editor-view.js"
+/** Native cell buffer used for drawing text, rectangles, and overlays. */
 export declare class OptimizedBuffer {
   private static fbIdCounter
   id: string

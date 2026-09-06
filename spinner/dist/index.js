@@ -1,12 +1,18 @@
+/**
+ * Animated spinner renderable and preset catalogue for ax-tui.
+ *
+ * @module
+ */
 import { Renderable, parseColor, resolveRenderLib } from "ax-tui";
 import presets, { getSpinnerPreset } from "./presets.js";
 import { maxFrameDisplayWidth } from "./utils.js";
 export { createPulse, createWave, createStatic, createRainbow, maxFrameDisplayWidth } from "./utils.js";
 export { getSpinnerPreset, getSpinnerNames, randomSpinner } from "./presets.js";
-// Re-export preset map for advanced use (e.g. custom iteration)
+/** Built-in spinner animation presets keyed by {@link SpinnerName}. */
 export { presets };
 const DEFAULT_FRAMES = presets.dots.frames;
 const DEFAULT_INTERVAL = presets.dots.interval;
+/** Terminal spinner renderable with named presets, custom frames, and per-character colors. */
 export class SpinnerRenderable extends Renderable {
     _name;
     _frames;

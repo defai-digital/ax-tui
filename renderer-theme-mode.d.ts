@@ -1,8 +1,10 @@
 import { type Clock } from "./lib/clock.js"
 import type { ThemeMode } from "./types.js"
+/** Renderer theme mode host. */
 export interface RendererThemeModeHost {
   queryThemeColors(): void
 }
+/** Renderer theme mode class. */
 export declare class RendererThemeMode {
   private readonly host
   private readonly clock

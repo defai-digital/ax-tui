@@ -1,4 +1,5 @@
 import type { CliRenderer } from "../renderer.js"
+/** Timeline options. */
 export interface TimelineOptions {
   duration?: number
   loop?: boolean
@@ -6,6 +7,7 @@ export interface TimelineOptions {
   onComplete?: () => void
   onPause?: () => void
 }
+/** Animation options. */
 export interface AnimationOptions {
   duration: number
   ease?: EasingFunctions
@@ -19,6 +21,7 @@ export interface AnimationOptions {
   once?: boolean
   [key: string]: any
 }
+/** JSAnimation. */
 export interface JSAnimation {
   targets: any[]
   deltaTime: number
@@ -58,6 +61,7 @@ interface TimelineAnimationItem extends TimelineItem {
   currentLoop?: number
   once?: boolean
 }
+/** Easing functions. */
 export type EasingFunctions = keyof typeof easingFunctions
 declare const easingFunctions: {
   linear: (t: number) => number
@@ -77,6 +81,7 @@ declare const easingFunctions: {
   outBack: (t: number, s?: number) => number
   inOutBack: (t: number, s?: number) => number
 }
+/** Animation timeline that ticks with the renderer clock. */
 export declare class Timeline {
   items: (TimelineAnimationItem | TimelineCallbackItem)[]
   subTimelines: TimelineTimelineItem[]
@@ -121,6 +126,8 @@ declare class TimelineEngine {
   clear(): void
   update(deltaTime: number): void
 }
+/** Engine. */
 export declare const engine: TimelineEngine
+/** Create timeline. */
 export declare function createTimeline(options?: TimelineOptions): Timeline
 export {}

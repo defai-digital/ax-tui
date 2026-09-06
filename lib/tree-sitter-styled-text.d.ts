@@ -7,16 +7,19 @@ interface TextChunkOptions {
   enabled?: boolean
   baseHighlight?: string
 }
+/** Tree sitter to text chunks. */
 export declare function treeSitterToTextChunks(
   content: string,
   highlights: SimpleHighlight[],
   syntaxStyle: SyntaxStyle,
   options?: TextChunkOptions,
 ): TextChunk[]
+/** Tree sitter to styled text options. */
 export interface TreeSitterToStyledTextOptions {
   conceal?: Pick<TextChunkOptions, "enabled">
   baseHighlight?: string
 }
+/** Tree sitter to styled text. */
 export declare function treeSitterToStyledText(
   content: string,
   filetype: string,

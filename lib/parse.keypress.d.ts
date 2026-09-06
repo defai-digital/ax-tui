@@ -1,7 +1,11 @@
 import { Buffer } from "node:buffer"
+/** Non alphanumeric keys. */
 export declare const nonAlphanumericKeys: string[]
+/** Terminal named single stroke keys. */
 export declare const terminalNamedSingleStrokeKeys: string[]
+/** Key event type. */
 export type KeyEventType = "press" | "repeat" | "release"
+/** Parsed key. */
 export interface ParsedKey {
   name: string
   ctrl: boolean
@@ -21,7 +25,9 @@ export interface ParsedKey {
   baseCode?: number
   repeated?: boolean
 }
+/** Parse keypress options. */
 export type ParseKeypressOptions = {
   useKittyKeyboard?: boolean
 }
+/** Parse keypress. */
 export declare const parseKeypress: (s?: Buffer | string, options?: ParseKeypressOptions) => ParsedKey | null

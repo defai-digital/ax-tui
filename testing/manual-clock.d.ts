@@ -1,4 +1,5 @@
 import type { Clock, TimerHandle } from "../lib/clock.js"
+/** Manual clock class. */
 export declare class ManualClock implements Clock {
   private time
   private nextId

@@ -17,30 +17,39 @@ declare class SpanRenderable extends TextNodeRenderable {
   private readonly _ctx
   constructor(_ctx: RenderContext | null, options: TextNodeOptions)
 }
+/** Text node keys. */
 export declare const textNodeKeys: readonly ["span", "b", "strong", "i", "em", "u", "a"]
+/** Text node key. */
 export type TextNodeKey = (typeof textNodeKeys)[number]
 declare class TextModifierRenderable extends SpanRenderable {
   constructor(options: any, modifier?: TextNodeKey)
 }
+/** Bold span renderable class. */
 export declare class BoldSpanRenderable extends TextModifierRenderable {
   constructor(options: any)
 }
+/** Italic span renderable class. */
 export declare class ItalicSpanRenderable extends TextModifierRenderable {
   constructor(options: any)
 }
+/** Underline span renderable class. */
 export declare class UnderlineSpanRenderable extends TextModifierRenderable {
   constructor(options: any)
 }
+/** Line break renderable class. */
 export declare class LineBreakRenderable extends SpanRenderable {
   constructor(_ctx: RenderContext | null, options: TextNodeOptions)
   add(): number
 }
+/** Link options. */
 export interface LinkOptions extends TextNodeOptions {
   href: string
 }
+/** Link renderable class. */
 export declare class LinkRenderable extends SpanRenderable {
   constructor(_ctx: RenderContext | null, options: LinkOptions)
 }
+/** Base components. */
 export declare const baseComponents: {
   box: typeof BoxRenderable
   text: typeof TextRenderable
@@ -61,6 +70,7 @@ export declare const baseComponents: {
   a: typeof LinkRenderable
 }
 type ComponentCatalogue = Record<string, RenderableConstructor>
+/** Component catalogue. */
 export declare const componentCatalogue: ComponentCatalogue
 /**
  * Extend the component catalogue with new renderable components
@@ -75,5 +85,6 @@ export declare const componentCatalogue: ComponentCatalogue
  * ```
  */
 export declare function extend<T extends ComponentCatalogue>(objects: T): void
+/** Return the current SolidJS renderable catalogue. */
 export declare function getComponentCatalogue(): ComponentCatalogue
 export type { ExtendedComponentProps, ExtendedIntrinsicElements, RenderableConstructor } from "../types/elements.js"

@@ -1,7 +1,9 @@
+/** Scroll acceleration. */
 export interface ScrollAcceleration {
   tick(now?: number): number
   reset(): void
 }
+/** Linear scroll accel class. */
 export declare class LinearScrollAccel implements ScrollAcceleration {
   tick(_now?: number): number
   reset(): void

@@ -1,3 +1,8 @@
+/**
+ * Installs ax-tui runtime-plugin support in Bun.
+ *
+ * @module
+ */
 import { ensureRuntimePluginSupport } from "./runtime-plugin-support-configure.js"
 export { ensureRuntimePluginSupport }
 export {

@@ -10,6 +10,7 @@ declare class SlotBaseRenderable extends BaseRenderable {
   requestRender(): void
   findDescendantById(id: string): BaseRenderable | undefined
 }
+/** Text slot renderable class. */
 export declare class TextSlotRenderable extends TextNodeRenderable {
   protected slotParent?: SlotRenderable
   protected destroyed: boolean
@@ -18,6 +19,7 @@ export declare class TextSlotRenderable extends TextNodeRenderable {
   disposeWithoutSlotCascade(): void
   destroy(): void
 }
+/** Layout slot renderable class. */
 export declare class LayoutSlotRenderable extends SlotBaseRenderable {
   protected yogaNode: Yoga.Node
   protected slotParent?: SlotRenderable
@@ -35,6 +37,7 @@ export declare class LayoutSlotRenderable extends SlotBaseRenderable {
   disposeWithoutSlotCascade(): void
   destroy(): void
 }
+/** Slot renderable class. */
 export declare class SlotRenderable extends SlotBaseRenderable {
   protected destroyed: boolean
   private readonly layoutNodesByParent

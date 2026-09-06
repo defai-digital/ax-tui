@@ -6,13 +6,16 @@ import { type Clock } from "./lib/clock.js"
 import { Capture } from "./lib/output.capture.js"
 import { type KeyBinding as BaseKeyBinding } from "./lib/keybinding.internal.js"
 type KeyAliasMap = Record<string, string>
+/** Capture. */
 export declare const capture: Capture
+/** Console position enumeration. */
 export declare enum ConsolePosition {
   TOP = "top",
   BOTTOM = "bottom",
   LEFT = "left",
   RIGHT = "right",
 }
+/** Console action. */
 export type ConsoleAction =
   | "scroll-up"
   | "scroll-down"
@@ -24,7 +27,9 @@ export type ConsoleAction =
   | "size-decrease"
   | "save-logs"
   | "copy-selection"
+/** Console key binding. */
 export type ConsoleKeyBinding = BaseKeyBinding<ConsoleAction>
+/** Console options. */
 export interface ConsoleOptions {
   position?: ConsolePosition
   sizePercent?: number
@@ -49,6 +54,7 @@ export interface ConsoleOptions {
   copyButtonColor?: ColorInput
   clock?: Clock
 }
+/** Terminal-hosted console overlay. */
 export declare class TerminalConsole extends EventEmitter {
   private isVisible
   private isFocused

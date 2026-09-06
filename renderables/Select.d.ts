@@ -6,13 +6,17 @@ import { Renderable, type RenderableOptions } from "../Renderable.js"
 import type { RenderContext } from "../types.js"
 import { type KeyBinding as BaseKeyBinding } from "../lib/keybinding.internal.js"
 type KeyAliasMap = Record<string, string>
+/** Select option. */
 export interface SelectOption {
   name: string
   description: string
   value?: any
 }
+/** Select action. */
 export type SelectAction = "move-up" | "move-down" | "move-up-fast" | "move-down-fast" | "select-current"
+/** Select key binding. */
 export type SelectKeyBinding = BaseKeyBinding<SelectAction>
+/** Select renderable options. */
 export interface SelectRenderableOptions extends RenderableOptions<SelectRenderable> {
   backgroundColor?: ColorInput
   textColor?: ColorInput
@@ -33,10 +37,12 @@ export interface SelectRenderableOptions extends RenderableOptions<SelectRendera
   keyBindings?: SelectKeyBinding[]
   keyAliasMap?: KeyAliasMap
 }
+/** Select renderable events enumeration. */
 export declare enum SelectRenderableEvents {
   SELECTION_CHANGED = "selectionChanged",
   ITEM_SELECTED = "itemSelected",
 }
+/** Vertical option list with keyboard selection. */
 export declare class SelectRenderable extends Renderable {
   protected _focusable: boolean
   private _options

@@ -71,6 +71,18 @@ describe("ax-tui package integrity", () => {
         default: "./spinner/dist/solid.js",
       },
     })
+    expect(tuiPackage.exports["./chart"]).toMatchObject({
+      import: {
+        types: "./chart/dist/index.d.ts",
+        default: "./chart/dist/index.js",
+      },
+    })
+    expect(tuiPackage.exports["./chart/solid"]).toMatchObject({
+      import: {
+        types: "./chart/dist/solid.d.ts",
+        default: "./chart/dist/solid.js",
+      },
+    })
     expect(tuiPackage.exports["./solid/components"].require).toBeUndefined()
 
     await Promise.all([
@@ -86,6 +98,10 @@ describe("ax-tui package integrity", () => {
       expectFileExists("spinner/dist/index.d.ts"),
       expectFileExists("spinner/dist/solid.js"),
       expectFileExists("spinner/dist/solid.d.ts"),
+      expectFileExists("chart/dist/index.js"),
+      expectFileExists("chart/dist/index.d.ts"),
+      expectFileExists("chart/dist/solid.js"),
+      expectFileExists("chart/dist/solid.d.ts"),
     ])
   })
 

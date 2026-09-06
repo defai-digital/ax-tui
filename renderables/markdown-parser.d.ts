@@ -1,4 +1,5 @@
 import { type MarkedToken } from "marked"
+/** Parse state. */
 export interface ParseState {
   content: string
   tokens: MarkedToken[]

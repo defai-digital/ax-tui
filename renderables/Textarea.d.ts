@@ -5,6 +5,7 @@ import { EditBufferRenderable, type EditBufferOptions } from "./EditBufferRender
 import { type KeyBinding as BaseKeyBinding } from "../lib/keybinding.internal.js"
 import { type StyledText } from "../lib/styled-text.js"
 import type { ExtmarksController } from "../lib/extmarks.js"
+/** Textarea action. */
 export type TextareaAction =
   | "move-left"
   | "move-right"
@@ -42,10 +43,15 @@ export type TextareaAction =
   | "delete-word-backward"
   | "select-all"
   | "submit"
+/** Key binding. */
 export type KeyBinding = BaseKeyBinding<TextareaAction>
+/** Textarea key alias map. */
 export type TextareaKeyAliasMap = Record<string, string>
+/** Default textarea key bindings. */
 export declare const defaultTextareaKeyBindings: KeyBinding[]
+/** Submit event. */
 export interface SubmitEvent {}
+/** Textarea options. */
 export interface TextareaOptions extends EditBufferOptions {
   initialValue?: string
   backgroundColor?: ColorInput
@@ -58,6 +64,7 @@ export interface TextareaOptions extends EditBufferOptions {
   keyAliasMap?: TextareaKeyAliasMap
   onSubmit?: (event: SubmitEvent) => void
 }
+/** Multi-line editable text renderable backed by the native edit buffer. */
 export declare class TextareaRenderable extends EditBufferRenderable {
   private _placeholder
   private _placeholderColor

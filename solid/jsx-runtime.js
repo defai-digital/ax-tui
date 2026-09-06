@@ -1,3 +1,4 @@
+// @ts-self-types="./jsx-runtime.d.ts"
 import { createComponent, createElement, spread } from "ax-tui/solid"
 function normalizeProps(props) {
   if (!props) {

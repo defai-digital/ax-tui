@@ -20,6 +20,7 @@ import { KeyHandler, InternalKeyHandler } from "./lib/KeyHandler.js"
 import { type EditBufferRenderable } from "./renderables/EditBufferRenderable.js"
 import { type TerminalColors, type GetPaletteOptions } from "./lib/terminal-palette.js"
 import { type Clock } from "./lib/clock.js"
+/** Options for {@link createCliRenderer} and {@link CliRenderer}. */
 export interface CliRendererConfig {
   stdin?: NodeJS.ReadStream
   stdout?: NodeJS.WriteStream
@@ -55,19 +56,25 @@ export interface CliRendererConfig {
   clock?: Clock
   onDestroy?: () => void
 }
+/** Screen mode. */
 export type ScreenMode = "alternate-screen" | "main-screen" | "split-footer"
+/** External output mode. */
 export type ExternalOutputMode = "capture-stdout" | "passthrough"
+/** Cli renderer external output event. */
 export interface CliRendererExternalOutputEvent {
   snapshot: OptimizedBuffer
   rowColumns: number
   startOnNewLine: boolean
   trailingNewline: boolean
 }
+/** Console mode. */
 export type ConsoleMode = "console-overlay" | "disabled"
+/** Pixel resolution. */
 export type PixelResolution = {
   width: number
   height: number
 }
+/** Cli renderer stats. */
 export interface CliRendererStats extends NativeRenderStats {
   fps: number
   frameCount: number
@@ -77,20 +84,24 @@ export interface CliRendererStats extends NativeRenderStats {
   maxFrameTime: number
   frameCallbackTime: number
 }
+/** Cli renderer frame event. */
 export interface CliRendererFrameEvent {
   frameId: number
 }
+/** Renderer scheduler state. */
 export interface RendererSchedulerState {
   isRunning: boolean
   isRendering: boolean
   hasScheduledRender: boolean
 }
+/** Scrollback render context. */
 export interface ScrollbackRenderContext {
   width: number
   widthMethod: WidthMethod
   tailColumn: number
   renderContext: RenderContext
 }
+/** Scrollback snapshot. */
 export interface ScrollbackSnapshot {
   root: Renderable
   width?: number
@@ -100,14 +111,18 @@ export interface ScrollbackSnapshot {
   trailingNewline?: boolean
   teardown?: () => void
 }
+/** Scrollback writer. */
 export type ScrollbackWriter = (ctx: ScrollbackRenderContext) => ScrollbackSnapshot
+/** Scrollback surface options. */
 export interface ScrollbackSurfaceOptions {
   startOnNewLine?: boolean
 }
+/** Scrollback surface commit options. */
 export interface ScrollbackSurfaceCommitOptions {
   rowColumns?: number
   trailingNewline?: boolean
 }
+/** Scrollback surface. */
 export interface ScrollbackSurface {
   readonly renderContext: RenderContext
   readonly root: Renderable
@@ -119,6 +134,7 @@ export interface ScrollbackSurface {
   commitRows(startRow: number, endRowExclusive: number, options?: ScrollbackSurfaceCommitOptions): void
   destroy(): void
 }
+/** Split footer replay reset options. */
 export interface SplitFooterReplayResetOptions {
   clearSavedLines?: boolean
 }
@@ -145,6 +161,7 @@ export interface KittyKeyboardOptions {
  * @internal Exported for testing
  */
 export declare function buildKittyKeyboardFlags(config: KittyKeyboardOptions | null | undefined): number
+/** Mouse event class. */
 export declare class MouseEvent {
   readonly type: MouseEventType
   readonly button: number
@@ -173,6 +190,7 @@ export declare class MouseEvent {
   stopPropagation(): void
   preventDefault(): void
 }
+/** Mouse button enumeration. */
 export declare enum MouseButton {
   LEFT = 0,
   MIDDLE = 1,
@@ -186,6 +204,7 @@ export declare enum MouseButton {
  * `--delay-start` flag and the `await setupTerminal()` convenience.
  */
 export declare function createCliRenderer(config?: CliRendererConfig): Promise<CliRenderer>
+/** Cli render events enumeration. */
 export declare enum CliRenderEvents {
   RESIZE = "resize",
   FRAME = "frame",
@@ -202,6 +221,7 @@ export declare enum CliRenderEvents {
   DESTROY = "destroy",
   MEMORY_SNAPSHOT = "memory:snapshot",
 }
+/** Renderer control state enumeration. */
 export declare enum RendererControlState {
   IDLE = "idle",
   AUTO_STARTED = "auto_started",
@@ -210,6 +230,7 @@ export declare enum RendererControlState {
   EXPLICIT_SUSPENDED = "explicit_suspended",
   EXPLICIT_STOPPED = "explicit_stopped",
 }
+/** Native-backed terminal renderer that owns input, layout, and the frame loop. */
 export declare class CliRenderer extends EventEmitter implements RenderContext {
   private static animationFrameId
   private lib

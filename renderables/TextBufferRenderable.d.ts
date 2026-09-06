@@ -7,6 +7,7 @@ import { type RenderContext, type LineInfoProvider } from "../types.js"
 import type { OptimizedBuffer } from "../buffer.js"
 import type { LineInfo } from "../zig.js"
 import { SyntaxStyle } from "../syntax-style.js"
+/** Text buffer options. */
 export interface TextBufferOptions extends RenderableOptions<TextBufferRenderable> {
   fg?: string | RGBA
   bg?: string | RGBA
@@ -19,6 +20,7 @@ export interface TextBufferOptions extends RenderableOptions<TextBufferRenderabl
   tabIndicatorColor?: string | RGBA
   truncate?: boolean
 }
+/** Renderable bound to a native {@link TextBuffer}. */
 export declare abstract class TextBufferRenderable extends Renderable implements LineInfoProvider {
   selectable: boolean
   protected _defaultFg: RGBA

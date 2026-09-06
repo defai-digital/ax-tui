@@ -3,7 +3,9 @@ import { type ParsedKey } from "./parse.keypress.js"
 import { type RawMouseEvent } from "./parse.mouse.js"
 import type { PasteMetadata } from "./paste.js"
 export { SystemClock, type Clock, type TimerHandle } from "./clock.js"
+/** Stdin response protocol. */
 export type StdinResponseProtocol = "csi" | "cpr" | "osc" | "dcs" | "apc" | "unknown"
+/** Stdin event. */
 export type StdinEvent =
   | {
       type: "key"
@@ -26,6 +28,7 @@ export type StdinEvent =
       protocol: StdinResponseProtocol
       sequence: string
     }
+/** Stdin parser protocol context. */
 export interface StdinParserProtocolContext {
   kittyKeyboardEnabled: boolean
   privateCapabilityRepliesActive: boolean
@@ -33,6 +36,7 @@ export interface StdinParserProtocolContext {
   explicitWidthCprActive: boolean
   startupCursorCprActive: boolean
 }
+/** Stdin parser options. */
 export interface StdinParserOptions {
   timeoutMs?: number
   maxPendingBytes?: number
@@ -42,6 +46,7 @@ export interface StdinParserOptions {
   protocolContext?: Partial<StdinParserProtocolContext>
   clock?: Clock
 }
+/** Stdin parser class. */
 export declare class StdinParser {
   private readonly pending
   private readonly events

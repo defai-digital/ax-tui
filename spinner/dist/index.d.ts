@@ -1,3 +1,8 @@
+/**
+ * Animated spinner renderable and preset catalogue for ax-tui.
+ *
+ * @module
+ */
 import { Renderable } from "ax-tui";
 import type { ColorInput, LayoutOptions, OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui";
 import presets, { type SpinnerName } from "./presets.js";
@@ -5,7 +10,9 @@ import { type ColorGenerator } from "./utils.js";
 export type { ColorGenerator } from "./utils.js";
 export { createPulse, createWave, createStatic, createRainbow, maxFrameDisplayWidth } from "./utils.js";
 export { type SpinnerName, type SpinnerPreset, getSpinnerPreset, getSpinnerNames, randomSpinner } from "./presets.js";
+/** Built-in spinner animation presets keyed by {@link SpinnerName}. */
 export { presets };
+/** Construction options for {@link SpinnerRenderable}. */
 export interface SpinnerOptions extends Omit<RenderableOptions<SpinnerRenderable>, "width" | "height" | "buffered" | "live" | keyof LayoutOptions> {
     /** Use a named preset (e.g. "dots", "line", "arc"). Overrides `frames` and `interval`. */
     name?: SpinnerName;
@@ -20,6 +27,7 @@ export interface SpinnerOptions extends Omit<RenderableOptions<SpinnerRenderable
     /** Solid color or per-character color generator. */
     color?: ColorInput | ColorGenerator;
 }
+/** Terminal spinner renderable with named presets, custom frames, and per-character colors. */
 export declare class SpinnerRenderable extends Renderable {
     private _name;
     private _frames;
@@ -33,8 +41,8 @@ export declare class SpinnerRenderable extends Renderable {
     private _intervalId;
     protected _defaultOptions: {
         name: "dots";
-        frames: ("⠋" | "⠙" | "⠹" | "⠸" | "⠼" | "⠴" | "⠦" | "⠧" | "⠇" | "⠏")[];
-        interval: 80;
+        frames: string[];
+        interval: number;
         autoplay: true;
         backgroundColor: string;
         color: string;

@@ -5,10 +5,15 @@ import { type Selection } from "../lib/selection.js"
 import { RGBA, type ColorInput } from "../lib/RGBA.js"
 import { type TextChunk } from "../text-buffer.js"
 import type { RenderContext } from "../types.js"
+/** Text table cell content. */
 export type TextTableCellContent = TextChunk[] | null | undefined
+/** Text table content. */
 export type TextTableContent = TextTableCellContent[][]
+/** Text table column width mode. */
 export type TextTableColumnWidthMode = "content" | "full"
+/** Text table column fitter. */
 export type TextTableColumnFitter = "proportional" | "balanced"
+/** Text table options. */
 export interface TextTableOptions extends RenderableOptions<TextTableRenderable> {
   content?: TextTableContent
   wrapMode?: "none" | "char" | "word"
@@ -32,6 +37,7 @@ export interface TextTableOptions extends RenderableOptions<TextTableRenderable>
   bg?: ColorInput
   attributes?: number
 }
+/** Text table renderable class. */
 export declare class TextTableRenderable extends Renderable {
   private _content
   private _wrapMode

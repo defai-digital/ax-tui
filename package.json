@@ -1,6 +1,6 @@
 {
   "name": "ax-tui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SolidJS terminal UI framework with a native renderer — derived from OpenTUI (MIT)",
   "license": "MIT",
   "type": "module",
@@ -16,6 +16,7 @@
     "lib",
     "solid",
     "spinner/dist",
+    "chart/dist",
     "renderables",
     "platform",
     "native",
@@ -141,17 +142,30 @@
         "types": "./spinner/dist/solid.d.ts",
         "default": "./spinner/dist/solid.js"
       }
+    },
+    "./chart": {
+      "import": {
+        "types": "./chart/dist/index.d.ts",
+        "default": "./chart/dist/index.js"
+      }
+    },
+    "./chart/solid": {
+      "import": {
+        "types": "./chart/dist/solid.d.ts",
+        "default": "./chart/dist/solid.js"
+      }
     }
   },
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('spinner/dist', { recursive: true, force: true })\" && tsc -p spinner/tsconfig.build.json",
-    "typecheck": "tsc -p spinner/tsconfig.json",
+    "build": "node -e \"const fs = require('node:fs'); fs.rmSync('spinner/dist', { recursive: true, force: true }); fs.rmSync('chart/dist', { recursive: true, force: true })\" && tsc -p spinner/tsconfig.build.json && tsc -p chart/tsconfig.build.json",
+    "typecheck": "tsc -p spinner/tsconfig.json && tsc -p chart/tsconfig.json",
     "vendor": "tsx script/vendor-tui-native.ts",
     "apply:patches": "tsx script/tui-patches.ts --apply",
     "check:vendor": "tsx script/vendor-tui-native.ts --check",
     "check:patches": "tsx script/tui-patches.ts --check",
     "check:spinner-dist": "tsx script/check-tui-spinner-dist.ts",
-    "check": "pnpm run check:vendor && pnpm run check:patches && pnpm run check:spinner-dist",
+    "check:chart-dist": "tsx script/check-tui-chart-dist.ts",
+    "check": "pnpm run check:vendor && pnpm run check:patches && pnpm run check:spinner-dist && pnpm run check:chart-dist",
     "check:jsr": "jsr publish --dry-run",
     "publish:jsr": "jsr publish",
     "test": "vitest run"

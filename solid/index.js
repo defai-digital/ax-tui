@@ -1,3 +1,4 @@
+// @ts-self-types="./index.d.ts"
 // index.ts
 import { CliRenderer, createCliRenderer, engine as engine2 } from "ax-tui"
 import { createTestRenderer } from "ax-tui/testing"

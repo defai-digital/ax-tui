@@ -4,6 +4,7 @@ import type { KeyEvent } from "../lib/KeyHandler.js"
 import { Renderable, type RenderableOptions } from "../Renderable.js"
 import type { RenderContext } from "../types.js"
 import { SliderRenderable, type SliderOptions } from "./Slider.js"
+/** Scroll bar options. */
 export interface ScrollBarOptions extends RenderableOptions<ScrollBarRenderable> {
   orientation: "vertical" | "horizontal"
   showArrows?: boolean
@@ -11,7 +12,9 @@ export interface ScrollBarOptions extends RenderableOptions<ScrollBarRenderable>
   trackOptions?: Partial<SliderOptions>
   onChange?: (position: number) => void
 }
+/** Scroll unit. */
 export type ScrollUnit = "absolute" | "viewport" | "content" | "step"
+/** Scroll bar renderable class. */
 export declare class ScrollBarRenderable extends Renderable {
   readonly slider: SliderRenderable
   readonly startArrow: ArrowRenderable
@@ -44,6 +47,7 @@ export declare class ScrollBarRenderable extends Renderable {
   private recalculateVisibility
   handleKeyPress(key: KeyEvent): boolean
 }
+/** Arrow options. */
 export interface ArrowOptions extends RenderableOptions<ArrowRenderable> {
   direction: "up" | "down" | "left" | "right"
   foregroundColor?: ColorInput
@@ -56,6 +60,7 @@ export interface ArrowOptions extends RenderableOptions<ArrowRenderable> {
     right?: string
   }
 }
+/** Arrow renderable class. */
 export declare class ArrowRenderable extends Renderable {
   private _direction
   private _foregroundColor

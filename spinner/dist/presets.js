@@ -119,4 +119,5 @@ export function randomSpinner() {
     const names = getSpinnerNames();
     return presets[names[Math.floor(Math.random() * names.length)]];
 }
+/** Built-in spinner animation presets keyed by {@link SpinnerName}. */
 export default presets;

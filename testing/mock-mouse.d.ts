@@ -1,4 +1,5 @@
 import type { CliRenderer } from "../renderer.js"
+/** Mouse buttons. */
 export declare const MouseButtons: {
   readonly LEFT: 0
   readonly MIDDLE: 1
@@ -8,22 +9,28 @@ export declare const MouseButtons: {
   readonly WHEEL_LEFT: 66
   readonly WHEEL_RIGHT: 67
 }
+/** Mouse button. */
 export type MouseButton = (typeof MouseButtons)[keyof typeof MouseButtons]
+/** Mouse position. */
 export interface MousePosition {
   x: number
   y: number
 }
+/** Mouse modifiers. */
 export interface MouseModifiers {
   shift?: boolean
   alt?: boolean
   ctrl?: boolean
 }
+/** Mouse event type. */
 export type MouseEventType = "down" | "up" | "move" | "drag" | "scroll"
+/** Mouse event options. */
 export interface MouseEventOptions {
   button?: MouseButton
   modifiers?: MouseModifiers
   delayMs?: number
 }
+/** Create mock mouse. */
 export declare function createMockMouse(renderer: CliRenderer): {
   moveTo: (x: number, y: number, options?: MouseEventOptions) => Promise<void>
   click: (x: number, y: number, button?: MouseButton, options?: MouseEventOptions) => Promise<void>

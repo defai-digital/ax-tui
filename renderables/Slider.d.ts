@@ -2,6 +2,7 @@ import { type RenderableOptions, Renderable } from "../Renderable.js"
 import { type RenderContext } from "../types.js"
 import { type ColorInput, RGBA } from "../lib/RGBA.js"
 import { OptimizedBuffer } from "../buffer.js"
+/** Slider options. */
 export interface SliderOptions extends RenderableOptions<SliderRenderable> {
   orientation: "vertical" | "horizontal"
   value?: number
@@ -12,6 +13,7 @@ export interface SliderOptions extends RenderableOptions<SliderRenderable> {
   foregroundColor?: ColorInput
   onChange?: (value: number) => void
 }
+/** Numeric slider renderable. */
 export declare class SliderRenderable extends Renderable {
   readonly orientation: "vertical" | "horizontal"
   private _value

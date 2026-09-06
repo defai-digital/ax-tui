@@ -5,13 +5,17 @@ import type { KeyEvent } from "../lib/KeyHandler.js"
 import type { RenderContext } from "../types.js"
 import { type KeyBinding as BaseKeyBinding } from "../lib/keybinding.internal.js"
 type KeyAliasMap = Record<string, string>
+/** Tab select option. */
 export interface TabSelectOption {
   name: string
   description: string
   value?: any
 }
+/** Tab select action. */
 export type TabSelectAction = "move-left" | "move-right" | "select-current"
+/** Tab select key binding. */
 export type TabSelectKeyBinding = BaseKeyBinding<TabSelectAction>
+/** Tab select renderable options. */
 export interface TabSelectRenderableOptions extends Omit<RenderableOptions<TabSelectRenderable>, "height"> {
   height?: number
   options?: TabSelectOption[]
@@ -30,10 +34,12 @@ export interface TabSelectRenderableOptions extends Omit<RenderableOptions<TabSe
   keyBindings?: TabSelectKeyBinding[]
   keyAliasMap?: KeyAliasMap
 }
+/** Tab select renderable events enumeration. */
 export declare enum TabSelectRenderableEvents {
   SELECTION_CHANGED = "selectionChanged",
   ITEM_SELECTED = "itemSelected",
 }
+/** Horizontal tab selector. */
 export declare class TabSelectRenderable extends Renderable {
   protected _focusable: boolean
   private _options

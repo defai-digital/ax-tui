@@ -5,7 +5,8 @@ surface is:
 
 - `ax-tui` for the native renderer and renderables;
 - `ax-tui/solid` for the SolidJS reconciler and JSX runtime;
-- `ax-tui/spinner` and `ax-tui/spinner/solid` for the AX spinner.
+- `ax-tui/spinner` and `ax-tui/spinner/solid` for the AX spinner;
+- `ax-tui/chart` and `ax-tui/chart/solid` for the ratatui-style chart widgets.
 
 Application code must use these exports only.
 
@@ -18,14 +19,14 @@ The current renderer snapshot and native libraries retain their upstream MIT lin
 
 The root contains the renderer JavaScript, declarations, runtime-plugin glue, tree-sitter assets, and native libraries.
 `solid/` contains the reconciler, JSX runtimes, preload shims, and the supported `./solid/transform` build API.
-`spinner/` contains TypeScript source plus committed `dist/` output. `script/` contains the repo's own maintenance
-tools (native vendoring, patch contracts, dist freshness, distribution allowlist, JSX surface). These are subpaths of
-one package, not independent packages.
+`spinner/` and `chart/` contain TypeScript source plus committed `dist/` output. `script/` contains the repo's own
+maintenance tools (native vendoring, patch contracts, dist freshness, distribution allowlist, JSX surface). These are
+subpaths of one package, not independent packages.
 
 The root contains the renderer JavaScript, declarations, runtime-plugin glue, tree-sitter assets, and native libraries.
 `solid/` contains the reconciler, JSX runtimes, preload shims, and the supported `./solid/transform` build API.
-`spinner/` contains TypeScript source plus committed `dist/` output. These are subpaths of one package, not independent
-workspace packages.
+`spinner/` and `chart/` contain TypeScript source plus committed `dist/` output. These are subpaths of one package, not
+independent workspace packages.
 
 The native resolver maps `(platform, arch, AX_CODE_TUI_LIBC)` to `vendor/<target>/` relative to the package root.
 Upstream platform package names and `libopentui`/`opentui.dll` filenames remain only as ABI and provenance identifiers.
@@ -66,14 +67,14 @@ compatibility before changing the source baseline.
 2. Refresh renderer and Solid artifacts together at the repository root.
 3. If the native ABI changed, update `VERSION` in `script/vendor-tui-native.ts` and run `pnpm run vendor`.
 4. Run `pnpm run apply:patches`; review every ledger entry instead of overwriting AX fixes.
-5. Rebuild the spinner output with `pnpm run build`.
+5. Rebuild the spinner and chart outputs with `pnpm run build`.
 6. Run all verification below and update provenance, hashes, and divergences in the same change.
 
 ## Verification
 
 ```sh
-pnpm run check            # vendor + patches + spinner dist
-pnpm run typecheck        # spinner sources
+pnpm run check            # vendor + patches + spinner/chart dist
+pnpm run typecheck        # spinner and chart sources
 pnpm test                 # maintenance tool tests (vitest, script/*.test.ts)
 ```
 
@@ -97,7 +98,7 @@ The package is published to JSR as [`@defai-digital/ax-tui`](https://jsr.io/@def
 
 1. Bump `version` in both `package.json` and `jsr.json` (they must match).
 2. Commit, push `main`, then create the matching tag (`v<version>`) and push it.
-3. The workflow validates the tag against `jsr.json`, rebuilds the spinner dist, runs `check` and the test
+3. The workflow validates the tag against `jsr.json`, rebuilds the spinner and chart dists, runs `check` and the test
    suite, dry-runs the JSR publish, and then publishes with provenance.
    The native-assets job first stages all libraries and licenses, publishes them under the matching GitHub tag,
    and verifies downloaded bytes against the staged artifacts. Existing assets are never overwritten.
@@ -118,3 +119,9 @@ manifest recording the expected artifacts. See `UPSTREAM.md` and the extraction 
 ```sh
 pnpm run check:jsr        # local dry run of the exact publish payload
 ```
+
+The JSR score also uses package settings that are not in `jsr.json`. After
+publishing, set the package description and mark Node.js and Bun as compatible
+on the Settings tab at https://jsr.io/@defai-digital/ax-tui/settings. Cloudflare
+Workers and browsers stay unsupported (native terminal renderer). Deno can stay
+unknown until the Node FFI path is proven there.

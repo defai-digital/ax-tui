@@ -1,6 +1,7 @@
 import { RGBA } from "./lib/RGBA.js"
 import { type LineInfo, type RenderLib, type TextBufferViewHandle } from "./zig.js"
 import type { TextBuffer } from "./text-buffer.js"
+/** Viewport over a {@link TextBuffer}. */
 export declare class TextBufferView {
   private lib
   private viewPtr

@@ -4,6 +4,7 @@ import type { Selection } from "./lib/selection.js"
 import type { Renderable } from "./Renderable.js"
 import type { InternalKeyHandler, KeyHandler } from "./lib/KeyHandler.js"
 import type { EditBufferRenderable } from "./renderables/EditBufferRenderable.js"
+/** Text attributes. */
 export declare const TextAttributes: {
   NONE: number
   BOLD: number
@@ -15,40 +16,52 @@ export declare const TextAttributes: {
   HIDDEN: number
   STRIKETHROUGH: number
 }
+/** ATTRIBUTE BASE BITS. */
 export declare const ATTRIBUTE_BASE_BITS = 8
+/** ATTRIBUTE BASE MASK. */
 export declare const ATTRIBUTE_BASE_MASK = 255
 /**
  * Extract the base 8 bits of attributes from a u32 attribute value.
  * Currently we only use the first 8 bits for standard text attributes.
  */
 export declare function getBaseAttributes(attr: number): number
+/** Theme mode. */
 export type ThemeMode = "dark" | "light"
+/** Cursor style. */
 export type CursorStyle = "block" | "line" | "underline" | "default"
+/** Mouse pointer style. */
 export type MousePointerStyle = "default" | "pointer" | "text" | "crosshair" | "move" | "not-allowed"
+/** Cursor style options. */
 export interface CursorStyleOptions {
   style?: CursorStyle
   blinking?: boolean
   color?: RGBA
   cursor?: MousePointerStyle
 }
+/** Debug overlay corner enumeration. */
 export declare enum DebugOverlayCorner {
   topLeft = 0,
   topRight = 1,
   bottomLeft = 2,
   bottomRight = 3,
 }
+/** Target channel enumeration. */
 export declare enum TargetChannel {
   FG = 1,
   BG = 2,
   Both = 3,
 }
+/** Width method. */
 export type WidthMethod = "wcwidth" | "unicode"
+/** Terminal multiplexer. */
 export type TerminalMultiplexer = "none" | "tmux" | "zellij" | "screen" | "unknown"
+/** Terminal info. */
 export interface TerminalInfo {
   name: string
   version: string
   from_xtversion: boolean
 }
+/** Terminal capabilities. */
 export interface TerminalCapabilities {
   kitty_keyboard: boolean
   kitty_graphics: boolean
@@ -71,6 +84,7 @@ export interface TerminalCapabilities {
   multiplexer: TerminalMultiplexer
   terminal: TerminalInfo
 }
+/** Renderer events. */
 export interface RendererEvents {
   resize: (width: number, height: number) => void
   key: (data: Buffer) => void
@@ -82,6 +96,7 @@ export interface RendererEvents {
   "debugOverlay:toggle": (enabled: boolean) => void
   theme_mode: (mode: ThemeMode) => void
 }
+/** Render context. */
 export interface RenderContext extends EventEmitter {
   addToHitGrid: (x: number, y: number, width: number, height: number, id: number) => void
   pushHitGridScissorRect: (x: number, y: number, width: number, height: number) => void
@@ -124,13 +139,16 @@ export interface RenderContext extends EventEmitter {
     },
   ) => void
 }
+/** Timeout. */
 export type Timeout = ReturnType<typeof setTimeout> | undefined
+/** Viewport bounds. */
 export interface ViewportBounds {
   x: number
   y: number
   width: number
   height: number
 }
+/** Highlight. */
 export interface Highlight {
   start: number
   end: number
@@ -138,6 +156,7 @@ export interface Highlight {
   priority?: number | null
   hlRef?: number | null
 }
+/** Line info. */
 export interface LineInfo {
   /** Display-column offset for each visual line start. */
   lineStartCols: number[]
@@ -150,12 +169,14 @@ export interface LineInfo {
   /** Wrap index within each source logical line. */
   lineWraps: number[]
 }
+/** Line info provider. */
 export interface LineInfoProvider {
   get lineInfo(): LineInfo
   get lineCount(): number
   get virtualLineCount(): number
   get scrollY(): number
 }
+/** Captured span. */
 export interface CapturedSpan {
   text: string
   fg: RGBA
@@ -163,9 +184,11 @@ export interface CapturedSpan {
   attributes: number
   width: number
 }
+/** Captured line. */
 export interface CapturedLine {
   spans: CapturedSpan[]
 }
+/** Captured frame. */
 export interface CapturedFrame {
   cols: number
   rows: number

@@ -25,18 +25,29 @@ import type {
   AllocatorStats,
   NativeRenderStats,
 } from "./zig-structs.js"
+/** Native handle. */
 export type NativeHandle<T extends string> = Pointer & {
   readonly __nativeHandle: T
 }
+/** Renderer handle. */
 export type RendererHandle = NativeHandle<"renderer">
+/** Optimized buffer handle. */
 export type OptimizedBufferHandle = NativeHandle<"optimized_buffer">
+/** Text buffer handle. */
 export type TextBufferHandle = NativeHandle<"text_buffer">
+/** Text buffer view handle. */
 export type TextBufferViewHandle = NativeHandle<"text_buffer_view">
+/** Edit buffer handle. */
 export type EditBufferHandle = NativeHandle<"edit_buffer">
+/** Editor view handle. */
 export type EditorViewHandle = NativeHandle<"editor_view">
+/** Syntax style handle. */
 export type SyntaxStyleHandle = NativeHandle<"syntax_style">
+/** Event sink handle. */
 export type EventSinkHandle = NativeHandle<"event_sink">
+/** Audio engine handle. */
 export type AudioEngineHandle = NativeHandle<"audio_engine">
+/** Yoga or renderer log level. */
 export declare enum LogLevel {
   Error = 0,
   Warn = 1,
@@ -56,11 +67,13 @@ export interface VisualCursor {
   logicalCol: number
   offset: number
 }
+/** Logical cursor. */
 export interface LogicalCursor {
   row: number
   col: number
   offset: number
 }
+/** Cursor state. */
 export interface CursorState {
   x: number
   y: number
@@ -69,17 +82,22 @@ export interface CursorState {
   blinking: boolean
   color: RGBA
 }
+/** Native span feed event handler. */
 export type NativeSpanFeedEventHandler = (eventId: number, arg0: Pointer, arg1: number | bigint) => void
+/** Native buffered output. */
 export type NativeBufferedOutput = "stdout" | "memory"
+/** Native renderer create options. */
 export interface NativeRendererCreateOptions {
   remote?: boolean
   feedPtr?: Pointer | null
   bufferedOutput?: NativeBufferedOutput
 }
+/** Native render operation result. */
 export interface NativeRenderOperationResult {
   renderOffset: number
   status: number
 }
+/** Native yoga layout. */
 export interface NativeYogaLayout {
   left: number
   top: number
@@ -88,6 +106,7 @@ export interface NativeYogaLayout {
   width: number
   height: number
 }
+/** Native yoga measure callback. */
 export type NativeYogaMeasureCallback = (
   node: Pointer | null,
   width: number,
@@ -95,7 +114,9 @@ export type NativeYogaMeasureCallback = (
   height: number,
   heightMode: number,
 ) => void
+/** Native yoga dirtied callback. */
 export type NativeYogaDirtiedCallback = () => void
+/** Audio engine lib. */
 export interface AudioEngineLib {
   createAudioEngine: (options?: AudioCreateOptions | null) => AudioEngineHandle | null
   destroyAudioEngine: (engine: AudioEngineHandle) => void
@@ -148,6 +169,7 @@ export interface AudioEngineLib {
   }
   audioGetStats: (engine: AudioEngineHandle) => AudioStats | null
 }
+/** Render lib. */
 export interface RenderLib extends AudioEngineLib {
   createRenderer: (width: number, height: number, options?: NativeRendererCreateOptions) => RendererHandle | null
   setTerminalEnvVar: (renderer: RendererHandle, key: string, value: string) => boolean
@@ -792,5 +814,7 @@ export interface RenderLib extends AudioEngineLib {
   offNativeEvent: (name: string, handler: (data: ArrayBuffer) => void) => void
   onAnyNativeEvent: (handler: (name: string, data: ArrayBuffer) => void) => void
 }
+/** Set render lib path. */
 export declare function setRenderLibPath(libPath: string): void
+/** Resolve render lib. */
 export declare function resolveRenderLib(): RenderLib

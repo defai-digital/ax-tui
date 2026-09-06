@@ -1,6 +1,7 @@
 import { EventEmitter } from "events"
 import { type KeyEventType, type ParsedKey } from "./parse.keypress.js"
 import type { PasteMetadata } from "./paste.js"
+/** Key event class. */
 export declare class KeyEvent implements ParsedKey {
   name: string
   ctrl: boolean
@@ -27,6 +28,7 @@ export declare class KeyEvent implements ParsedKey {
   preventDefault(): void
   stopPropagation(): void
 }
+/** Paste event class. */
 export declare class PasteEvent {
   type: "paste"
   bytes: Uint8Array
@@ -39,11 +41,13 @@ export declare class PasteEvent {
   preventDefault(): void
   stopPropagation(): void
 }
+/** Key handler event map. */
 export type KeyHandlerEventMap = {
   keypress: [KeyEvent]
   keyrelease: [KeyEvent]
   paste: [PasteEvent]
 }
+/** Parses terminal key sequences into {@link KeyEvent} values. */
 export declare class KeyHandler extends EventEmitter<KeyHandlerEventMap> {
   processParsedKey(parsedKey: ParsedKey): boolean
   processPaste(bytes: Uint8Array, metadata?: PasteMetadata): void

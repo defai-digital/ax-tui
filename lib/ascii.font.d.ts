@@ -1,6 +1,8 @@
 import { OptimizedBuffer } from "../buffer.js"
 import { type ColorInput } from "./RGBA.js"
+/** ASCIIFont name. */
 export type ASCIIFontName = "tiny" | "block" | "shade" | "slick" | "huge" | "grid" | "pallet"
+/** Fonts. */
 export declare const fonts: {
   tiny: {
     name: string
@@ -486,12 +488,16 @@ export declare const fonts: {
     }
   }
 }
+/** Measure text. */
 export declare function measureText({ text, font }: { text: string; font?: keyof typeof fonts }): {
   width: number
   height: number
 }
+/** Get character positions. */
 export declare function getCharacterPositions(text: string, font?: keyof typeof fonts): number[]
+/** Coordinate to character index. */
 export declare function coordinateToCharacterIndex(x: number, text: string, font?: keyof typeof fonts): number
+/** Render font to frame buffer. */
 export declare function renderFontToFrameBuffer(
   buffer: OptimizedBuffer,
   {

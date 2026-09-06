@@ -20,6 +20,7 @@ declare class ContentRenderable extends BoxRenderable {
   protected _hasVisibleChildFilter(): boolean
   protected _getVisibleChildren(): number[]
 }
+/** Scroll box options. */
 export interface ScrollBoxOptions extends BoxOptions<ScrollBoxRenderable> {
   rootOptions?: BoxOptions
   wrapperOptions?: BoxOptions
@@ -35,6 +36,7 @@ export interface ScrollBoxOptions extends BoxOptions<ScrollBoxRenderable> {
   scrollAcceleration?: ScrollAcceleration
   viewportCulling?: boolean
 }
+/** Scrollable container with optional sticky edges and scrollbars. */
 export declare class ScrollBoxRenderable extends BoxRenderable {
   static idCounter: number
   private internalId

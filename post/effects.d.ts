@@ -1,4 +1,5 @@
 import type { OptimizedBuffer } from "../buffer.js"
+/** Distortion effect class. */
 export declare class DistortionEffect {
   glitchChancePerSecond: number
   maxGlitchLines: number

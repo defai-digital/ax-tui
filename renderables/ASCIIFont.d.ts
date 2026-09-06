@@ -4,6 +4,7 @@ import { Selection, type LocalSelectionBounds } from "../lib/selection.js"
 import type { RenderableOptions } from "../Renderable.js"
 import type { RenderContext } from "../types.js"
 import { FrameBufferRenderable } from "./FrameBuffer.js"
+/** ASCIIFont options. */
 export interface ASCIIFontOptions extends Omit<RenderableOptions<ASCIIFontRenderable>, "width" | "height"> {
   text?: string
   font?: ASCIIFontName
@@ -13,6 +14,7 @@ export interface ASCIIFontOptions extends Omit<RenderableOptions<ASCIIFontRender
   selectionFg?: ColorInput
   selectable?: boolean
 }
+/** Large ASCII-art font renderable. */
 export declare class ASCIIFontRenderable extends FrameBufferRenderable {
   selectable: boolean
   protected static readonly _defaultOptions: {

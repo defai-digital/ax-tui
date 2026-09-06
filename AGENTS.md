@@ -29,6 +29,8 @@ renderables/              Renderable classes (Box, Text, ScrollBox, Markdown, �
 solid/                    SolidJS reconciler, JSX runtimes, preload shims,
                           solid/transform build API, solid/patches/
 spinner/                  TypeScript source plus COMMITTED dist/ output
+chart/                    TypeScript source plus COMMITTED dist/ output
+                          (ratatui-style chart widgets)
 testing/                  Headless test renderer, mock input, frame capture
 platform/, plugins/, post/, animation/
 assets/                   tree-sitter wasm + highlight grammars (zig dropped)
@@ -48,6 +50,8 @@ script/                   Repo maintenance tools (see below)
   patches (`--apply` / `--check`). Contracts are marker-based, not diffs.
 - `check-tui-spinner-dist.ts` — rebuilds spinner sources to a temp dir and
   compares against the committed `spinner/dist`.
+- `check-tui-chart-dist.ts` — rebuilds chart sources to a temp dir and
+  compares against the committed `chart/dist`.
 - `tui-dist.ts` — distribution allowlist helpers for downstream consumers
   that copy this package (e.g. the AX Code CLI).
 - `tui-surface.ts` — the supported SolidJS JSX intrinsic allowlist.
@@ -66,8 +70,9 @@ When refreshing the upstream snapshot:
    architecture) and rewrites `vendor/manifest.json`.
 3. `pnpm run apply:patches` applies every divergence contract; review every
    `DIVERGENCES.md` ledger row instead of overwriting fixes.
-4. `pnpm run build` rebuilds `spinner/dist` (it is committed).
-5. `pnpm run check` = vendor integrity + patch contracts + spinner dist
+4. `pnpm run build` rebuilds `spinner/dist` and `chart/dist` (both are
+   committed).
+5. `pnpm run check` = vendor integrity + patch contracts + spinner/chart dist
    freshness. `pnpm test` runs the maintenance tool tests.
 6. Update `UPSTREAM.md`, `DIVERGENCES.md`, and `MAINTENANCE.md` in the same
    change.
@@ -80,7 +85,8 @@ Rules that must hold at all times:
   together; a consolidation must never be an implicit upstream upgrade.
 - Application code uses only the documented package exports (`ax-tui`,
   `ax-tui/solid`, `ax-tui/solid/*`, `ax-tui/spinner`, `ax-tui/spinner/solid`,
-  `ax-tui/testing`, `ax-tui/yoga`, `ax-tui/runtime-plugin*`).
+  `ax-tui/chart`, `ax-tui/chart/solid`, `ax-tui/testing`, `ax-tui/yoga`,
+  `ax-tui/runtime-plugin*`).
 - The native resolver maps `(platform, arch, AX_CODE_TUI_LIBC)` to
   `vendor/<target>/`; upstream platform package names and
   `libopentui`/`opentui.dll` filenames are ABI/provenance identifiers only.
@@ -99,9 +105,11 @@ Rules that must hold at all times:
 - Node.js >= 24; pnpm via corepack (`only-allow pnpm` convention). All
   dependency versions are pinned directly in `package.json` (no catalog).
 - `pnpm install` — install dependencies.
-- `pnpm run build` — rebuild `spinner/dist` from `spinner/src`.
-- `pnpm run typecheck` — typecheck spinner sources (`tsc -p spinner/tsconfig.json`).
-- `pnpm run check` — vendor + patches + spinner-dist verification.
+- `pnpm run build` — rebuild `spinner/dist` and `chart/dist` from their
+  `src/` trees.
+- `pnpm run typecheck` — typecheck spinner and chart sources
+  (`tsc -p spinner/tsconfig.json && tsc -p chart/tsconfig.json`).
+- `pnpm run check` — vendor + patches + spinner/chart-dist verification.
 - `pnpm test` — vitest over `test/*.test.ts` (framework-internal guards) and
   `script/*.test.ts` (maintenance tools), per `vitest.config.ts`. The config
   aliases the `ax-tui` self-reference to the package root because vite-node
@@ -115,6 +123,6 @@ Rules that must hold at all times:
 - Keep the renderer snapshot's `import.meta.url`-relative resolution for
   native and tree-sitter assets intact.
 - Never commit secrets; `vendor/manifest.json` hashes must stay accurate.
-- Keep `spinner/dist` committed and in sync with `spinner/src`
-  (`check:spinner-dist` must pass).
+- Keep `spinner/dist` and `chart/dist` committed and in sync with their
+  sources (`check:spinner-dist` and `check:chart-dist` must pass).
 - Keep both copyright lines in `LICENSE` and `solid/LICENSE`.

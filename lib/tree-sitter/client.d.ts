@@ -8,13 +8,12 @@ import type {
   PerformanceStats,
   SimpleHighlight,
 } from "./types.js"
-declare global {
-  const AX_CODE_TUI_TREE_SITTER_WORKER_PATH: string
-}
 interface TreeSitterClientInternalOptions {
   autoStartWorker?: boolean
 }
+/** Add default parsers. */
 export declare function addDefaultParsers(parsers: FiletypeParserOptions[]): void
+/** Worker-backed tree-sitter client used for syntax highlighting. */
 export declare class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
   private initialized
   private worker

@@ -7,21 +7,28 @@ import type { RenderContext, Highlight, CursorStyleOptions, LineInfoProvider, Li
 import type { OptimizedBuffer } from "../buffer.js"
 import type { SyntaxStyle } from "../syntax-style.js"
 declare const BrandedEditBufferRenderable: unique symbol
+/** Editor capture. */
 export type EditorCapture = "escape" | "navigate" | "submit" | "tab"
+/** Editor traits. */
 export interface EditorTraits {
   capture?: readonly EditorCapture[]
   suspend?: boolean
   status?: string
 }
+/** Edit buffer renderable events enumeration. */
 export declare enum EditBufferRenderableEvents {
   TRAITS_CHANGED = "traits-changed",
 }
+/** Is edit buffer renderable. */
 export declare function isEditBufferRenderable(obj: unknown): obj is EditBufferRenderable
+/** Cursor change event. */
 export interface CursorChangeEvent {
   line: number
   visualColumn: number
 }
+/** Content change event. */
 export interface ContentChangeEvent {}
+/** Edit buffer options. */
 export interface EditBufferOptions extends RenderableOptions<EditBufferRenderable> {
   textColor?: string | RGBA
   backgroundColor?: string | RGBA
@@ -41,6 +48,7 @@ export interface EditBufferOptions extends RenderableOptions<EditBufferRenderabl
   onCursorChange?: (event: CursorChangeEvent) => void
   onContentChange?: (event: ContentChangeEvent) => void
 }
+/** Renderable bound to a native {@link EditBuffer}. */
 export declare abstract class EditBufferRenderable extends Renderable implements LineInfoProvider {
   [BrandedEditBufferRenderable]: boolean
   protected _focusable: boolean

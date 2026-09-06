@@ -1,9 +1,11 @@
 import { Writable } from "stream"
 import { EventEmitter } from "events"
+/** Captured output. */
 export type CapturedOutput = {
   stream: "stdout" | "stderr"
   output: string
 }
+/** Capture class. */
 export declare class Capture extends EventEmitter {
   private output
   constructor()
@@ -12,6 +14,7 @@ export declare class Capture extends EventEmitter {
   claimOutput(): string
   private clear
 }
+/** Captured writable stream class. */
 export declare class CapturedWritableStream extends Writable {
   private stream
   private capture
