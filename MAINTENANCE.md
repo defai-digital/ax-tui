@@ -120,8 +120,11 @@ manifest recording the expected artifacts. See `UPSTREAM.md` and the extraction 
 pnpm run check:jsr        # local dry run of the exact publish payload
 ```
 
-The JSR score also uses package settings that are not in `jsr.json`. After
-publishing, set the package description and mark Node.js and Bun as compatible
-on the Settings tab at https://jsr.io/@defai-digital/ax-tui/settings. Cloudflare
-Workers and browsers stay unsupported (native terminal renderer). Deno can stay
-unknown until the Node FFI path is proven there.
+The JSR score and package page also use settings that are not in `jsr.json`.
+After publishing, open https://jsr.io/@defai-digital/ax-tui/settings and set:
+
+- **Readme Source** to **Readme**, so the Overview tab shows `README.md`
+  instead of only the main entrypoint `@module` JSDoc.
+- **Description** to the package.json description (max 250 characters).
+- **Runtime compatibility:** Node.js and Bun supported; Deno unknown;
+  Cloudflare Workers and browsers unsupported (native terminal renderer).
