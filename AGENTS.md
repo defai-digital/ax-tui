@@ -91,6 +91,11 @@ Rules that must hold at all times:
 - JSR self-imports must map to local exports in `jsr.json`, never to an
   unpublished npm self-package. Publish immutable, verified native release
   assets before the JSR version. Registry publication needs explicit approval.
+- Every public JSR JavaScript entrypoint has a `@ts-self-types` annotation
+  maintained by the named patch tools (spinner annotations are in source).
+  JSR commands use `--allow-slow-types` to preserve existing Solid component
+  module augmentations and the tree-sitter global without weakening normal
+  TypeScript or runtime checks.
 - `AX_CODE_TUI_*` environment variables and `AX_CODE_TUI_` runtime prefixes
   are the package's public env/identity contract — do not rename them.
 

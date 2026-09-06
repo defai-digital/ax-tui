@@ -1,3 +1,4 @@
+// @ts-self-types="./index.d.ts"
 import { Renderable, parseColor, resolveRenderLib } from "ax-tui"
 import type { ColorInput, LayoutOptions, OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui"
 import presets, { type SpinnerName, getSpinnerPreset } from "./presets.js"

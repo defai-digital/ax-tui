@@ -15,6 +15,10 @@ Every behavior change from the pinned renderer snapshot must have an observable 
 
 ## Sync rule
 
+`jsr-type-declarations` attaches the existing declaration files to every public JSR JavaScript entrypoint so
+registry rewriting covers type-only self-imports as well as runtime imports. The named patch and spinner source
+annotations survive rebuilds; regression coverage is in `script/tui-patches.test.ts`.
+
 `native-asset-delivery` extends native resolution for the size-limited JSR artifact. The renderer delegates to
 `ax-tui/native`, preferring bundled assets and otherwise using bounded downloads and a manifest-verified cache.
 The regression guards are `test/native-delivery.test.ts`, `test/native-delivery-renderer.test.ts`, and

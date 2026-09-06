@@ -1,3 +1,4 @@
+// @ts-self-types="./yoga.d.ts"
 import {
   ALIGN_AUTO,
   ALIGN_BASELINE,

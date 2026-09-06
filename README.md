@@ -21,7 +21,7 @@ baseline), published under the MIT license with attribution preserved. See
 ## Install
 
 ```sh
-pnpm add ax-tui@jsr:@defai-digital/ax-tui solid-js@1.9.12
+pnpm add ax-tui@jsr:@defai-digital/ax-tui@0.1.1 solid-js@1.9.12
 ```
 
 The command keeps `ax-tui` as the import alias for the JSR package. Native rendering on Node.js requires Node 26+
@@ -30,8 +30,8 @@ native backend through the test utilities and does not require a TTY.
 
 On first use, registry installations download the current platform's native library and license from the matching
 GitHub release and verify them against the package manifest. Use `AX_CODE_TUI_NATIVE_CACHE_DIR` to choose a cache
-location and `AX_CODE_TUI_NATIVE_OFFLINE=1` to require already prepared assets. Native delivery requires a fixed
-release after 0.1.0; 0.1.0's registry artifact is not installable without workarounds.
+location and `AX_CODE_TUI_NATIVE_OFFLINE=1` to require already prepared assets. Native delivery is available in
+0.1.1 and later; 0.1.0's registry artifact is not installable without workarounds.
 
 ## Quick start
 

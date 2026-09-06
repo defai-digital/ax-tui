@@ -1,3 +1,4 @@
+// @ts-self-types="./lib/tree-sitter/parser.worker.d.ts"
 import { createRequire } from "node:module"
 var __create = Object.create
 var __getProtoOf = Object.getPrototypeOf

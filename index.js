@@ -1,3 +1,4 @@
+// @ts-self-types="./index.d.ts"
 import {
   BaseRenderable,
   BoxRenderable,

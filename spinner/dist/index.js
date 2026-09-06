@@ -1,3 +1,4 @@
+// @ts-self-types="./index.d.ts"
 import { Renderable, parseColor, resolveRenderLib } from "ax-tui";
 import presets, { getSpinnerPreset } from "./presets.js";
 import { maxFrameDisplayWidth } from "./utils.js";

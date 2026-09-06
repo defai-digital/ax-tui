@@ -1,3 +1,4 @@
+// @ts-self-types="./testing.d.ts"
 import { ANSI, CliRenderer } from "./index-07zpr2dg.js"
 import { SystemClock, TreeSitterClient } from "./index-pcvh9d34.js"
 

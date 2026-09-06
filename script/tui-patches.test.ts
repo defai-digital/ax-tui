@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url"
 import {
   applyKittyKeyboardOptOut,
   applyNativeAssetDelivery,
+  applyJsrDeclaration,
+  jsrDeclarationEntries,
   applySlimCatalogue,
   axRuntimeIdentityApplied,
   checkTuiPatches,
@@ -25,6 +27,22 @@ import { AX_TUI_JSX_UNUSED } from "./tui-surface"
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 
 describe("script.tui-patches", () => {
+  test("JSR entrypoints retain declarations in the rewritten module graph", () => {
+    const entries = jsrDeclarationEntries()
+    expect(entries.length).toBeGreaterThan(10)
+    for (const { file, marker } of entries) {
+      const source = readFileSync(file, "utf8")
+      expect(source.replace(/^#![^\n]*\n/, "").startsWith(`${marker}\n`), file).toBe(true)
+      expect(applyJsrDeclaration(source, marker)).toBe(source)
+      expect(applyJsrDeclaration("export {}\n", marker)).toBe(`${marker}\nexport {}\n`)
+      const executable = `#!/usr/bin/env node\n${marker}\nexport {}\n`
+      expect(applyJsrDeclaration("#!/usr/bin/env node\nexport {}\n", marker)).toBe(executable)
+      expect(applyJsrDeclaration(executable, marker)).toBe(executable)
+      expect(applyJsrDeclaration('// @ts-self-types="./stale.d.ts"\nexport {}\n', marker)).toBe(
+        `${marker}\nexport {}\n`,
+      )
+    }
+  })
   test("required patches are applied to the committed vendor tree", () => {
     const results = checkTuiPatches()
     expect(results.filter((item) => !item.ok)).toEqual([])

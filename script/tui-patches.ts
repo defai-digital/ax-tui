@@ -10,7 +10,7 @@
  * --apply. --check is the offline gate that a sync dropped a required fix.
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
@@ -117,6 +117,38 @@ export function applyNativeAssetDelivery(source: string) {
     'import { prepareNativeLibrary } from "./native/index.js"\n' +
     source.replace(anchor, "var targetLibPath = (await prepareNativeLibrary(vendoredNativeTarget)).libraryPath")
   )
+}
+
+function exportTypes(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined
+  const conditions = value as Record<string, unknown>
+  if (typeof conditions.types === "string") return conditions.types
+  for (const child of Object.values(conditions)) {
+    const found = exportTypes(child)
+    if (found) return found
+  }
+}
+
+export function jsrDeclarationEntries(coreDir = CORE_DIR) {
+  const config = JSON.parse(readFileSync(join(coreDir, "jsr.json"), "utf8"))
+  const pkg = JSON.parse(readFileSync(join(coreDir, "package.json"), "utf8"))
+  return Object.entries(config.exports as Record<string, string>).map(([subpath, target]) => {
+    const types = exportTypes(pkg.exports[subpath])
+    if (!types || !existsSync(join(coreDir, types))) {
+      throw new Error(`jsr-type-declarations: missing declaration for ${subpath}`)
+    }
+    const file = join(coreDir, target)
+    const declaration = relative(dirname(file), join(coreDir, types)).replaceAll("\\", "/")
+    const specifier = declaration.startsWith(".") ? declaration : `./${declaration}`
+    return { file, marker: `// @ts-self-types="${specifier}"` }
+  })
+}
+
+export function applyJsrDeclaration(source: string, marker: string) {
+  const leading = source.replace(/^\/\/ @ts-self-types=[^\n]*\n/, "")
+  const shebang = leading.match(/^#![^\n]*\n/)?.[0] ?? ""
+  const body = leading.slice(shebang.length).replace(/^\/\/ @ts-self-types=[^\n]*\n/, "")
+  return `${shebang}${marker}\n${body}`
 }
 
 export function kittyKeyboardOptOutApplied(source: string) {
@@ -411,6 +443,14 @@ export function checkTuiPatches(): PatchStatus[] {
     { id: "ffi-geometry-guard", ok: geometryGuardApplied(ffi), detail: findFfiModule() },
     { id: "vendored-native-resolver", ok: nativeResolverApplied(ffi), detail: findFfiModule() },
     { id: "native-asset-delivery", ok: nativeAssetDeliveryApplied(ffi), detail: findFfiModule() },
+    {
+      id: "jsr-type-declarations",
+      ok: jsrDeclarationEntries().every(({ file, marker }) => {
+        const source = readFileSync(file, "utf8")
+        return applyJsrDeclaration(source, marker) === source
+      }),
+      detail: join(CORE_DIR, "jsr.json"),
+    },
     { id: "kitty-keyboard-opt-out", ok: kittyKeyboardOptOutApplied(renderer), detail: findRendererModule() },
     { id: "drop-zig-parser", ok: zigParserDropped(parsers) && zigAssetsAbsent(), detail: findDefaultParserModule() },
     {
@@ -449,6 +489,9 @@ export function applyTuiPatches() {
 
   for (const file of identityFiles()) {
     writeFileSync(file, applyAxRuntimeIdentity(readFileSync(file, "utf8")))
+  }
+  for (const { file, marker } of jsrDeclarationEntries()) {
+    writeFileSync(file, applyJsrDeclaration(readFileSync(file, "utf8"), marker))
   }
 }
 

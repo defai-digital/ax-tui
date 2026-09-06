@@ -1,6 +1,6 @@
 {
   "name": "ax-tui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SolidJS terminal UI framework with a native renderer — derived from OpenTUI (MIT)",
   "license": "MIT",
   "type": "module",
@@ -89,6 +89,7 @@
       "default": "./solid/index.js"
     },
     "./solid/preload": {
+      "types": "./solid/scripts/preload.d.ts",
       "bun": "./solid/scripts/preload.js",
       "node": "./solid/scripts/preload.node.js",
       "default": "./solid/scripts/preload.node.js"
@@ -152,8 +153,8 @@
     "check:patches": "tsx script/tui-patches.ts --check",
     "check:spinner-dist": "tsx script/check-tui-spinner-dist.ts",
     "check": "pnpm run check:vendor && pnpm run check:patches && pnpm run check:spinner-dist",
-    "check:jsr": "jsr publish --dry-run",
-    "publish:jsr": "jsr publish",
+    "check:jsr": "jsr publish --dry-run --allow-slow-types",
+    "publish:jsr": "jsr publish --allow-slow-types",
     "test": "vitest run"
   },
   "dependencies": {

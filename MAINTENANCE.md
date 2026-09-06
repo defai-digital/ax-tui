@@ -44,6 +44,7 @@ Named, idempotent patch contracts live under `patches/` and `solid/patches/`. Th
 - safe native draw geometry;
 - a working Kitty keyboard protocol opt-out;
 - deterministic, offline native resolution;
+- explicit JSR entrypoint declarations and rewritten type-only self-imports;
 - omission of the unused Zig parser;
 - the reduced Solid intrinsic catalogue; and
 - removal of upstream-only test remnants; and
@@ -59,6 +60,11 @@ pnpm run check:patches
 The current renderer is a pre-bundled JavaScript snapshot. Converting it to owned, narrow source modules is a separate
 compatibility phase: preserve `import.meta.url` resolution for native and tree-sitter assets, and prove native/JS ABI
 compatibility before changing the source baseline.
+
+JSR publication uses explicit `@ts-self-types` declarations. The existing Solid component module augmentations
+and tree-sitter worker global are retained for source compatibility, so both JSR commands use `--allow-slow-types`.
+This opts out of JSR fast-type analysis, not TypeScript checking or runtime tests. Do not remove declaration
+annotations to hide these diagnostics: their graph is necessary to rewrite type-only package self-imports.
 
 ## Upstream refresh
 

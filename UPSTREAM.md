@@ -28,6 +28,9 @@ verify their native inputs before signing rewrites bytes.
 
 ## Refresh policy
 
+The `jsr-type-declarations` patch connects public JavaScript entrypoints to the accompanying declarations;
+it does not change the native baseline or renderer ABI.
+
 1. Pin the exact upstream source/package/native version.
 2. Fetch native artifacts through `pnpm run vendor`.
 3. Apply AX divergences through `pnpm run apply:patches`.
