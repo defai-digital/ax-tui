@@ -32,6 +32,7 @@ spinner/                  TypeScript source plus COMMITTED dist/ output
 testing/                  Headless test renderer, mock input, frame capture
 platform/, plugins/, post/, animation/
 assets/                   tree-sitter wasm + highlight grammars (zig dropped)
+native/                   Manifest-verified GitHub asset delivery and cache
 vendor/                   Vendored native shared libraries per platform;
                           vendor/manifest.json is the authoritative record
 patches/                  Named, idempotent divergence patch contracts (docs)
@@ -50,6 +51,8 @@ script/                   Repo maintenance tools (see below)
 - `tui-dist.ts` — distribution allowlist helpers for downstream consumers
   that copy this package (e.g. the AX Code CLI).
 - `tui-surface.ts` — the supported SolidJS JSX intrinsic allowlist.
+- `stage-native-assets.ts` — stages verified native libraries and license
+  assets for the matching version's GitHub release before JSR publication.
 
 Each tool has a colocated `*.test.ts` run by `pnpm test` (vitest).
 
@@ -81,6 +84,13 @@ Rules that must hold at all times:
 - The native resolver maps `(platform, arch, AX_CODE_TUI_LIBC)` to
   `vendor/<target>/`; upstream platform package names and
   `libopentui`/`opentui.dll` filenames are ABI/provenance identifiers only.
+- `ax-tui/native` prepares native assets for downstream staging. Prefer
+  bundled libraries; otherwise verify cached/downloaded library and license
+  hashes. Preserve the signed-bundle exception: native bytes are verified
+  before signing, not against unsigned hashes when loading a signed bundle.
+- JSR self-imports must map to local exports in `jsr.json`, never to an
+  unpublished npm self-package. Publish immutable, verified native release
+  assets before the JSR version. Registry publication needs explicit approval.
 - `AX_CODE_TUI_*` environment variables and `AX_CODE_TUI_` runtime prefixes
   are the package's public env/identity contract — do not rename them.
 

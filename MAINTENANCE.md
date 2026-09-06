@@ -30,6 +30,12 @@ workspace packages.
 The native resolver maps `(platform, arch, AX_CODE_TUI_LIBC)` to `vendor/<target>/` relative to the package root.
 Upstream platform package names and `libopentui`/`opentui.dll` filenames remain only as ABI and provenance identifiers.
 
+If bundled native files are absent, `ax-tui/native` prepares version-pinned GitHub release assets in a private cache.
+Binary size/SHA-256 and license SHA-256 must match `vendor/manifest.json` before an entry is committed or reused.
+`AX_CODE_TUI_NATIVE_CACHE_DIR` overrides the cache location; `AX_CODE_TUI_NATIVE_OFFLINE=1` forbids downloads.
+Invalid cache entries fail closed. Remove only the reported cache entry to prepare it again.
+Bundled files remain loadable after platform signing changes their bytes; build tooling verifies before signing.
+
 ## Required AX divergences
 
 Named, idempotent patch contracts live under `patches/` and `solid/patches/`. They preserve:
@@ -93,6 +99,16 @@ The package is published to JSR as [`@defai-digital/ax-tui`](https://jsr.io/@def
 2. Commit, push `main`, then create the matching tag (`v<version>`) and push it.
 3. The workflow validates the tag against `jsr.json`, rebuilds the spinner dist, runs `check` and the test
    suite, dry-runs the JSR publish, and then publishes with provenance.
+   The native-assets job first stages all libraries and licenses, publishes them under the matching GitHub tag,
+   and verifies downloaded bytes against the staged artifacts. Existing assets are never overwritten.
+
+Keep every `ax-tui` self-import mapped to its local export in `jsr.json`; otherwise JSR's npm-compatible manifest
+can accidentally depend on an unpublished npm package. The native-cache rendering test runs under Node 26 in
+the publish job; Node 24 retains non-rendering maintenance support.
+
+Downstream bundlers import `prepareNativeLibrary` from `ax-tui/native`, copy its `libraryPath` and `licensePath`
+into their own `vendor/<target>/`, and verify against the manifest before platform signing. They must not
+duplicate the framework's downloader or assume that JSR contains the native files.
 
 The JSR tarball ships JavaScript, type declarations, tree-sitter assets, and `vendor/manifest.json` only — the
 native renderer libraries exceed JSR size limits and are distributed out-of-band (GitHub Releases), with the

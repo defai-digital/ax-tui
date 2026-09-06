@@ -30,7 +30,7 @@ function loadResolver(): (proc: { platform: string; arch: string; env: Record<st
 describe("ax-tui vendored native resolver", () => {
   test("no upstream @opentui/core-<platform> npm resolution remains in the bundle", () => {
     expect(SRC).not.toContain('import("@opentui/core-')
-    expect(SRC).toContain("./vendor/")
+    expect(SRC).toContain("prepareNativeLibrary(vendoredNativeTarget)")
   })
 
   test("maps every supported platform/arch/libc triple to a vendored target", () => {

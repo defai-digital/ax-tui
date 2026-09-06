@@ -1,3 +1,4 @@
+import { prepareNativeLibrary } from "./native/index.js"
 import { createRequire } from "node:module"
 var __create = Object.create
 var __getProtoOf = Object.getPrototypeOf
@@ -12275,9 +12276,7 @@ function resolveVendoredNativeTarget() {
   throw new Error(`AX Code TUI is not supported on the current platform: ${process.platform}-${process.arch}`)
 }
 var vendoredNativeTarget = resolveVendoredNativeTarget()
-var targetLibPath = fileURLToPath(
-  new URL(`./vendor/${vendoredNativeTarget}/${VENDORED_NATIVE_LIB_FILE[process.platform]}`, import.meta.url),
-)
+var targetLibPath = (await prepareNativeLibrary(vendoredNativeTarget)).libraryPath
 if (isBunfsPath(targetLibPath)) {
   targetLibPath = targetLibPath.replace("../", "")
 }

@@ -61,7 +61,7 @@ const GEOMETRY_MARKERS = [
   "function ffiCellOrigin(x, y)",
   "Sanitize geometry before it crosses the FFI boundary",
 ] as const
-const RESOLVER_MARKERS = ["function resolveVendoredNativeTarget()", "./vendor/", "AX_CODE_TUI_LIBC"] as const
+const RESOLVER_MARKERS = ["function resolveVendoredNativeTarget()", "AX_CODE_TUI_LIBC"] as const
 const LEGACY_RUNTIME_IDENTITY = [
   /\bOTUI_/,
   /opentui:runtime-module:/,
@@ -93,7 +93,30 @@ export function geometryGuardApplied(source: string) {
 }
 
 export function nativeResolverApplied(source: string) {
-  return RESOLVER_MARKERS.every((marker) => source.includes(marker)) && !source.includes('import("@opentui/core-')
+  return (
+    RESOLVER_MARKERS.every((marker) => source.includes(marker)) &&
+    (source.includes("./vendor/") || nativeAssetDeliveryApplied(source)) &&
+    !source.includes('import("@opentui/core-')
+  )
+}
+
+export function nativeAssetDeliveryApplied(source: string) {
+  return (
+    source.includes('import { prepareNativeLibrary } from "./native/index.js"') &&
+    source.includes("var targetLibPath = (await prepareNativeLibrary(vendoredNativeTarget)).libraryPath")
+  )
+}
+
+export function applyNativeAssetDelivery(source: string) {
+  if (nativeAssetDeliveryApplied(source)) return source
+  const anchor = /var targetLibPath = fileURLToPath\([\s\S]*?\n\);?/
+  if (!nativeResolverApplied(source) || !anchor.test(source)) {
+    throw new Error("native-asset-delivery: missing vendored target path anchor")
+  }
+  return (
+    'import { prepareNativeLibrary } from "./native/index.js"\n' +
+    source.replace(anchor, "var targetLibPath = (await prepareNativeLibrary(vendoredNativeTarget)).libraryPath")
+  )
 }
 
 export function kittyKeyboardOptOutApplied(source: string) {
@@ -387,6 +410,7 @@ export function checkTuiPatches(): PatchStatus[] {
     { id: "ffi-pointer-pin", ok: pointerPinApplied(ffi), detail: findFfiModule() },
     { id: "ffi-geometry-guard", ok: geometryGuardApplied(ffi), detail: findFfiModule() },
     { id: "vendored-native-resolver", ok: nativeResolverApplied(ffi), detail: findFfiModule() },
+    { id: "native-asset-delivery", ok: nativeAssetDeliveryApplied(ffi), detail: findFfiModule() },
     { id: "kitty-keyboard-opt-out", ok: kittyKeyboardOptOutApplied(renderer), detail: findRendererModule() },
     { id: "drop-zig-parser", ok: zigParserDropped(parsers) && zigAssetsAbsent(), detail: findDefaultParserModule() },
     {
@@ -409,6 +433,7 @@ export function applyTuiPatches() {
   ffi = applyPointerPin(ffi)
   ffi = applyGeometryGuard(ffi)
   ffi = applyNativeResolver(ffi)
+  ffi = applyNativeAssetDelivery(ffi)
   writeFileSync(ffiPath, ffi)
 
   const rendererPath = findRendererModule()

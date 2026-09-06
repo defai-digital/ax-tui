@@ -5,6 +5,7 @@ import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   applyKittyKeyboardOptOut,
+  applyNativeAssetDelivery,
   applySlimCatalogue,
   axRuntimeIdentityApplied,
   checkTuiPatches,
@@ -13,6 +14,7 @@ import {
   geometryGuardApplied,
   identityFiles,
   nativeResolverApplied,
+  nativeAssetDeliveryApplied,
   kittyKeyboardOptOutApplied,
   pointerPinApplied,
   slimCatalogueApplied,
@@ -44,6 +46,22 @@ describe("script.tui-patches", () => {
     expect(nativeResolverApplied(ffi)).toBe(true)
     expect(kittyKeyboardOptOutApplied(renderer)).toBe(true)
     expect(applyKittyKeyboardOptOut(renderer)).toBe(renderer)
+    expect(nativeAssetDeliveryApplied(ffi)).toBe(true)
+    expect(applyNativeAssetDelivery(ffi)).toBe(ffi)
+  })
+
+  test("native delivery replaces only the package-relative path lookup", () => {
+    const fixture = [
+      "function resolveVendoredNativeTarget() {}",
+      "// AX_CODE_TUI_LIBC and ./vendor/ remain the target contract",
+      "var targetLibPath = fileURLToPath(\n  new URL('./vendor/library', import.meta.url)\n);",
+      "const after = true",
+    ].join("\n")
+    const result = applyNativeAssetDelivery(fixture)
+    expect(nativeAssetDeliveryApplied(result)).toBe(true)
+    expect(result).toContain("const after = true")
+    expect(applyNativeAssetDelivery(result)).toBe(result)
+    expect(() => applyNativeAssetDelivery("missing")).toThrow("missing vendored target path anchor")
   })
 
   test("Kitty keyboard null opt-out is preserved instead of defaulted back on", () => {
@@ -113,7 +131,9 @@ if (node instanceof SelectRenderable2) {
       writeFileSync(join(fixture, "vendor", "darwin-arm64", "shim.js"), "")
       writeFileSync(join(fixture, "patches", "notes.d.ts"), "")
 
-      const found = identityFiles(fixture).map((file) => relative(fixture, file)).sort()
+      const found = identityFiles(fixture)
+        .map((file) => relative(fixture, file))
+        .sort()
       expect(found).toEqual([join("index.js"), join("solid", "components.js")].sort())
     } finally {
       rmSync(fixture, { recursive: true, force: true })

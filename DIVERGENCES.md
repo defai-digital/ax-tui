@@ -15,6 +15,11 @@ Every behavior change from the pinned renderer snapshot must have an observable 
 
 ## Sync rule
 
+`native-asset-delivery` extends native resolution for the size-limited JSR artifact. The renderer delegates to
+`ax-tui/native`, preferring bundled assets and otherwise using bounded downloads and a manifest-verified cache.
+The regression guards are `test/native-delivery.test.ts`, `test/native-delivery-renderer.test.ts`, and
+`script/tui-patches.test.ts`. This is package-owned delivery, not an upstream ABI change.
+
 Do not overwrite the package wholesale during an upstream refresh. Re-verify every row after applying the new snapshot.
 Removing a divergence requires evidence that the pinned upstream version now provides equivalent behavior and that the
 corresponding regression guard still passes.

@@ -22,6 +22,10 @@ JavaScript/declaration artifacts and native libraries must be refreshed together
 the packed Node distribution and renderer test suite. A package consolidation must never be used as an implicit upstream
 version upgrade.
 
+JSR native delivery does not change this baseline: GitHub release assets are byte-identical to the manifest-verified
+vendored libraries and licenses. Runtime downloads and cache reuse verify those hashes; signed downstream bundles
+verify their native inputs before signing rewrites bytes.
+
 ## Refresh policy
 
 1. Pin the exact upstream source/package/native version.

@@ -18,6 +18,7 @@
     "spinner/dist",
     "renderables",
     "platform",
+    "native",
     "vendor",
     "assets",
     "animation",
@@ -35,6 +36,11 @@
     "MAINTENANCE.md"
   ],
   "exports": {
+    "./native": {
+      "types": "./native/index.d.ts",
+      "import": "./native/index.js",
+      "default": "./native/index.js"
+    },
     ".": {
       "import": "./index.js",
       "types": "./index.d.ts"
