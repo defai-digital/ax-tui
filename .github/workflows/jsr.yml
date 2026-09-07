@@ -52,6 +52,12 @@ jobs:
       - name: Stage verified native assets
         run: pnpm exec tsx script/stage-native-assets.ts .tmp/native-assets
 
+      - name: Build release notes from CHANGELOG.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec tsx script/build-release-notes.ts "${AX_TUI_RELEASE_TAG#v}" .tmp/release-notes.md
+
       - name: Publish immutable native assets before the JSR package
         shell: bash
         env:
@@ -61,7 +67,7 @@ jobs:
           if ! gh release view "$AX_TUI_RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$AX_TUI_RELEASE_TAG" --verify-tag \
               --title "ax-tui $AX_TUI_RELEASE_TAG" \
-              --notes "Manifest-verified native assets for the matching ax-tui JSR package."
+              --notes-file .tmp/release-notes.md
           fi
           mkdir -p .tmp/native-published
           for asset in .tmp/native-assets/ax-tui-native-*; do

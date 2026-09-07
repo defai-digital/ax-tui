@@ -96,12 +96,16 @@ access must use the named TUI lifecycle and safety helpers so route changes and 
 The package is published to JSR as [`@defai-digital/ax-tui`](https://jsr.io/@defai-digital/ax-tui) from the
 `.github/workflows/jsr.yml` workflow using GitHub OIDC trusted publishing (no long-lived tokens).
 
-1. Bump `version` in both `package.json` and `jsr.json` (they must match).
-2. Commit, push `main`, then create the matching tag (`v<version>`) and push it.
-3. The workflow validates the tag against `jsr.json`, rebuilds the spinner and chart dists, runs `check` and the test
+1. Update `CHANGELOG.md`: move the version's changes under a new `## [<version>] - <date>` heading. The GitHub
+   release body is generated from this section by `script/build-release-notes.ts`, so a release without a CHANGELOG
+   section fails.
+2. Bump `version` in both `package.json` and `jsr.json` (they must match).
+3. Commit, push `main`, then create the matching tag (`v<version>`) and push it.
+4. The workflow validates the tag against `jsr.json`, rebuilds the spinner and chart dists, runs `check` and the test
    suite, dry-runs the JSR publish, and then publishes with provenance.
-   The native-assets job first stages all libraries and licenses, publishes them under the matching GitHub tag,
-   and verifies downloaded bytes against the staged artifacts. Existing assets are never overwritten.
+   The native-assets job stages all libraries and licenses, builds the GitHub release notes from `CHANGELOG.md`
+   (linking the matching JSR package and summarizing the version's changes), publishes the assets under the matching
+   GitHub tag, and verifies downloaded bytes against the staged artifacts. Existing assets are never overwritten.
 
 Keep every `ax-tui` self-import mapped to its local export in `jsr.json`; otherwise JSR's npm-compatible manifest
 can accidentally depend on an unpublished npm package. The native-cache rendering test runs under Node 26 in
