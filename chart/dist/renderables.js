@@ -8,9 +8,34 @@ function paintCells(buffer, cells, offsetX, offsetY, defaultFg) {
         buffer.drawText(cell.char, offsetX + cell.x, offsetY + cell.y, parseColor(cell.fg ?? defaultFg), parseColor(cell.bg ?? "transparent"));
     }
 }
+/**
+ * Memoize a pure layout function keyed on the resolved render dimensions.
+ *
+ * The chart layout functions are pure: their output depends only on their
+ * options and the render dimensions, and each call allocates a fresh `Cell[]`
+ * (plus, for `layoutChart`, a grid per dataset). Calling them on every render
+ * frame is wasted work whenever an unrelated renderable elsewhere in the tree
+ * is animating — a common case in a TUI that always has spinners or streaming
+ * text running. Caching the result avoids the re-layout and the per-cell
+ * `parseColor` churn it triggers in `paintCells`.
+ *
+ * Invalidation is two-fold and both halves are required for correctness:
+ * - Data/set-option changes call `requestRender()`, which the renderables
+ *   override to clear the cache before delegating to the base class.
+ * - Resizes may not go through `requestRender()`, so the resolved width/height
+ *   are compared on every render and the cache is rebuilt on a mismatch.
+ */
+function memoLayout(cache, layout, width, height) {
+    if (cache !== null && cache.width === width && cache.height === height) {
+        return { cache, cells: cache.cells };
+    }
+    const cells = layout();
+    return { cache: { width, height, cells }, cells };
+}
 /** Compact sparkline chart renderable. */
 export class SparklineRenderable extends Renderable {
     _layout;
+    _cache = null;
     constructor(ctx, options) {
         super(ctx, options);
         this._layout = {
@@ -62,12 +87,19 @@ export class SparklineRenderable extends Renderable {
     renderSelf(buffer) {
         if (!this.visible)
             return;
-        paintCells(buffer, layoutSparkline(this._layout, this.width, this.height), this.x, this.y, "white");
+        const { cache, cells } = memoLayout(this._cache, () => layoutSparkline(this._layout, this.width, this.height), this.width, this.height);
+        this._cache = cache;
+        paintCells(buffer, cells, this.x, this.y, "white");
+    }
+    requestRender() {
+        this._cache = null;
+        super.requestRender();
     }
 }
 /** Horizontal gauge renderable. */
 export class GaugeRenderable extends Renderable {
     _layout;
+    _cache = null;
     constructor(ctx, options) {
         super(ctx, options);
         this._layout = {
@@ -112,12 +144,19 @@ export class GaugeRenderable extends Renderable {
     renderSelf(buffer) {
         if (!this.visible)
             return;
-        paintCells(buffer, layoutGauge(this._layout, this.width, this.height), this.x, this.y, "white");
+        const { cache, cells } = memoLayout(this._cache, () => layoutGauge(this._layout, this.width, this.height), this.width, this.height);
+        this._cache = cache;
+        paintCells(buffer, cells, this.x, this.y, "white");
+    }
+    requestRender() {
+        this._cache = null;
+        super.requestRender();
     }
 }
 /** Bar-chart renderable. */
 export class BarChartRenderable extends Renderable {
     _layout;
+    _cache = null;
     constructor(ctx, options) {
         super(ctx, options);
         this._layout = {
@@ -171,12 +210,19 @@ export class BarChartRenderable extends Renderable {
     renderSelf(buffer) {
         if (!this.visible)
             return;
-        paintCells(buffer, layoutBarChart(this._layout, this.width, this.height), this.x, this.y, "white");
+        const { cache, cells } = memoLayout(this._cache, () => layoutBarChart(this._layout, this.width, this.height), this.width, this.height);
+        this._cache = cache;
+        paintCells(buffer, cells, this.x, this.y, "white");
+    }
+    requestRender() {
+        this._cache = null;
+        super.requestRender();
     }
 }
 /** Cartesian chart renderable with axes, legend, and markers. */
 export class ChartRenderable extends Renderable {
     _layout;
+    _cache = null;
     constructor(ctx, options) {
         super(ctx, options);
         validateChartOptions(options);
@@ -232,6 +278,12 @@ export class ChartRenderable extends Renderable {
     renderSelf(buffer) {
         if (!this.visible)
             return;
-        paintCells(buffer, layoutChart(this._layout, this.width, this.height), this.x, this.y, "white");
+        const { cache, cells } = memoLayout(this._cache, () => layoutChart(this._layout, this.width, this.height), this.width, this.height);
+        this._cache = cache;
+        paintCells(buffer, cells, this.x, this.y, "white");
+    }
+    requestRender() {
+        this._cache = null;
+        super.requestRender();
     }
 }

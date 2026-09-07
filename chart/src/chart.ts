@@ -87,23 +87,23 @@ export function validateChartOptions(options: ChartLayoutOptions): void {
   }
 }
 
-function finitePoints(datasets: readonly Dataset[]): [number, number][] {
-  const points: [number, number][] = []
-  for (const dataset of datasets) {
-    for (const point of dataset.data) {
-      if (isFinitePair(point)) points.push([point[0], point[1]])
-    }
-  }
-  return points
-}
-
-/** Auto bounds convenience (documented deviation: ratatui requires explicit axes). */
-function autoBounds(values: number[]): [number, number] {
+/**
+ * Auto bounds over one coordinate of every finite point (documented deviation:
+ * ratatui requires explicit axes). Computed in a single pass so the combined
+ * point list and the per-coordinate arrays are never materialized — the data
+ * stage re-filters each dataset independently, so building them here is pure
+ * allocation waste.
+ */
+function autoBoundsOf(datasets: readonly Dataset[], coord: 0 | 1): [number, number] {
   let min = Number.POSITIVE_INFINITY
   let max = Number.NEGATIVE_INFINITY
-  for (const value of values) {
-    if (value < min) min = value
-    if (value > max) max = value
+  for (const dataset of datasets) {
+    for (const point of dataset.data) {
+      if (!isFinitePair(point)) continue
+      const value = point[coord]
+      if (value < min) min = value
+      if (value > max) max = value
+    }
   }
   if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1]
   if (min === max) return [min - 0.5, max + 0.5]
@@ -146,10 +146,9 @@ export function layoutChartInternal(options: ChartLayoutOptions, width: number, 
   }
 
   // --- Bounds resolution -------------------------------------------------
-  const points = finitePoints(datasets)
   const bounds: Bounds = {
-    x: (xAxis?.bounds as readonly [number, number] | undefined) ?? autoBounds(points.map((p) => p[0])),
-    y: (yAxis?.bounds as readonly [number, number] | undefined) ?? autoBounds(points.map((p) => p[1])),
+    x: (xAxis?.bounds as readonly [number, number] | undefined) ?? autoBoundsOf(datasets, 0),
+    y: (yAxis?.bounds as readonly [number, number] | undefined) ?? autoBoundsOf(datasets, 1),
   }
 
   // --- Layout stage (faithful port) --------------------------------------
@@ -195,7 +194,13 @@ export function layoutChartInternal(options: ChartLayoutOptions, width: number, 
   if (axisRowX !== null) {
     const from = axisColY !== null ? axisColY + 1 : graphLeft
     for (let x = from; x < width; x++) cells.push({ x, y: axisRowX, char: LINE_HORIZONTAL, fg: axisColor })
-    if (axisColY !== null) cells.push({ x: axisColY, y: axisRowX, char: LINE_BOTTOM_LEFT, fg: axisColor })
+    if (axisColY !== null)
+      cells.push({
+        x: axisColY,
+        y: axisRowX,
+        char: LINE_BOTTOM_LEFT,
+        fg: axisColor,
+      })
   }
   if (axisColY !== null) {
     const bottom = axisRowX !== null ? axisRowX : graphHeight
@@ -334,8 +339,7 @@ export function layoutChartInternal(options: ChartLayoutOptions, width: number, 
       // titles leave no vertical room for it.
       const heightMargin = graphHeight - legendHeight - (xTitleWidth > 0 ? 1 : 0) - (yTitleWidth > 0 ? 1 : 0)
       if (innerWidth > 0 && legendWidth <= maxWidth && legendHeight <= maxHeight && heightMargin >= 0) {
-        const lx =
-          legendPosition === "top-right" || legendPosition === "bottom-right" ? width - legendWidth : graphLeft
+        const lx = legendPosition === "top-right" || legendPosition === "bottom-right" ? width - legendWidth : graphLeft
         let ly = legendPosition === "bottom-left" || legendPosition === "bottom-right" ? graphHeight - legendHeight : 0
         // Title-collision rules (ratatui): top legends yield one row to the y
         // title, bottom legends one row to the x title.
@@ -369,16 +373,41 @@ function drawLegend(
   borderColor: ColorInput,
 ): void {
   cells.push({ x, y, char: BOX_TOP_LEFT, fg: borderColor })
-  cells.push({ x: x + legendWidth - 1, y, char: BOX_TOP_RIGHT, fg: borderColor })
-  cells.push({ x, y: y + legendHeight - 1, char: BOX_BOTTOM_LEFT, fg: borderColor })
-  cells.push({ x: x + legendWidth - 1, y: y + legendHeight - 1, char: BOX_BOTTOM_RIGHT, fg: borderColor })
+  cells.push({
+    x: x + legendWidth - 1,
+    y,
+    char: BOX_TOP_RIGHT,
+    fg: borderColor,
+  })
+  cells.push({
+    x,
+    y: y + legendHeight - 1,
+    char: BOX_BOTTOM_LEFT,
+    fg: borderColor,
+  })
+  cells.push({
+    x: x + legendWidth - 1,
+    y: y + legendHeight - 1,
+    char: BOX_BOTTOM_RIGHT,
+    fg: borderColor,
+  })
   for (let i = 1; i < legendWidth - 1; i++) {
     cells.push({ x: x + i, y, char: LINE_HORIZONTAL, fg: borderColor })
-    cells.push({ x: x + i, y: y + legendHeight - 1, char: LINE_HORIZONTAL, fg: borderColor })
+    cells.push({
+      x: x + i,
+      y: y + legendHeight - 1,
+      char: LINE_HORIZONTAL,
+      fg: borderColor,
+    })
   }
   for (let row = 1; row < legendHeight - 1; row++) {
     cells.push({ x, y: y + row, char: LINE_VERTICAL, fg: borderColor })
-    cells.push({ x: x + legendWidth - 1, y: y + row, char: LINE_VERTICAL, fg: borderColor })
+    cells.push({
+      x: x + legendWidth - 1,
+      y: y + row,
+      char: LINE_VERTICAL,
+      fg: borderColor,
+    })
     const dataset = named[row - 1]!
     paintText(cells, dataset.name!, x + 1, y + row, dataset.color ?? "white")
   }

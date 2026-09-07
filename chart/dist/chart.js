@@ -23,25 +23,26 @@ export function validateChartOptions(options) {
         }
     }
 }
-function finitePoints(datasets) {
-    const points = [];
-    for (const dataset of datasets) {
-        for (const point of dataset.data) {
-            if (isFinitePair(point))
-                points.push([point[0], point[1]]);
-        }
-    }
-    return points;
-}
-/** Auto bounds convenience (documented deviation: ratatui requires explicit axes). */
-function autoBounds(values) {
+/**
+ * Auto bounds over one coordinate of every finite point (documented deviation:
+ * ratatui requires explicit axes). Computed in a single pass so the combined
+ * point list and the per-coordinate arrays are never materialized — the data
+ * stage re-filters each dataset independently, so building them here is pure
+ * allocation waste.
+ */
+function autoBoundsOf(datasets, coord) {
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
-    for (const value of values) {
-        if (value < min)
-            min = value;
-        if (value > max)
-            max = value;
+    for (const dataset of datasets) {
+        for (const point of dataset.data) {
+            if (!isFinitePair(point))
+                continue;
+            const value = point[coord];
+            if (value < min)
+                min = value;
+            if (value > max)
+                max = value;
+        }
     }
     if (!Number.isFinite(min) || !Number.isFinite(max))
         return [0, 1];
@@ -76,10 +77,9 @@ export function layoutChartInternal(options, width, height) {
         }
     }
     // --- Bounds resolution -------------------------------------------------
-    const points = finitePoints(datasets);
     const bounds = {
-        x: xAxis?.bounds ?? autoBounds(points.map((p) => p[0])),
-        y: yAxis?.bounds ?? autoBounds(points.map((p) => p[1])),
+        x: xAxis?.bounds ?? autoBoundsOf(datasets, 0),
+        y: yAxis?.bounds ?? autoBoundsOf(datasets, 1),
     };
     // --- Layout stage (faithful port) --------------------------------------
     let y = height - 1;
@@ -128,7 +128,12 @@ export function layoutChartInternal(options, width, height) {
         for (let x = from; x < width; x++)
             cells.push({ x, y: axisRowX, char: LINE_HORIZONTAL, fg: axisColor });
         if (axisColY !== null)
-            cells.push({ x: axisColY, y: axisRowX, char: LINE_BOTTOM_LEFT, fg: axisColor });
+            cells.push({
+                x: axisColY,
+                y: axisRowX,
+                char: LINE_BOTTOM_LEFT,
+                fg: axisColor,
+            });
     }
     if (axisColY !== null) {
         const bottom = axisRowX !== null ? axisRowX : graphHeight;
@@ -307,16 +312,41 @@ export function layoutChartInternal(options, width, height) {
 }
 function drawLegend(cells, x, y, legendWidth, legendHeight, named, borderColor) {
     cells.push({ x, y, char: BOX_TOP_LEFT, fg: borderColor });
-    cells.push({ x: x + legendWidth - 1, y, char: BOX_TOP_RIGHT, fg: borderColor });
-    cells.push({ x, y: y + legendHeight - 1, char: BOX_BOTTOM_LEFT, fg: borderColor });
-    cells.push({ x: x + legendWidth - 1, y: y + legendHeight - 1, char: BOX_BOTTOM_RIGHT, fg: borderColor });
+    cells.push({
+        x: x + legendWidth - 1,
+        y,
+        char: BOX_TOP_RIGHT,
+        fg: borderColor,
+    });
+    cells.push({
+        x,
+        y: y + legendHeight - 1,
+        char: BOX_BOTTOM_LEFT,
+        fg: borderColor,
+    });
+    cells.push({
+        x: x + legendWidth - 1,
+        y: y + legendHeight - 1,
+        char: BOX_BOTTOM_RIGHT,
+        fg: borderColor,
+    });
     for (let i = 1; i < legendWidth - 1; i++) {
         cells.push({ x: x + i, y, char: LINE_HORIZONTAL, fg: borderColor });
-        cells.push({ x: x + i, y: y + legendHeight - 1, char: LINE_HORIZONTAL, fg: borderColor });
+        cells.push({
+            x: x + i,
+            y: y + legendHeight - 1,
+            char: LINE_HORIZONTAL,
+            fg: borderColor,
+        });
     }
     for (let row = 1; row < legendHeight - 1; row++) {
         cells.push({ x, y: y + row, char: LINE_VERTICAL, fg: borderColor });
-        cells.push({ x: x + legendWidth - 1, y: y + row, char: LINE_VERTICAL, fg: borderColor });
+        cells.push({
+            x: x + legendWidth - 1,
+            y: y + row,
+            char: LINE_VERTICAL,
+            fg: borderColor,
+        });
         const dataset = named[row - 1];
         paintText(cells, dataset.name, x + 1, y + row, dataset.color ?? "white");
     }
