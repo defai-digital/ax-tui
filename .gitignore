@@ -19,5 +19,8 @@ tmp/
 # Internal-only working docs; never published to the public repo
 .internal/
 
+# Local agent working memory; never published to the public repo
+.ax-code/
+
 # The spinner dist is committed; nothing else built is
 spinner/src/**/*.js
