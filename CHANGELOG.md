@@ -6,6 +6,21 @@ software; breaking changes are called out explicitly when they occur.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-12
+
+### Fixed
+
+- Chart renderables (sparkline, gauge, bar chart, cartesian chart) recompute
+  their layout on every frame again. The 0.1.3 memoization served stale frames
+  when data was mutated in place through the live `data`/`datasets`
+  references without a `requestRender` — despite the 0.1.3 notes claiming no
+  behavior change. The single-pass auto-bounds computation stays.
+- Add the missing chart update accessors (`barColor`; gauge
+  `labelColor`/`backgroundColor`; `showValues`/`showLabels` and bar chart
+  `backgroundColor`; `hiddenLegendConstraints` and chart `backgroundColor`).
+  The Solid reconciler assigns props directly, so without a setter these
+  updates were silently dropped into inert own-properties and never rendered.
+
 ## [0.1.3] - 2026-09-07
 
 ### Performance
