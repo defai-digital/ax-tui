@@ -22,6 +22,8 @@ export declare class SparklineRenderable extends Renderable {
     set color(value: ColorInput | undefined);
     get backgroundColor(): ColorInput | undefined;
     set backgroundColor(value: ColorInput | undefined);
+    get barColor(): SparklineLayoutOptions["barColor"];
+    set barColor(value: SparklineLayoutOptions["barColor"]);
     protected renderSelf(buffer: OptimizedBuffer): void;
 }
 /** Gauge options. */
@@ -37,6 +39,10 @@ export declare class GaugeRenderable extends Renderable {
     set label(value: string | null | undefined);
     get color(): ColorInput | undefined;
     set color(value: ColorInput | undefined);
+    get labelColor(): GaugeLayoutOptions["labelColor"];
+    set labelColor(value: GaugeLayoutOptions["labelColor"]);
+    get backgroundColor(): GaugeLayoutOptions["backgroundColor"];
+    set backgroundColor(value: GaugeLayoutOptions["backgroundColor"]);
     get unicode(): boolean | undefined;
     set unicode(value: boolean | undefined);
     protected renderSelf(buffer: OptimizedBuffer): void;
@@ -56,8 +62,14 @@ export declare class BarChartRenderable extends Renderable {
     set barGap(value: number | undefined);
     get max(): number | undefined;
     set max(value: number | undefined);
+    get showValues(): boolean | undefined;
+    set showValues(value: boolean | undefined);
+    get showLabels(): boolean | undefined;
+    set showLabels(value: boolean | undefined);
     get color(): ColorInput | undefined;
     set color(value: ColorInput | undefined);
+    get backgroundColor(): BarChartLayoutOptions["backgroundColor"];
+    set backgroundColor(value: BarChartLayoutOptions["backgroundColor"]);
     protected renderSelf(buffer: OptimizedBuffer): void;
 }
 /** Chart options. */
@@ -75,7 +87,11 @@ export declare class ChartRenderable extends Renderable {
     set yAxis(value: AxisOptions | undefined);
     get legendPosition(): ChartLayoutOptions["legendPosition"];
     set legendPosition(value: ChartLayoutOptions["legendPosition"]);
+    get hiddenLegendConstraints(): ChartLayoutOptions["hiddenLegendConstraints"];
+    set hiddenLegendConstraints(value: ChartLayoutOptions["hiddenLegendConstraints"]);
     get color(): ColorInput | undefined;
     set color(value: ColorInput | undefined);
+    get backgroundColor(): ChartLayoutOptions["backgroundColor"];
+    set backgroundColor(value: ChartLayoutOptions["backgroundColor"]);
     protected renderSelf(buffer: OptimizedBuffer): void;
 }

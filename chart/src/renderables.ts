@@ -95,6 +95,15 @@ export class SparklineRenderable extends Renderable {
     this.requestRender()
   }
 
+  get barColor(): SparklineLayoutOptions["barColor"] {
+    return this._layout.barColor
+  }
+
+  set barColor(value: SparklineLayoutOptions["barColor"]) {
+    this._layout.barColor = value
+    this.requestRender()
+  }
+
   protected override renderSelf(buffer: OptimizedBuffer): void {
     if (!this.visible) return
     // The layout inputs are mutable by reference (see the `data` getter), so a
@@ -153,6 +162,24 @@ export class GaugeRenderable extends Renderable {
 
   set color(value: ColorInput | undefined) {
     this._layout.color = value
+    this.requestRender()
+  }
+
+  get labelColor(): GaugeLayoutOptions["labelColor"] {
+    return this._layout.labelColor
+  }
+
+  set labelColor(value: GaugeLayoutOptions["labelColor"]) {
+    this._layout.labelColor = value
+    this.requestRender()
+  }
+
+  get backgroundColor(): GaugeLayoutOptions["backgroundColor"] {
+    return this._layout.backgroundColor
+  }
+
+  set backgroundColor(value: GaugeLayoutOptions["backgroundColor"]) {
+    this._layout.backgroundColor = value
     this.requestRender()
   }
 
@@ -234,12 +261,39 @@ export class BarChartRenderable extends Renderable {
     this.requestRender()
   }
 
+  get showValues(): boolean | undefined {
+    return this._layout.showValues
+  }
+
+  set showValues(value: boolean | undefined) {
+    this._layout.showValues = value
+    this.requestRender()
+  }
+
+  get showLabels(): boolean | undefined {
+    return this._layout.showLabels
+  }
+
+  set showLabels(value: boolean | undefined) {
+    this._layout.showLabels = value
+    this.requestRender()
+  }
+
   get color(): ColorInput | undefined {
     return this._layout.color
   }
 
   set color(value: ColorInput | undefined) {
     this._layout.color = value
+    this.requestRender()
+  }
+
+  get backgroundColor(): BarChartLayoutOptions["backgroundColor"] {
+    return this._layout.backgroundColor
+  }
+
+  set backgroundColor(value: BarChartLayoutOptions["backgroundColor"]) {
+    this._layout.backgroundColor = value
     this.requestRender()
   }
 
@@ -316,12 +370,30 @@ export class ChartRenderable extends Renderable {
     this.requestRender()
   }
 
+  get hiddenLegendConstraints(): ChartLayoutOptions["hiddenLegendConstraints"] {
+    return this._layout.hiddenLegendConstraints
+  }
+
+  set hiddenLegendConstraints(value: ChartLayoutOptions["hiddenLegendConstraints"]) {
+    this._layout.hiddenLegendConstraints = value
+    this.requestRender()
+  }
+
   get color(): ColorInput | undefined {
     return this._layout.color
   }
 
   set color(value: ColorInput | undefined) {
     this._layout.color = value
+    this.requestRender()
+  }
+
+  get backgroundColor(): ChartLayoutOptions["backgroundColor"] {
+    return this._layout.backgroundColor
+  }
+
+  set backgroundColor(value: ChartLayoutOptions["backgroundColor"]) {
+    this._layout.backgroundColor = value
     this.requestRender()
   }
 

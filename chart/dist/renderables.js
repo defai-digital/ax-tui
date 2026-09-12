@@ -59,6 +59,13 @@ export class SparklineRenderable extends Renderable {
         this._layout.backgroundColor = value;
         this.requestRender();
     }
+    get barColor() {
+        return this._layout.barColor;
+    }
+    set barColor(value) {
+        this._layout.barColor = value;
+        this.requestRender();
+    }
     renderSelf(buffer) {
         if (!this.visible)
             return;
@@ -103,6 +110,20 @@ export class GaugeRenderable extends Renderable {
     }
     set color(value) {
         this._layout.color = value;
+        this.requestRender();
+    }
+    get labelColor() {
+        return this._layout.labelColor;
+    }
+    set labelColor(value) {
+        this._layout.labelColor = value;
+        this.requestRender();
+    }
+    get backgroundColor() {
+        return this._layout.backgroundColor;
+    }
+    set backgroundColor(value) {
+        this._layout.backgroundColor = value;
         this.requestRender();
     }
     get unicode() {
@@ -164,11 +185,32 @@ export class BarChartRenderable extends Renderable {
         this._layout.max = value;
         this.requestRender();
     }
+    get showValues() {
+        return this._layout.showValues;
+    }
+    set showValues(value) {
+        this._layout.showValues = value;
+        this.requestRender();
+    }
+    get showLabels() {
+        return this._layout.showLabels;
+    }
+    set showLabels(value) {
+        this._layout.showLabels = value;
+        this.requestRender();
+    }
     get color() {
         return this._layout.color;
     }
     set color(value) {
         this._layout.color = value;
+        this.requestRender();
+    }
+    get backgroundColor() {
+        return this._layout.backgroundColor;
+    }
+    set backgroundColor(value) {
+        this._layout.backgroundColor = value;
         this.requestRender();
     }
     renderSelf(buffer) {
@@ -227,11 +269,25 @@ export class ChartRenderable extends Renderable {
         this._layout.legendPosition = value;
         this.requestRender();
     }
+    get hiddenLegendConstraints() {
+        return this._layout.hiddenLegendConstraints;
+    }
+    set hiddenLegendConstraints(value) {
+        this._layout.hiddenLegendConstraints = value;
+        this.requestRender();
+    }
     get color() {
         return this._layout.color;
     }
     set color(value) {
         this._layout.color = value;
+        this.requestRender();
+    }
+    get backgroundColor() {
+        return this._layout.backgroundColor;
+    }
+    set backgroundColor(value) {
+        this._layout.backgroundColor = value;
         this.requestRender();
     }
     renderSelf(buffer) {

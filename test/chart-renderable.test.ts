@@ -122,6 +122,15 @@ describe("SparklineRenderable", () => {
     renderSelf(sparkline, after)
     expect(frameOf(after.calls, 3, 1)).toEqual(["███"])
   })
+
+  test("barColor setter applies instead of dropping the update", () => {
+    const sparkline = new SparklineRenderable(ctx, { data: [1], width: 1, height: 1 })
+    const spy = vi.spyOn(sparkline, "requestRender")
+    const barColor = () => "red" as const
+    sparkline.barColor = barColor
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(sparkline.barColor).toBe(barColor)
+  })
 })
 
 describe("GaugeRenderable", () => {
@@ -144,6 +153,16 @@ describe("GaugeRenderable", () => {
     gauge.ratio = 0.75
     expect(spy).toHaveBeenCalledTimes(1)
     expect(gauge.ratio).toBe(0.75)
+  })
+
+  test("labelColor and backgroundColor setters apply instead of dropping the update", () => {
+    const gauge = new GaugeRenderable(ctx, { ratio: 0.5, width: 10, height: 1 })
+    const spy = vi.spyOn(gauge, "requestRender")
+    gauge.labelColor = "red"
+    gauge.backgroundColor = "blue"
+    expect(spy).toHaveBeenCalledTimes(2)
+    expect(gauge.labelColor).toBe("red")
+    expect(gauge.backgroundColor).toBe("blue")
   })
 })
 
@@ -191,6 +210,39 @@ describe("BarChartRenderable", () => {
     renderSelf(chart, after)
     expect(frameOf(after.calls, 3, 3)).toEqual(["█ █", "4 4", "a b"])
   })
+
+  test("showValues and showLabels setters apply instead of dropping the update", () => {
+    const chart = new BarChartRenderable(ctx, {
+      data: [
+        { value: 2, label: "a" },
+        { value: 4, label: "b" },
+      ],
+      max: 4,
+      width: 3,
+      height: 3,
+    })
+    // The reconciler assigns props directly (node[name] = value); without a
+    // setter this creates an inert own-property and the frame never changes.
+    chart.showValues = false
+    const noValues = createFakeBuffer()
+    renderSelf(chart, noValues)
+    expect(frameOf(noValues.calls, 3, 3)).toEqual(["  █", "█ █", "a b"])
+    chart.showValues = true
+    chart.showLabels = false
+    const noLabels = createFakeBuffer()
+    renderSelf(chart, noLabels)
+    expect(frameOf(noLabels.calls, 3, 3)).toEqual(["  █", "▄ █", "2 4"])
+    expect(chart.showValues).toBe(true)
+    expect(chart.showLabels).toBe(false)
+  })
+
+  test("backgroundColor setter requests a render", () => {
+    const chart = new BarChartRenderable(ctx, { data: [1], width: 1, height: 1 })
+    const spy = vi.spyOn(chart, "requestRender")
+    chart.backgroundColor = "blue"
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(chart.backgroundColor).toBe("blue")
+  })
 })
 
 describe("ChartRenderable", () => {
@@ -234,6 +286,16 @@ describe("ChartRenderable", () => {
     chart.legendPosition = "top-left"
     chart.color = "red"
     expect(spy).toHaveBeenCalledTimes(3)
+  })
+
+  test("hiddenLegendConstraints and backgroundColor setters apply instead of dropping the update", () => {
+    const chart = new ChartRenderable(ctx, { width: 5, height: 5 })
+    const spy = vi.spyOn(chart, "requestRender")
+    chart.hiddenLegendConstraints = [1 / 3, 1 / 3]
+    chart.backgroundColor = "blue"
+    expect(spy).toHaveBeenCalledTimes(2)
+    expect(chart.hiddenLegendConstraints).toEqual([1 / 3, 1 / 3])
+    expect(chart.backgroundColor).toBe("blue")
   })
 
   test("reflects in-place dataset mutation on the next frame", () => {
