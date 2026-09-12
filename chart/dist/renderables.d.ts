@@ -11,7 +11,6 @@ export interface SparklineOptions extends RenderableOptions<SparklineRenderable>
 /** Compact sparkline chart renderable. */
 export declare class SparklineRenderable extends Renderable {
     private _layout;
-    private _cache;
     constructor(ctx: RenderContext, options: SparklineOptions);
     get data(): readonly (number | null | undefined)[];
     set data(value: readonly (number | null | undefined)[]);
@@ -24,7 +23,6 @@ export declare class SparklineRenderable extends Renderable {
     get backgroundColor(): ColorInput | undefined;
     set backgroundColor(value: ColorInput | undefined);
     protected renderSelf(buffer: OptimizedBuffer): void;
-    requestRender(): void;
 }
 /** Gauge options. */
 export interface GaugeOptions extends RenderableOptions<GaugeRenderable>, GaugeLayoutOptions {
@@ -32,7 +30,6 @@ export interface GaugeOptions extends RenderableOptions<GaugeRenderable>, GaugeL
 /** Horizontal gauge renderable. */
 export declare class GaugeRenderable extends Renderable {
     private _layout;
-    private _cache;
     constructor(ctx: RenderContext, options: GaugeOptions);
     get ratio(): number | undefined;
     set ratio(value: number | undefined);
@@ -43,7 +40,6 @@ export declare class GaugeRenderable extends Renderable {
     get unicode(): boolean | undefined;
     set unicode(value: boolean | undefined);
     protected renderSelf(buffer: OptimizedBuffer): void;
-    requestRender(): void;
 }
 /** Bar chart options. */
 export interface BarChartOptions extends RenderableOptions<BarChartRenderable>, BarChartLayoutOptions {
@@ -51,7 +47,6 @@ export interface BarChartOptions extends RenderableOptions<BarChartRenderable>, 
 /** Bar-chart renderable. */
 export declare class BarChartRenderable extends Renderable {
     private _layout;
-    private _cache;
     constructor(ctx: RenderContext, options: BarChartOptions);
     get data(): BarChartLayoutOptions["data"];
     set data(value: BarChartLayoutOptions["data"]);
@@ -64,7 +59,6 @@ export declare class BarChartRenderable extends Renderable {
     get color(): ColorInput | undefined;
     set color(value: ColorInput | undefined);
     protected renderSelf(buffer: OptimizedBuffer): void;
-    requestRender(): void;
 }
 /** Chart options. */
 export interface ChartOptions extends RenderableOptions<ChartRenderable>, ChartLayoutOptions {
@@ -72,7 +66,6 @@ export interface ChartOptions extends RenderableOptions<ChartRenderable>, ChartL
 /** Cartesian chart renderable with axes, legend, and markers. */
 export declare class ChartRenderable extends Renderable {
     private _layout;
-    private _cache;
     constructor(ctx: RenderContext, options: ChartOptions);
     get datasets(): ChartLayoutOptions["datasets"];
     set datasets(value: ChartLayoutOptions["datasets"]);
@@ -85,5 +78,4 @@ export declare class ChartRenderable extends Renderable {
     get color(): ColorInput | undefined;
     set color(value: ColorInput | undefined);
     protected renderSelf(buffer: OptimizedBuffer): void;
-    requestRender(): void;
 }

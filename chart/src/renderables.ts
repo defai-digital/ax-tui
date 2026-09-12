@@ -25,45 +25,6 @@ function paintCells(
   }
 }
 
-/**
- * Cached result of a pure layout function.
- */
-interface LayoutCache {
-  width: number
-  height: number
-  cells: Cell[]
-}
-
-/**
- * Memoize a pure layout function keyed on the resolved render dimensions.
- *
- * The chart layout functions are pure: their output depends only on their
- * options and the render dimensions, and each call allocates a fresh `Cell[]`
- * (plus, for `layoutChart`, a grid per dataset). Calling them on every render
- * frame is wasted work whenever an unrelated renderable elsewhere in the tree
- * is animating — a common case in a TUI that always has spinners or streaming
- * text running. Caching the result avoids the re-layout and the per-cell
- * `parseColor` churn it triggers in `paintCells`.
- *
- * Invalidation is two-fold and both halves are required for correctness:
- * - Data/set-option changes call `requestRender()`, which the renderables
- *   override to clear the cache before delegating to the base class.
- * - Resizes may not go through `requestRender()`, so the resolved width/height
- *   are compared on every render and the cache is rebuilt on a mismatch.
- */
-function memoLayout(
-  cache: LayoutCache | null,
-  layout: () => Cell[],
-  width: number,
-  height: number,
-): { cache: LayoutCache; cells: Cell[] } {
-  if (cache !== null && cache.width === width && cache.height === height) {
-    return { cache, cells: cache.cells }
-  }
-  const cells = layout()
-  return { cache: { width, height, cells }, cells }
-}
-
 // ---------------------------------------------------------------------------
 // Sparkline
 // ---------------------------------------------------------------------------
@@ -74,7 +35,6 @@ export interface SparklineOptions extends RenderableOptions<SparklineRenderable>
 /** Compact sparkline chart renderable. */
 export class SparklineRenderable extends Renderable {
   private _layout: SparklineLayoutOptions
-  private _cache: LayoutCache | null = null
 
   constructor(ctx: RenderContext, options: SparklineOptions) {
     super(ctx, options)
@@ -137,19 +97,10 @@ export class SparklineRenderable extends Renderable {
 
   protected override renderSelf(buffer: OptimizedBuffer): void {
     if (!this.visible) return
-    const { cache, cells } = memoLayout(
-      this._cache,
-      () => layoutSparkline(this._layout, this.width, this.height),
-      this.width,
-      this.height,
-    )
-    this._cache = cache
-    paintCells(buffer, cells, this.x, this.y, "white")
-  }
-
-  override requestRender(): void {
-    this._cache = null
-    super.requestRender()
+    // The layout inputs are mutable by reference (see the `data` getter), so a
+    // cached frame could outlive the data it was computed from. Recompute on
+    // every frame so each painted frame reflects the current state.
+    paintCells(buffer, layoutSparkline(this._layout, this.width, this.height), this.x, this.y, "white")
   }
 }
 
@@ -163,7 +114,6 @@ export interface GaugeOptions extends RenderableOptions<GaugeRenderable>, GaugeL
 /** Horizontal gauge renderable. */
 export class GaugeRenderable extends Renderable {
   private _layout: GaugeLayoutOptions
-  private _cache: LayoutCache | null = null
 
   constructor(ctx: RenderContext, options: GaugeOptions) {
     super(ctx, options)
@@ -217,19 +167,7 @@ export class GaugeRenderable extends Renderable {
 
   protected override renderSelf(buffer: OptimizedBuffer): void {
     if (!this.visible) return
-    const { cache, cells } = memoLayout(
-      this._cache,
-      () => layoutGauge(this._layout, this.width, this.height),
-      this.width,
-      this.height,
-    )
-    this._cache = cache
-    paintCells(buffer, cells, this.x, this.y, "white")
-  }
-
-  override requestRender(): void {
-    this._cache = null
-    super.requestRender()
+    paintCells(buffer, layoutGauge(this._layout, this.width, this.height), this.x, this.y, "white")
   }
 }
 
@@ -243,7 +181,6 @@ export interface BarChartOptions extends RenderableOptions<BarChartRenderable>, 
 /** Bar-chart renderable. */
 export class BarChartRenderable extends Renderable {
   private _layout: BarChartLayoutOptions
-  private _cache: LayoutCache | null = null
 
   constructor(ctx: RenderContext, options: BarChartOptions) {
     super(ctx, options)
@@ -308,19 +245,9 @@ export class BarChartRenderable extends Renderable {
 
   protected override renderSelf(buffer: OptimizedBuffer): void {
     if (!this.visible) return
-    const { cache, cells } = memoLayout(
-      this._cache,
-      () => layoutBarChart(this._layout, this.width, this.height),
-      this.width,
-      this.height,
-    )
-    this._cache = cache
-    paintCells(buffer, cells, this.x, this.y, "white")
-  }
-
-  override requestRender(): void {
-    this._cache = null
-    super.requestRender()
+    // See SparklineRenderable: inputs are mutable by reference, so recompute on
+    // every frame instead of caching a potentially stale frame.
+    paintCells(buffer, layoutBarChart(this._layout, this.width, this.height), this.x, this.y, "white")
   }
 }
 
@@ -334,7 +261,6 @@ export interface ChartOptions extends RenderableOptions<ChartRenderable>, ChartL
 /** Cartesian chart renderable with axes, legend, and markers. */
 export class ChartRenderable extends Renderable {
   private _layout: ChartLayoutOptions
-  private _cache: LayoutCache | null = null
 
   constructor(ctx: RenderContext, options: ChartOptions) {
     super(ctx, options)
@@ -401,18 +327,8 @@ export class ChartRenderable extends Renderable {
 
   protected override renderSelf(buffer: OptimizedBuffer): void {
     if (!this.visible) return
-    const { cache, cells } = memoLayout(
-      this._cache,
-      () => layoutChart(this._layout, this.width, this.height),
-      this.width,
-      this.height,
-    )
-    this._cache = cache
-    paintCells(buffer, cells, this.x, this.y, "white")
-  }
-
-  override requestRender(): void {
-    this._cache = null
-    super.requestRender()
+    // See SparklineRenderable: datasets are mutable by reference, so recompute
+    // on every frame instead of caching a potentially stale frame.
+    paintCells(buffer, layoutChart(this._layout, this.width, this.height), this.x, this.y, "white")
   }
 }

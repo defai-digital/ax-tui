@@ -109,6 +109,19 @@ describe("SparklineRenderable", () => {
     expect(sparkline.max).toBe(2)
     expect(sparkline.direction).toBe("rtl")
   })
+
+  test("reflects in-place data mutation on the next frame", () => {
+    const sparkline = new SparklineRenderable(ctx, { data: [0, 0, 0], max: 8, width: 3, height: 1 })
+    const before = createFakeBuffer()
+    renderSelf(sparkline, before)
+    expect(frameOf(before.calls, 3, 1)).toEqual(["   "])
+    // Streaming-style mutation through the live `data` reference, with the next
+    // frame driven by an unrelated widget (no requestRender from this one).
+    ;(sparkline.data as number[]).splice(0, 3, 8, 8, 8)
+    const after = createFakeBuffer()
+    renderSelf(sparkline, after)
+    expect(frameOf(after.calls, 3, 1)).toEqual(["███"])
+  })
 })
 
 describe("GaugeRenderable", () => {
@@ -159,6 +172,25 @@ describe("BarChartRenderable", () => {
     chart.data = [1, 2]
     expect(spy).toHaveBeenCalledTimes(1)
   })
+
+  test("reflects in-place data mutation on the next frame", () => {
+    const chart = new BarChartRenderable(ctx, {
+      data: [
+        { value: 2, label: "a" },
+        { value: 4, label: "b" },
+      ],
+      max: 4,
+      width: 3,
+      height: 3,
+    })
+    const before = createFakeBuffer()
+    renderSelf(chart, before)
+    expect(frameOf(before.calls, 3, 3)).toEqual(["  █", "2 4", "a b"])
+    chart.data[0]!.value = 4
+    const after = createFakeBuffer()
+    renderSelf(chart, after)
+    expect(frameOf(after.calls, 3, 3)).toEqual(["█ █", "4 4", "a b"])
+  })
 })
 
 describe("ChartRenderable", () => {
@@ -202,5 +234,22 @@ describe("ChartRenderable", () => {
     chart.legendPosition = "top-left"
     chart.color = "red"
     expect(spy).toHaveBeenCalledTimes(3)
+  })
+
+  test("reflects in-place dataset mutation on the next frame", () => {
+    const chart = new ChartRenderable(ctx, {
+      datasets: [{ data: [[0, 0], [5, 10]], graphType: "line" }],
+      width: 6,
+      height: 3,
+    })
+    const before = createFakeBuffer()
+    renderSelf(chart, before)
+    expect(frameOf(before.calls, 6, 3)).toEqual(["    ⡠⠊", "  ⡠⠊  ", "⡠⠊    "])
+    // Streaming-style mutation through the live `datasets` reference, with the
+    // next frame driven by an unrelated widget (no requestRender from this one).
+    ;(chart.datasets[0]!.data as [number, number][]).push([10, 0])
+    const after = createFakeBuffer()
+    renderSelf(chart, after)
+    expect(frameOf(after.calls, 6, 3)).not.toEqual(frameOf(before.calls, 6, 3))
   })
 })
