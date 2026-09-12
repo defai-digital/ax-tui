@@ -48,5 +48,5 @@ import "ax-tui/chart/solid"
   cell the later dataset's cell wins — replaced, not dot-merged. A braille
   cell carries one fg color.
 
-See `.internal/TECH-SPEC-chart-widgets.md` for the full algorithm port and the
-documented deviations from ratatui.
+The full algorithm port and the documented deviations from ratatui are recorded
+in the internal tech spec (kept out of the public repository).
