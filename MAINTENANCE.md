@@ -132,3 +132,13 @@ After publishing, open https://jsr.io/@defai-digital/ax-tui/settings and set:
 - **Description** to the package.json description (max 250 characters).
 - **Runtime compatibility:** Node.js and Bun supported; Deno unknown;
   Cloudflare Workers and browsers unsupported (native terminal renderer).
+
+## TypeScript compiler
+
+Development type checks and spinner/chart emission use the official Go-based
+TypeScript 7.0.2 compiler, pinned in `package.json` and `pnpm-lock.yaml`.
+Install with `pnpm install` including optional platform dependencies, then run
+`pnpm run build`, `pnpm run check`, and `pnpm test`. No Go toolchain is required.
+The Solid transform still uses Babel; upgrading the type checker does not
+replace the renderer or native ABI. This repository does not use the legacy
+TypeScript JavaScript Compiler API.
