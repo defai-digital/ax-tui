@@ -6,6 +6,15 @@ software; breaking changes are called out explicitly when they occur.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-09-14
+
+### Changed
+
+- Upgrade development type checking and spinner/chart builds to the official
+  Go-based TypeScript 7.0.2 compiler. The generated JavaScript and declarations
+  remain unchanged; the Solid transform still uses Babel and the native
+  renderer ABI is unchanged. No Go toolchain is required for installation.
+
 ## [0.1.4] - 2026-09-12
 
 ### Fixed
