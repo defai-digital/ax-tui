@@ -6,6 +6,8 @@ software; breaking changes are called out explicitly when they occur.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-09-17
+
 ### Fixed
 
 - Raise the stdin parser's pending-escape-sequence timeout from 20ms to
@@ -18,6 +20,11 @@ software; breaking changes are called out explicitly when they occur.
   fragments like `29H` or `[0;0;0m` landing in the chat input or
   transcript. 100ms matches vim's `ttimeoutlen` default for the same class
   of problem.
+- Narrow `ChartRenderable.datasets` getter to return `readonly Dataset[]`
+  instead of `readonly Dataset[] | undefined`. The constructor and setter
+  already coerce `undefined` to `[]`, so the runtime value is always an
+  array; the previous type leaked the input shape and forced downstream
+  consumers to add non-null assertions.
 
 ## [0.1.5] - 2026-09-14
 
