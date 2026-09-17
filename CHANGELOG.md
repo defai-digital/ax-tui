@@ -6,6 +6,19 @@ software; breaking changes are called out explicitly when they occur.
 
 ## [Unreleased]
 
+### Fixed
+
+- Raise the stdin parser's pending-escape-sequence timeout from 20ms to
+  100ms (configurable via `CliRendererConfig.stdinParserTimeoutMs`).
+  Under real load, a terminal reply (cursor position report, palette query,
+  Kitty keyboard negotiation) can arrive across two separate stdin reads
+  more than 20ms apart. When the old timeout fired mid-sequence, the parser
+  forgot it was mid-sequence and re-parsed the second half's bytes as
+  literal printable keystrokes into whatever had focus -- visible as stray
+  fragments like `29H` or `[0;0;0m` landing in the chat input or
+  transcript. 100ms matches vim's `ttimeoutlen` default for the same class
+  of problem.
+
 ## [0.1.5] - 2026-09-14
 
 ### Changed

@@ -7309,7 +7309,7 @@ Captured external output:
     this.addExitListeners()
     const stdinParserMaxBufferBytes = config.stdinParserMaxBufferBytes ?? DEFAULT_STDIN_PARSER_MAX_BUFFER_BYTES
     this.stdinParser = new StdinParser({
-      timeoutMs: 20,
+      timeoutMs: config.stdinParserTimeoutMs ?? 100,
       maxPendingBytes: stdinParserMaxBufferBytes,
       armTimeouts: true,
       onTimeoutFlush: () => {

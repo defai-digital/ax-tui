@@ -7,6 +7,7 @@ import {
   applyKittyKeyboardOptOut,
   applyNativeAssetDelivery,
   applySlimCatalogue,
+  applyStdinParserTimeout,
   axRuntimeIdentityApplied,
   checkTuiPatches,
   findFfiModule,
@@ -18,6 +19,7 @@ import {
   kittyKeyboardOptOutApplied,
   pointerPinApplied,
   slimCatalogueApplied,
+  stdinParserTimeoutApplied,
   zigParserDropped,
 } from "./tui-patches"
 import { AX_TUI_JSX_UNUSED } from "./tui-surface"
@@ -70,6 +72,23 @@ describe("script.tui-patches", () => {
     expect(kittyKeyboardOptOutApplied(next)).toBe(true)
     expect(next).toContain("config.useKittyKeyboard === undefined")
     expect(next).not.toContain("config.useKittyKeyboard ?? {}")
+  })
+
+  test("stdin parser timeout is raised from 20ms and stays overridable", () => {
+    const source = [
+      "this.stdinParser = new StdinParser({",
+      "  timeoutMs: 20,",
+      "  maxPendingBytes: stdinParserMaxBufferBytes,",
+      "});",
+    ].join("\n")
+    const next = applyStdinParserTimeout(source)
+    expect(stdinParserTimeoutApplied(next)).toBe(true)
+    expect(next).toContain("timeoutMs: config.stdinParserTimeoutMs ?? 100,")
+    expect(next).not.toContain("timeoutMs: 20,")
+    expect(applyStdinParserTimeout(next)).toBe(next)
+    expect(() => applyStdinParserTimeout("no timeout field here")).toThrow(
+      "missing StdinParser timeoutMs anchor",
+    )
   })
 
   test("AX-owned runtime configuration and plugin identities use AX names", () => {

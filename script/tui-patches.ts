@@ -353,6 +353,39 @@ export function applyKittyKeyboardOptOut(source: string) {
   return next
 }
 
+// The StdinParser gives up assembling a not-yet-complete escape sequence
+// (cursor position reports, OSC/palette query replies, Kitty keyboard
+// negotiation, etc.) after this many idle milliseconds and force-flushes
+// whatever it has buffered. 20ms assumes both halves of a split terminal
+// reply always arrive within one Node event-loop tick apart. Under real
+// load (heavy stdout redraw traffic, a busy renderer thread, a slow PTY
+// hop through an embedded terminal) a reply routinely arrives in two
+// separate reads more than 20ms apart. When that happens, the parser
+// resets to "ground" and the second half's bytes are re-parsed as literal
+// printable keystrokes into whatever has focus -- visible as stray
+// fragments like "29H" or "[0;0;0m" landing in the chat input or
+// transcript. 100ms matches vim's ttimeoutlen default for the equivalent
+// escape-sequence disambiguation problem and gives real I/O jitter enough
+// headroom, while staying below the ~100-150ms threshold where a delayed
+// standalone Escape keypress would feel laggy. stdinParserTimeoutMs keeps
+// this tunable without another vendor patch.
+export function stdinParserTimeoutApplied(source: string) {
+  return source.includes("timeoutMs: config.stdinParserTimeoutMs ?? 100,")
+}
+
+export function applyStdinParserTimeout(source: string) {
+  if (stdinParserTimeoutApplied(source)) return source
+  const anchor = "timeoutMs: 20,"
+  if (!source.includes(anchor)) {
+    throw new Error("stdin-parser-timeout: missing StdinParser timeoutMs anchor")
+  }
+  const next = source.replace(anchor, "timeoutMs: config.stdinParserTimeoutMs ?? 100,")
+  if (!stdinParserTimeoutApplied(next)) {
+    throw new Error("stdin-parser-timeout: apply did not satisfy the contract")
+  }
+  return next
+}
+
 function applyZigParserDrop(source: string) {
   if (zigParserDropped(source)) return source
   let next = source.replace(
@@ -412,6 +445,7 @@ export function checkTuiPatches(): PatchStatus[] {
     { id: "vendored-native-resolver", ok: nativeResolverApplied(ffi), detail: findFfiModule() },
     { id: "native-asset-delivery", ok: nativeAssetDeliveryApplied(ffi), detail: findFfiModule() },
     { id: "kitty-keyboard-opt-out", ok: kittyKeyboardOptOutApplied(renderer), detail: findRendererModule() },
+    { id: "stdin-parser-timeout", ok: stdinParserTimeoutApplied(renderer), detail: findRendererModule() },
     { id: "drop-zig-parser", ok: zigParserDropped(parsers) && zigAssetsAbsent(), detail: findDefaultParserModule() },
     {
       id: "slim-catalogue",
@@ -437,7 +471,10 @@ export function applyTuiPatches() {
   writeFileSync(ffiPath, ffi)
 
   const rendererPath = findRendererModule()
-  writeFileSync(rendererPath, applyKittyKeyboardOptOut(readFileSync(rendererPath, "utf8")))
+  let renderer = readFileSync(rendererPath, "utf8")
+  renderer = applyKittyKeyboardOptOut(renderer)
+  renderer = applyStdinParserTimeout(renderer)
+  writeFileSync(rendererPath, renderer)
 
   const parserPath = findDefaultParserModule()
   writeFileSync(parserPath, applyZigParserDrop(readFileSync(parserPath, "utf8")))

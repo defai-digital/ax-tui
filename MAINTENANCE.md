@@ -44,6 +44,7 @@ Named, idempotent patch contracts live under `patches/` and `solid/patches/`. Th
 - Node FFI pointer liveness;
 - safe native draw geometry;
 - a working Kitty keyboard protocol opt-out;
+- a realistic pending-escape-sequence assembly timeout;
 - deterministic, offline native resolution;
 - omission of the unused Zig parser;
 - the reduced Solid intrinsic catalogue; and
