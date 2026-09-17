@@ -240,7 +240,7 @@ export class ChartRenderable extends Renderable {
         this.height = options.height ?? 10;
     }
     get datasets() {
-        return this._layout.datasets;
+        return this._layout.datasets ?? [];
     }
     set datasets(value) {
         this._layout.datasets = value ?? [];

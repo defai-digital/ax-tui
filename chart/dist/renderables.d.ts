@@ -3,7 +3,7 @@ import type { OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui";
 import { type SparklineLayoutOptions } from "./sparkline.js";
 import { type GaugeLayoutOptions } from "./gauge.js";
 import { type BarChartLayoutOptions } from "./barchart.js";
-import { type AxisOptions, type ChartLayoutOptions } from "./chart.js";
+import { type AxisOptions, type ChartLayoutOptions, type Dataset } from "./chart.js";
 import type { ColorInput } from "./types.js";
 /** Sparkline options. */
 export interface SparklineOptions extends RenderableOptions<SparklineRenderable>, SparklineLayoutOptions {
@@ -79,7 +79,7 @@ export interface ChartOptions extends RenderableOptions<ChartRenderable>, ChartL
 export declare class ChartRenderable extends Renderable {
     private _layout;
     constructor(ctx: RenderContext, options: ChartOptions);
-    get datasets(): ChartLayoutOptions["datasets"];
+    get datasets(): readonly Dataset[];
     set datasets(value: ChartLayoutOptions["datasets"]);
     get xAxis(): AxisOptions | undefined;
     set xAxis(value: AxisOptions | undefined);

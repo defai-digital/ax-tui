@@ -4,7 +4,7 @@ import type { Cell } from "./cells.js"
 import { layoutSparkline, type SparklineLayoutOptions } from "./sparkline.js"
 import { layoutGauge, type GaugeLayoutOptions } from "./gauge.js"
 import { layoutBarChart, type BarChartLayoutOptions } from "./barchart.js"
-import { layoutChart, validateChartOptions, type AxisOptions, type ChartLayoutOptions } from "./chart.js"
+import { layoutChart, validateChartOptions, type AxisOptions, type ChartLayoutOptions, type Dataset } from "./chart.js"
 import type { ColorInput } from "./types.js"
 
 function paintCells(
@@ -332,8 +332,8 @@ export class ChartRenderable extends Renderable {
     this.height = options.height ?? 10
   }
 
-  get datasets(): ChartLayoutOptions["datasets"] {
-    return this._layout.datasets
+  get datasets(): readonly Dataset[] {
+    return this._layout.datasets ?? []
   }
 
   set datasets(value: ChartLayoutOptions["datasets"]) {
