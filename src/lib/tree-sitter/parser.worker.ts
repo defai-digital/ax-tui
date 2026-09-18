@@ -987,7 +987,7 @@ if (isWorkerRuntime) {
 
         case "HANDLE_EDITS": {
           const response = await worker.handleEdits(message.bufferId, message.content, message.edits)
-          if (response.highlights && response.highlights.length > 0) {
+          if (response.highlights) {
             postWorkerMessage({
               type: "HIGHLIGHT_RESPONSE",
               bufferId: message.bufferId,
@@ -1020,7 +1020,7 @@ if (isWorkerRuntime) {
 
         case "RESET_BUFFER": {
           const resetResponse = await worker.handleResetBuffer(message.bufferId, message.version, message.content)
-          if (resetResponse.highlights && resetResponse.highlights.length > 0) {
+          if (resetResponse.highlights) {
             postWorkerMessage({
               type: "HIGHLIGHT_RESPONSE",
               bufferId: message.bufferId,

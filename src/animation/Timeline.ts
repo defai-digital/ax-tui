@@ -210,11 +210,11 @@ function evaluateAnimation(item: TimelineAnimationItem, timelineTime: number, de
   item.currentLoop = currentCycle
 
   // Check if the animation part of the *final loop* has just completed
-  if (item.onComplete && !item.completed && currentCycle === maxLoops - 1 && timeInCycle >= duration) {
+  if (!item.completed && currentCycle === maxLoops - 1 && timeInCycle >= duration) {
     const finalLoopReversed = (item.alternate || false) && currentCycle % 2 === 1
     applyAnimationAtProgress(item, 1, finalLoopReversed, timelineTime, deltaTime)
 
-    item.onComplete()
+    item.onComplete?.()
     item.completed = true
     return
   }
@@ -414,7 +414,7 @@ export class Timeline {
       return this.restart()
     }
     this.subTimelines.forEach((subTimeline) => {
-      if (subTimeline.timelineStarted) {
+      if (subTimeline.timelineStarted && !subTimeline.timeline.isComplete) {
         subTimeline.timeline.play()
       }
     })

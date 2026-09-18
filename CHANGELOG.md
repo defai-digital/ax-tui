@@ -3,6 +3,20 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
+## [Unreleased]
+
+### Fixed
+
+- Move existing inline Solid text nodes without duplicating them during keyed
+  reordering or reparenting.
+- Preserve completed child animations when resuming a parent timeline, and
+  complete finite animations without waiting through a final loop delay when
+  no completion callback is registered.
+- Honor one-shot keyboard and paste listeners, including reentrant dispatch,
+  and preserve the event emitter as the listener receiver.
+- Emit empty syntax-highlight responses after edits and resets so consumers
+  can clear highlights when the final highlighted token is removed.
+
 ## [1.0.1] - 2026-09-18
 
 ### Fixed

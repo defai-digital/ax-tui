@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-AJ7ASKHW.js";
+} from "./index-4CLH37C6.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -183,7 +183,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-SYMAOMWA.js";
+} from "./index-C65X6BOM.js";
 
 // src/post/effects.ts
 function toU8(value) {
@@ -1725,10 +1725,10 @@ function evaluateAnimation(item, timelineTime, deltaTime = 0) {
     item.onLoop();
   }
   item.currentLoop = currentCycle;
-  if (item.onComplete && !item.completed && currentCycle === maxLoops - 1 && timeInCycle >= duration) {
+  if (!item.completed && currentCycle === maxLoops - 1 && timeInCycle >= duration) {
     const finalLoopReversed = (item.alternate || false) && currentCycle % 2 === 1;
     applyAnimationAtProgress(item, 1, finalLoopReversed, timelineTime, deltaTime);
-    item.onComplete();
+    item.onComplete?.();
     item.completed = true;
     return;
   }
@@ -1897,7 +1897,7 @@ var Timeline = class {
       return this.restart();
     }
     this.subTimelines.forEach((subTimeline) => {
-      if (subTimeline.timelineStarted) {
+      if (subTimeline.timelineStarted && !subTimeline.timeline.isComplete) {
         subTimeline.timeline.play();
       }
     });

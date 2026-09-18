@@ -1,5 +1,5 @@
 import { EventEmitter } from "events"
-import { type KeyEventType, type ParsedKey } from "./parse.keypress.js"
+import type { KeyEventType, ParsedKey } from "./parse.keypress.js"
 import type { PasteMetadata } from "./paste.js"
 
 export class KeyEvent implements ParsedKey {
@@ -141,16 +141,14 @@ export class InternalKeyHandler extends KeyHandler {
   private emitWithPriority<K extends keyof KeyHandlerEventMap>(event: K, ...args: KeyHandlerEventMap[K]): boolean {
     let hasGlobalListeners = false
 
-    // Check if we should emit to global handlers
-    // Global handlers are emitted using the parent EventEmitter which calls all listeners
-    // We need to manually iterate to check for stopPropagation between handlers
-    const globalListeners = this.listeners(event as any)
+    // Keep EventEmitter's once wrappers while checking propagation between handlers.
+    const globalListeners = this.rawListeners(event)
     if (globalListeners.length > 0) {
       hasGlobalListeners = true
 
       for (const listener of globalListeners) {
         try {
-          listener(...args)
+          Reflect.apply(listener, this, args)
         } catch (error) {
           console.error(`[KeyHandler] Error in global ${event} handler:`, error)
         }

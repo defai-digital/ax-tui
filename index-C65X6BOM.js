@@ -1042,741 +1042,6 @@ var BorderCharArrays = {
 
 // src/lib/KeyHandler.ts
 import { EventEmitter } from "events";
-
-// src/lib/parse.keypress.ts
-import { Buffer as Buffer2 } from "node:buffer";
-
-// src/lib/parse.keypress-kitty.ts
-var kittyKeyMap = {
-  // Standard keys
-  27: "escape",
-  9: "tab",
-  13: "return",
-  127: "backspace",
-  // Arrow keys
-  57344: "escape",
-  57345: "return",
-  57346: "tab",
-  57347: "backspace",
-  57348: "insert",
-  57349: "delete",
-  57350: "left",
-  57351: "right",
-  57352: "up",
-  57353: "down",
-  57354: "pageup",
-  57355: "pagedown",
-  57356: "home",
-  57357: "end",
-  57358: "capslock",
-  57359: "scrolllock",
-  57360: "numlock",
-  57361: "printscreen",
-  57362: "pause",
-  57363: "menu",
-  // Function keys
-  57364: "f1",
-  57365: "f2",
-  57366: "f3",
-  57367: "f4",
-  57368: "f5",
-  57369: "f6",
-  57370: "f7",
-  57371: "f8",
-  57372: "f9",
-  57373: "f10",
-  57374: "f11",
-  57375: "f12",
-  57376: "f13",
-  57377: "f14",
-  57378: "f15",
-  57379: "f16",
-  57380: "f17",
-  57381: "f18",
-  57382: "f19",
-  57383: "f20",
-  57384: "f21",
-  57385: "f22",
-  57386: "f23",
-  57387: "f24",
-  57388: "f25",
-  57389: "f26",
-  57390: "f27",
-  57391: "f28",
-  57392: "f29",
-  57393: "f30",
-  57394: "f31",
-  57395: "f32",
-  57396: "f33",
-  57397: "f34",
-  57398: "f35",
-  // Keypad
-  57399: "kp0",
-  57400: "kp1",
-  57401: "kp2",
-  57402: "kp3",
-  57403: "kp4",
-  57404: "kp5",
-  57405: "kp6",
-  57406: "kp7",
-  57407: "kp8",
-  57408: "kp9",
-  57409: "kpdecimal",
-  57410: "kpdivide",
-  57411: "kpmultiply",
-  57412: "kpminus",
-  57413: "kpplus",
-  57414: "kpenter",
-  57415: "kpequal",
-  57416: "kpseparator",
-  57417: "kpleft",
-  57418: "kpright",
-  57419: "kpup",
-  57420: "kpdown",
-  57421: "kppageup",
-  57422: "kppagedown",
-  57423: "kphome",
-  57424: "kpend",
-  57425: "kpinsert",
-  57426: "kpdelete",
-  57427: "clear",
-  // Media keys
-  57428: "mediaplay",
-  57429: "mediapause",
-  57430: "mediaplaypause",
-  57431: "mediareverse",
-  57432: "mediastop",
-  57433: "mediafastforward",
-  57434: "mediarewind",
-  57435: "medianext",
-  57436: "mediaprev",
-  57437: "mediarecord",
-  // Volume keys
-  57438: "volumedown",
-  57439: "volumeup",
-  57440: "mute",
-  // Modifiers
-  57441: "leftshift",
-  57442: "leftctrl",
-  57443: "leftalt",
-  57444: "leftsuper",
-  57445: "lefthyper",
-  57446: "leftmeta",
-  57447: "rightshift",
-  57448: "rightctrl",
-  57449: "rightalt",
-  57450: "rightsuper",
-  57451: "righthyper",
-  57452: "rightmeta",
-  // Special
-  57453: "iso_level3_shift",
-  57454: "iso_level5_shift"
-};
-var kittyNamedSingleStrokeKeys = [...new Set(Object.values(kittyKeyMap))];
-var printableKeypadText = {
-  kp0: "0",
-  kp1: "1",
-  kp2: "2",
-  kp3: "3",
-  kp4: "4",
-  kp5: "5",
-  kp6: "6",
-  kp7: "7",
-  kp8: "8",
-  kp9: "9",
-  kpdecimal: ".",
-  kpdivide: "/",
-  kpmultiply: "*",
-  kpminus: "-",
-  kpplus: "+",
-  kpequal: "=",
-  kpseparator: ","
-};
-function getPrintableKittyKeyText(key) {
-  return printableKeypadText[key.name];
-}
-function fromKittyMods(mod) {
-  return {
-    shift: !!(mod & 1),
-    alt: !!(mod & 2),
-    ctrl: !!(mod & 4),
-    super: !!(mod & 8),
-    hyper: !!(mod & 16),
-    meta: !!(mod & 32),
-    capsLock: !!(mod & 64),
-    numLock: !!(mod & 128)
-  };
-}
-var functionalKeyMap = {
-  A: "up",
-  B: "down",
-  C: "right",
-  D: "left",
-  H: "home",
-  F: "end",
-  E: "clear",
-  P: "f1",
-  Q: "f2",
-  S: "f4"
-};
-var tildeKeyMap = {
-  "1": "home",
-  "2": "insert",
-  "3": "delete",
-  "4": "end",
-  "5": "pageup",
-  "6": "pagedown",
-  "7": "home",
-  // rxvt
-  "8": "end",
-  // rxvt
-  "11": "f1",
-  "12": "f2",
-  "13": "f3",
-  "14": "f4",
-  "15": "f5",
-  "17": "f6",
-  "18": "f7",
-  "19": "f8",
-  "20": "f9",
-  "21": "f10",
-  "23": "f11",
-  "24": "f12",
-  "29": "menu",
-  "57427": "clear"
-};
-function parseKittySpecialKey(sequence) {
-  const specialKeyRe = /^\x1b\[(\d+);(\d+):(\d+)([A-Z~])$/;
-  const match = specialKeyRe.exec(sequence);
-  if (!match) return null;
-  const keyNumOrOne = match[1];
-  const modifierStr = match[2];
-  const eventTypeStr = match[3];
-  const terminator = match[4];
-  let keyName2;
-  if (terminator === "~") {
-    keyName2 = tildeKeyMap[keyNumOrOne];
-  } else {
-    if (keyNumOrOne !== "1") return null;
-    keyName2 = functionalKeyMap[terminator];
-  }
-  if (!keyName2) return null;
-  const key = {
-    name: keyName2,
-    ctrl: false,
-    meta: false,
-    shift: false,
-    option: false,
-    number: false,
-    sequence,
-    raw: sequence,
-    eventType: "press",
-    source: "kitty",
-    super: false,
-    hyper: false,
-    capsLock: false,
-    numLock: false
-  };
-  if (modifierStr) {
-    const modifierMask = parseInt(modifierStr, 10);
-    if (!isNaN(modifierMask) && modifierMask > 1) {
-      const mods = fromKittyMods(modifierMask - 1);
-      key.shift = mods.shift;
-      key.ctrl = mods.ctrl;
-      key.meta = mods.alt || mods.meta;
-      key.option = mods.alt;
-      key.super = mods.super;
-      key.hyper = mods.hyper;
-      key.capsLock = mods.capsLock;
-      key.numLock = mods.numLock;
-    }
-  }
-  if (eventTypeStr === "1" || !eventTypeStr) {
-    key.eventType = "press";
-  } else if (eventTypeStr === "2") {
-    key.eventType = "press";
-    key.repeated = true;
-  } else if (eventTypeStr === "3") {
-    key.eventType = "release";
-  }
-  return key;
-}
-function parseKittyKeyboard(sequence) {
-  const specialResult = parseKittySpecialKey(sequence);
-  if (specialResult) return specialResult;
-  const kittyRe = /^\x1b\[([^\x1b]+)u$/;
-  const match = kittyRe.exec(sequence);
-  if (!match) return null;
-  const params = match[1];
-  const fields = params.split(";");
-  if (fields.length < 1) return null;
-  const key = {
-    name: "",
-    ctrl: false,
-    meta: false,
-    shift: false,
-    option: false,
-    number: false,
-    sequence,
-    raw: sequence,
-    eventType: "press",
-    source: "kitty",
-    super: false,
-    hyper: false,
-    capsLock: false,
-    numLock: false
-  };
-  let text = "";
-  const field1 = fields[0]?.split(":") || [];
-  const codepointStr = field1[0];
-  if (!codepointStr) return null;
-  const codepoint = parseInt(codepointStr, 10);
-  if (isNaN(codepoint)) return null;
-  let shiftedCodepoint;
-  let baseCodepoint;
-  if (field1[1]) {
-    const shifted = parseInt(field1[1], 10);
-    if (!isNaN(shifted) && shifted > 0 && shifted <= 1114111) {
-      shiftedCodepoint = shifted;
-    }
-  }
-  if (field1[2]) {
-    const base = parseInt(field1[2], 10);
-    if (!isNaN(base) && base > 0 && base <= 1114111) {
-      baseCodepoint = base;
-    }
-  }
-  const knownKey = kittyKeyMap[codepoint];
-  if (knownKey) {
-    key.name = knownKey;
-    key.code = `[${codepoint}u`;
-  } else if (codepoint === 0) {
-    key.name = "";
-  } else {
-    if (codepoint > 0 && codepoint <= 1114111) {
-      const char = String.fromCodePoint(codepoint);
-      key.name = char === " " ? "space" : char;
-      if (baseCodepoint) {
-        key.baseCode = baseCodepoint;
-      }
-    } else {
-      return null;
-    }
-  }
-  if (fields[1]) {
-    const field2 = fields[1].split(":");
-    const modifierStr = field2[0];
-    const eventTypeStr = field2[1];
-    if (modifierStr) {
-      const modifierMask = parseInt(modifierStr, 10);
-      if (!isNaN(modifierMask) && modifierMask > 1) {
-        const mods = fromKittyMods(modifierMask - 1);
-        key.shift = mods.shift;
-        key.ctrl = mods.ctrl;
-        key.meta = mods.alt || mods.meta;
-        key.option = mods.alt;
-        key.super = mods.super;
-        key.hyper = mods.hyper;
-        key.capsLock = mods.capsLock;
-        key.numLock = mods.numLock;
-      }
-    }
-    if (eventTypeStr === "1" || !eventTypeStr) {
-      key.eventType = "press";
-    } else if (eventTypeStr === "2") {
-      key.eventType = "press";
-      key.repeated = true;
-    } else if (eventTypeStr === "3") {
-      key.eventType = "release";
-    } else {
-      key.eventType = "press";
-    }
-  }
-  if (fields[2]) {
-    const codepoints = fields[2].split(":");
-    for (const cpStr of codepoints) {
-      const cp = parseInt(cpStr, 10);
-      if (!isNaN(cp) && cp > 0 && cp <= 1114111) {
-        text += String.fromCodePoint(cp);
-      }
-    }
-  }
-  if (text === "") {
-    text = getPrintableKittyKeyText(key) ?? "";
-  }
-  if (text === "") {
-    const isPrintable = key.name.length > 0 && !kittyKeyMap[codepoint];
-    if (isPrintable) {
-      if (codepoint === 32) {
-        text = " ";
-      } else if (key.shift && shiftedCodepoint) {
-        text = String.fromCodePoint(shiftedCodepoint);
-      } else if (key.shift && key.name.length === 1) {
-        text = key.name.toLocaleUpperCase();
-      } else {
-        text = key.name;
-      }
-    }
-  }
-  if (text) {
-    if (codepoint === 0) {
-      key.name = text;
-    }
-    key.sequence = text;
-  }
-  if (codepoint === 0 && text === "") {
-    return null;
-  }
-  return key;
-}
-
-// src/lib/parse.keypress.ts
-var metaKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/;
-var fnKeyRe = /^(?:\x1b+)(O|N|\[|\[\[)(?:(\d+)(?:;(\d+))?([~^$])|(?:1;)?(\d+)?([a-zA-Z]))/;
-var keyName = {
-  /* xterm/gnome ESC O letter */
-  OP: "f1",
-  OQ: "f2",
-  OR: "f3",
-  OS: "f4",
-  /* xterm/rxvt ESC [ number ~ */
-  "[11~": "f1",
-  "[12~": "f2",
-  "[13~": "f3",
-  "[14~": "f4",
-  /* from Cygwin and used in libuv */
-  "[[A": "f1",
-  "[[B": "f2",
-  "[[C": "f3",
-  "[[D": "f4",
-  "[[E": "f5",
-  /* common */
-  "[15~": "f5",
-  "[17~": "f6",
-  "[18~": "f7",
-  "[19~": "f8",
-  "[20~": "f9",
-  "[21~": "f10",
-  "[23~": "f11",
-  "[24~": "f12",
-  "[29~": "menu",
-  "[57427~": "clear",
-  /* xterm ESC [ letter */
-  "[A": "up",
-  "[B": "down",
-  "[C": "right",
-  "[D": "left",
-  "[E": "clear",
-  "[F": "end",
-  "[H": "home",
-  "[P": "f1",
-  "[Q": "f2",
-  "[S": "f4",
-  /* xterm/gnome ESC O letter */
-  OA: "up",
-  OB: "down",
-  OC: "right",
-  OD: "left",
-  OE: "clear",
-  OF: "end",
-  OH: "home",
-  /* VT100 application keypad (SS3) — sent when terminal enables DECKPAM (ESC =).
-   * macOS Terminal.app and other xterm-based terminals emit these when running
-   * full-screen apps with the alternate screen. */
-  OM: "return",
-  Oj: "*",
-  Ok: "+",
-  Ol: ",",
-  Om: "-",
-  On: ".",
-  Oo: "/",
-  Op: "0",
-  Oq: "1",
-  Or: "2",
-  Os: "3",
-  Ot: "4",
-  Ou: "5",
-  Ov: "6",
-  Ow: "7",
-  Ox: "8",
-  Oy: "9",
-  OX: "=",
-  /* xterm/rxvt ESC [ number ~ */
-  "[1~": "home",
-  "[2~": "insert",
-  "[3~": "delete",
-  "[4~": "end",
-  "[5~": "pageup",
-  "[6~": "pagedown",
-  /* putty */
-  "[[5~": "pageup",
-  "[[6~": "pagedown",
-  /* rxvt */
-  "[7~": "home",
-  "[8~": "end",
-  /* rxvt keys with modifiers */
-  "[a": "up",
-  "[b": "down",
-  "[c": "right",
-  "[d": "left",
-  "[e": "clear",
-  /* option + arrow keys (old style) */
-  f: "right",
-  b: "left",
-  p: "up",
-  n: "down",
-  "[2$": "insert",
-  "[3$": "delete",
-  "[5$": "pageup",
-  "[6$": "pagedown",
-  "[7$": "home",
-  "[8$": "end",
-  Oa: "up",
-  Ob: "down",
-  Oc: "right",
-  Od: "left",
-  Oe: "clear",
-  "[2^": "insert",
-  "[3^": "delete",
-  "[5^": "pageup",
-  "[6^": "pagedown",
-  "[7^": "home",
-  "[8^": "end",
-  /* misc. */
-  "[Z": "tab"
-};
-var nonAlphanumericKeys = [...Object.values(keyName), "backspace"];
-var terminalNamedSingleStrokeKeys = [
-  .../* @__PURE__ */ new Set(["return", "linefeed", "tab", "escape", "space", ...nonAlphanumericKeys, ...kittyNamedSingleStrokeKeys])
-];
-var isShiftKey = (code) => {
-  return ["[a", "[b", "[c", "[d", "[e", "[2$", "[3$", "[5$", "[6$", "[7$", "[8$", "[Z"].includes(code);
-};
-var isCtrlKey = (code) => {
-  return ["Oa", "Ob", "Oc", "Od", "Oe", "[2^", "[3^", "[5^", "[6^", "[7^", "[8^"].includes(code);
-};
-var getCtrlKeyName = (charCode) => {
-  if (charCode === 0) {
-    return "space";
-  }
-  if (charCode >= 1 && charCode <= 26) {
-    return String.fromCharCode(charCode + "a".charCodeAt(0) - 1);
-  }
-  if (charCode >= 28 && charCode <= 31) {
-    return String.fromCharCode(charCode + 64);
-  }
-  return void 0;
-};
-var ss3NumpadPrintable = {
-  Op: "0",
-  Oq: "1",
-  Or: "2",
-  Os: "3",
-  Ot: "4",
-  Ou: "5",
-  Ov: "6",
-  Ow: "7",
-  Ox: "8",
-  Oy: "9",
-  Oj: "*",
-  Ok: "+",
-  Ol: ",",
-  Om: "-",
-  On: ".",
-  Oo: "/",
-  OX: "="
-};
-var modifyOtherKeysRe = /^\x1b\[27;(\d+);(\d+)~$/;
-var parseKeypress = (s = "", options = {}) => {
-  let parts;
-  if (Buffer2.isBuffer(s)) {
-    if (s[0] > 127 && s[1] === void 0) {
-      ;
-      s[0] -= 128;
-      s = "\x1B" + String(s);
-    } else {
-      s = String(s);
-    }
-  } else if (s !== void 0 && typeof s !== "string") {
-    s = String(s);
-  } else if (!s) {
-    s = "";
-  }
-  if (/^\x1b\[<\d+;\d+;\d+[Mm]$/.test(s)) {
-    return null;
-  }
-  if (/^\[<\d+;\d+;\d+[Mm]$/.test(s)) {
-    return null;
-  }
-  if (/^\x1b\[<[\d;]*$/.test(s)) {
-    return null;
-  }
-  if (/^\[<[\d;]*$/.test(s)) {
-    return null;
-  }
-  if (s.startsWith("\x1B[M") && s.length >= 6) {
-    return null;
-  }
-  if (/^\x1b\[\d+;\d+;\d+t$/.test(s)) {
-    return null;
-  }
-  if (/^\x1b\[\d+;\d+R$/.test(s)) {
-    return null;
-  }
-  if (/^\x1b\[\?[\d;]+c$/.test(s)) {
-    return null;
-  }
-  if (/^\x1b\[\?[\d;]+\$y$/.test(s)) {
-    return null;
-  }
-  if (s === "\x1B[I" || s === "\x1B[O") {
-    return null;
-  }
-  if (/^\x1b\][\d;].*(\x1b\\|\x07)$/.test(s)) {
-    return null;
-  }
-  if (s === "\x1B[200~" || s === "\x1B[201~") {
-    return null;
-  }
-  const key = {
-    name: "",
-    ctrl: false,
-    meta: false,
-    shift: false,
-    option: false,
-    number: false,
-    sequence: s,
-    raw: s,
-    eventType: "press",
-    source: "raw"
-  };
-  key.sequence = key.sequence || s || key.name;
-  const ctrlKeyName = s.length === 1 ? getCtrlKeyName(s.charCodeAt(0)) : void 0;
-  const metaCtrlKeyName = s.length === 2 && s[0] === "\x1B" ? getCtrlKeyName(s.charCodeAt(1)) : void 0;
-  if (options.useKittyKeyboard) {
-    const kittyResult = parseKittyKeyboard(s);
-    if (kittyResult) {
-      return kittyResult;
-    }
-  }
-  const modifyOtherKeysMatch = modifyOtherKeysRe.exec(s);
-  if (modifyOtherKeysMatch) {
-    const modifier = parseInt(modifyOtherKeysMatch[1], 10) - 1;
-    const charCode = parseInt(modifyOtherKeysMatch[2], 10);
-    key.ctrl = !!(modifier & 4);
-    key.meta = !!(modifier & 2);
-    key.shift = !!(modifier & 1);
-    key.option = !!(modifier & 2);
-    key.super = !!(modifier & 8);
-    key.hyper = !!(modifier & 16);
-    if (charCode === 13) {
-      key.name = "return";
-    } else if (charCode === 27) {
-      key.name = "escape";
-    } else if (charCode === 9) {
-      key.name = "tab";
-    } else if (charCode === 32) {
-      key.name = "space";
-    } else if (charCode === 127 || charCode === 8) {
-      key.name = "backspace";
-    } else {
-      const char = String.fromCharCode(charCode);
-      key.name = char;
-      key.sequence = char;
-      if (charCode >= 48 && charCode <= 57) {
-        key.number = true;
-      }
-    }
-    return key;
-  }
-  if (s === "\r" || s === "\x1B\r") {
-    key.name = "return";
-    key.meta = s.length === 2;
-  } else if (s === "\n" || s === "\x1B\n") {
-    key.name = "linefeed";
-    key.meta = s.length === 2;
-  } else if (s === "	") {
-    key.name = "tab";
-  } else if (s === "\b" || s === "\x1B\b" || s === "\x7F" || s === "\x1B\x7F") {
-    key.name = "backspace";
-    key.meta = s.charAt(0) === "\x1B";
-  } else if (s === "\x1B" || s === "\x1B\x1B") {
-    key.name = "escape";
-    key.meta = s.length === 2;
-  } else if (s === " " || s === "\x1B ") {
-    key.name = "space";
-    key.meta = s.length === 2;
-  } else if (ctrlKeyName) {
-    key.name = ctrlKeyName;
-    key.ctrl = true;
-  } else if (s.length === 1 && s >= "0" && s <= "9") {
-    key.name = s;
-    key.number = true;
-  } else if (s.length === 1 && s >= "a" && s <= "z") {
-    key.name = s;
-  } else if (s.length === 1 && s >= "A" && s <= "Z") {
-    key.name = s.toLowerCase();
-    key.shift = true;
-  } else if (s.length === 1 || s.length === 2 && s.codePointAt(0) > 65535) {
-    key.name = s;
-  } else if (parts = metaKeyCodeRe.exec(s)) {
-    key.meta = true;
-    const char = parts[1];
-    const isUpperCase = /^[A-Z]$/.test(char);
-    if (char === "F") {
-      key.name = "right";
-    } else if (char === "B") {
-      key.name = "left";
-    } else if (isUpperCase) {
-      key.shift = true;
-      key.name = char;
-    } else {
-      key.name = char;
-    }
-  } else if (metaCtrlKeyName) {
-    key.meta = true;
-    key.ctrl = true;
-    key.name = metaCtrlKeyName;
-  } else if (parts = fnKeyRe.exec(s)) {
-    const segs = [...s];
-    if (segs[0] === "\x1B" && segs[1] === "\x1B") {
-      key.option = true;
-      key.meta = true;
-    }
-    const code = [parts[1], parts[2], parts[4], parts[6]].filter(Boolean).join("");
-    const modifier = parseInt(parts[3] || parts[5] || "1", 10) - 1;
-    key.ctrl = key.ctrl || !!(modifier & 4);
-    key.meta = key.meta || !!(modifier & 2);
-    key.shift = key.shift || !!(modifier & 1);
-    key.option = key.option || !!(modifier & 2);
-    key.super = !!(modifier & 8);
-    key.hyper = !!(modifier & 16);
-    key.code = code;
-    const keyNameResult = keyName[code];
-    if (keyNameResult) {
-      key.name = keyNameResult;
-      key.shift = isShiftKey(code) || key.shift;
-      key.ctrl = isCtrlKey(code) || key.ctrl;
-      const ss3Char = ss3NumpadPrintable[code];
-      if (ss3Char !== void 0) {
-        key.sequence = ss3Char;
-        if (key.name >= "0" && key.name <= "9") {
-          key.number = true;
-        }
-      }
-    } else {
-      key.name = "";
-      key.code = void 0;
-    }
-  } else if (s === "\x1B[3~") {
-    key.name = "delete";
-    key.meta = false;
-    key.code = "[3~";
-  }
-  return key;
-};
-
-// src/lib/KeyHandler.ts
 var KeyEvent = class {
   name;
   ctrl;
@@ -1887,12 +1152,12 @@ var InternalKeyHandler = class extends KeyHandler {
   }
   emitWithPriority(event, ...args) {
     let hasGlobalListeners = false;
-    const globalListeners = this.listeners(event);
+    const globalListeners = this.rawListeners(event);
     if (globalListeners.length > 0) {
       hasGlobalListeners = true;
       for (const listener of globalListeners) {
         try {
-          listener(...args);
+          Reflect.apply(listener, this, args);
         } catch (error) {
           console.error(`[KeyHandler] Error in global ${event} handler:`, error);
         }
@@ -7160,6 +6425,739 @@ var SystemClock = class {
   clearInterval(handle) {
     globalThis.clearInterval(handle);
   }
+};
+
+// src/lib/parse.keypress.ts
+import { Buffer as Buffer2 } from "node:buffer";
+
+// src/lib/parse.keypress-kitty.ts
+var kittyKeyMap = {
+  // Standard keys
+  27: "escape",
+  9: "tab",
+  13: "return",
+  127: "backspace",
+  // Arrow keys
+  57344: "escape",
+  57345: "return",
+  57346: "tab",
+  57347: "backspace",
+  57348: "insert",
+  57349: "delete",
+  57350: "left",
+  57351: "right",
+  57352: "up",
+  57353: "down",
+  57354: "pageup",
+  57355: "pagedown",
+  57356: "home",
+  57357: "end",
+  57358: "capslock",
+  57359: "scrolllock",
+  57360: "numlock",
+  57361: "printscreen",
+  57362: "pause",
+  57363: "menu",
+  // Function keys
+  57364: "f1",
+  57365: "f2",
+  57366: "f3",
+  57367: "f4",
+  57368: "f5",
+  57369: "f6",
+  57370: "f7",
+  57371: "f8",
+  57372: "f9",
+  57373: "f10",
+  57374: "f11",
+  57375: "f12",
+  57376: "f13",
+  57377: "f14",
+  57378: "f15",
+  57379: "f16",
+  57380: "f17",
+  57381: "f18",
+  57382: "f19",
+  57383: "f20",
+  57384: "f21",
+  57385: "f22",
+  57386: "f23",
+  57387: "f24",
+  57388: "f25",
+  57389: "f26",
+  57390: "f27",
+  57391: "f28",
+  57392: "f29",
+  57393: "f30",
+  57394: "f31",
+  57395: "f32",
+  57396: "f33",
+  57397: "f34",
+  57398: "f35",
+  // Keypad
+  57399: "kp0",
+  57400: "kp1",
+  57401: "kp2",
+  57402: "kp3",
+  57403: "kp4",
+  57404: "kp5",
+  57405: "kp6",
+  57406: "kp7",
+  57407: "kp8",
+  57408: "kp9",
+  57409: "kpdecimal",
+  57410: "kpdivide",
+  57411: "kpmultiply",
+  57412: "kpminus",
+  57413: "kpplus",
+  57414: "kpenter",
+  57415: "kpequal",
+  57416: "kpseparator",
+  57417: "kpleft",
+  57418: "kpright",
+  57419: "kpup",
+  57420: "kpdown",
+  57421: "kppageup",
+  57422: "kppagedown",
+  57423: "kphome",
+  57424: "kpend",
+  57425: "kpinsert",
+  57426: "kpdelete",
+  57427: "clear",
+  // Media keys
+  57428: "mediaplay",
+  57429: "mediapause",
+  57430: "mediaplaypause",
+  57431: "mediareverse",
+  57432: "mediastop",
+  57433: "mediafastforward",
+  57434: "mediarewind",
+  57435: "medianext",
+  57436: "mediaprev",
+  57437: "mediarecord",
+  // Volume keys
+  57438: "volumedown",
+  57439: "volumeup",
+  57440: "mute",
+  // Modifiers
+  57441: "leftshift",
+  57442: "leftctrl",
+  57443: "leftalt",
+  57444: "leftsuper",
+  57445: "lefthyper",
+  57446: "leftmeta",
+  57447: "rightshift",
+  57448: "rightctrl",
+  57449: "rightalt",
+  57450: "rightsuper",
+  57451: "righthyper",
+  57452: "rightmeta",
+  // Special
+  57453: "iso_level3_shift",
+  57454: "iso_level5_shift"
+};
+var kittyNamedSingleStrokeKeys = [...new Set(Object.values(kittyKeyMap))];
+var printableKeypadText = {
+  kp0: "0",
+  kp1: "1",
+  kp2: "2",
+  kp3: "3",
+  kp4: "4",
+  kp5: "5",
+  kp6: "6",
+  kp7: "7",
+  kp8: "8",
+  kp9: "9",
+  kpdecimal: ".",
+  kpdivide: "/",
+  kpmultiply: "*",
+  kpminus: "-",
+  kpplus: "+",
+  kpequal: "=",
+  kpseparator: ","
+};
+function getPrintableKittyKeyText(key) {
+  return printableKeypadText[key.name];
+}
+function fromKittyMods(mod) {
+  return {
+    shift: !!(mod & 1),
+    alt: !!(mod & 2),
+    ctrl: !!(mod & 4),
+    super: !!(mod & 8),
+    hyper: !!(mod & 16),
+    meta: !!(mod & 32),
+    capsLock: !!(mod & 64),
+    numLock: !!(mod & 128)
+  };
+}
+var functionalKeyMap = {
+  A: "up",
+  B: "down",
+  C: "right",
+  D: "left",
+  H: "home",
+  F: "end",
+  E: "clear",
+  P: "f1",
+  Q: "f2",
+  S: "f4"
+};
+var tildeKeyMap = {
+  "1": "home",
+  "2": "insert",
+  "3": "delete",
+  "4": "end",
+  "5": "pageup",
+  "6": "pagedown",
+  "7": "home",
+  // rxvt
+  "8": "end",
+  // rxvt
+  "11": "f1",
+  "12": "f2",
+  "13": "f3",
+  "14": "f4",
+  "15": "f5",
+  "17": "f6",
+  "18": "f7",
+  "19": "f8",
+  "20": "f9",
+  "21": "f10",
+  "23": "f11",
+  "24": "f12",
+  "29": "menu",
+  "57427": "clear"
+};
+function parseKittySpecialKey(sequence) {
+  const specialKeyRe = /^\x1b\[(\d+);(\d+):(\d+)([A-Z~])$/;
+  const match = specialKeyRe.exec(sequence);
+  if (!match) return null;
+  const keyNumOrOne = match[1];
+  const modifierStr = match[2];
+  const eventTypeStr = match[3];
+  const terminator = match[4];
+  let keyName2;
+  if (terminator === "~") {
+    keyName2 = tildeKeyMap[keyNumOrOne];
+  } else {
+    if (keyNumOrOne !== "1") return null;
+    keyName2 = functionalKeyMap[terminator];
+  }
+  if (!keyName2) return null;
+  const key = {
+    name: keyName2,
+    ctrl: false,
+    meta: false,
+    shift: false,
+    option: false,
+    number: false,
+    sequence,
+    raw: sequence,
+    eventType: "press",
+    source: "kitty",
+    super: false,
+    hyper: false,
+    capsLock: false,
+    numLock: false
+  };
+  if (modifierStr) {
+    const modifierMask = parseInt(modifierStr, 10);
+    if (!isNaN(modifierMask) && modifierMask > 1) {
+      const mods = fromKittyMods(modifierMask - 1);
+      key.shift = mods.shift;
+      key.ctrl = mods.ctrl;
+      key.meta = mods.alt || mods.meta;
+      key.option = mods.alt;
+      key.super = mods.super;
+      key.hyper = mods.hyper;
+      key.capsLock = mods.capsLock;
+      key.numLock = mods.numLock;
+    }
+  }
+  if (eventTypeStr === "1" || !eventTypeStr) {
+    key.eventType = "press";
+  } else if (eventTypeStr === "2") {
+    key.eventType = "press";
+    key.repeated = true;
+  } else if (eventTypeStr === "3") {
+    key.eventType = "release";
+  }
+  return key;
+}
+function parseKittyKeyboard(sequence) {
+  const specialResult = parseKittySpecialKey(sequence);
+  if (specialResult) return specialResult;
+  const kittyRe = /^\x1b\[([^\x1b]+)u$/;
+  const match = kittyRe.exec(sequence);
+  if (!match) return null;
+  const params = match[1];
+  const fields = params.split(";");
+  if (fields.length < 1) return null;
+  const key = {
+    name: "",
+    ctrl: false,
+    meta: false,
+    shift: false,
+    option: false,
+    number: false,
+    sequence,
+    raw: sequence,
+    eventType: "press",
+    source: "kitty",
+    super: false,
+    hyper: false,
+    capsLock: false,
+    numLock: false
+  };
+  let text = "";
+  const field1 = fields[0]?.split(":") || [];
+  const codepointStr = field1[0];
+  if (!codepointStr) return null;
+  const codepoint = parseInt(codepointStr, 10);
+  if (isNaN(codepoint)) return null;
+  let shiftedCodepoint;
+  let baseCodepoint;
+  if (field1[1]) {
+    const shifted = parseInt(field1[1], 10);
+    if (!isNaN(shifted) && shifted > 0 && shifted <= 1114111) {
+      shiftedCodepoint = shifted;
+    }
+  }
+  if (field1[2]) {
+    const base = parseInt(field1[2], 10);
+    if (!isNaN(base) && base > 0 && base <= 1114111) {
+      baseCodepoint = base;
+    }
+  }
+  const knownKey = kittyKeyMap[codepoint];
+  if (knownKey) {
+    key.name = knownKey;
+    key.code = `[${codepoint}u`;
+  } else if (codepoint === 0) {
+    key.name = "";
+  } else {
+    if (codepoint > 0 && codepoint <= 1114111) {
+      const char = String.fromCodePoint(codepoint);
+      key.name = char === " " ? "space" : char;
+      if (baseCodepoint) {
+        key.baseCode = baseCodepoint;
+      }
+    } else {
+      return null;
+    }
+  }
+  if (fields[1]) {
+    const field2 = fields[1].split(":");
+    const modifierStr = field2[0];
+    const eventTypeStr = field2[1];
+    if (modifierStr) {
+      const modifierMask = parseInt(modifierStr, 10);
+      if (!isNaN(modifierMask) && modifierMask > 1) {
+        const mods = fromKittyMods(modifierMask - 1);
+        key.shift = mods.shift;
+        key.ctrl = mods.ctrl;
+        key.meta = mods.alt || mods.meta;
+        key.option = mods.alt;
+        key.super = mods.super;
+        key.hyper = mods.hyper;
+        key.capsLock = mods.capsLock;
+        key.numLock = mods.numLock;
+      }
+    }
+    if (eventTypeStr === "1" || !eventTypeStr) {
+      key.eventType = "press";
+    } else if (eventTypeStr === "2") {
+      key.eventType = "press";
+      key.repeated = true;
+    } else if (eventTypeStr === "3") {
+      key.eventType = "release";
+    } else {
+      key.eventType = "press";
+    }
+  }
+  if (fields[2]) {
+    const codepoints = fields[2].split(":");
+    for (const cpStr of codepoints) {
+      const cp = parseInt(cpStr, 10);
+      if (!isNaN(cp) && cp > 0 && cp <= 1114111) {
+        text += String.fromCodePoint(cp);
+      }
+    }
+  }
+  if (text === "") {
+    text = getPrintableKittyKeyText(key) ?? "";
+  }
+  if (text === "") {
+    const isPrintable = key.name.length > 0 && !kittyKeyMap[codepoint];
+    if (isPrintable) {
+      if (codepoint === 32) {
+        text = " ";
+      } else if (key.shift && shiftedCodepoint) {
+        text = String.fromCodePoint(shiftedCodepoint);
+      } else if (key.shift && key.name.length === 1) {
+        text = key.name.toLocaleUpperCase();
+      } else {
+        text = key.name;
+      }
+    }
+  }
+  if (text) {
+    if (codepoint === 0) {
+      key.name = text;
+    }
+    key.sequence = text;
+  }
+  if (codepoint === 0 && text === "") {
+    return null;
+  }
+  return key;
+}
+
+// src/lib/parse.keypress.ts
+var metaKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/;
+var fnKeyRe = /^(?:\x1b+)(O|N|\[|\[\[)(?:(\d+)(?:;(\d+))?([~^$])|(?:1;)?(\d+)?([a-zA-Z]))/;
+var keyName = {
+  /* xterm/gnome ESC O letter */
+  OP: "f1",
+  OQ: "f2",
+  OR: "f3",
+  OS: "f4",
+  /* xterm/rxvt ESC [ number ~ */
+  "[11~": "f1",
+  "[12~": "f2",
+  "[13~": "f3",
+  "[14~": "f4",
+  /* from Cygwin and used in libuv */
+  "[[A": "f1",
+  "[[B": "f2",
+  "[[C": "f3",
+  "[[D": "f4",
+  "[[E": "f5",
+  /* common */
+  "[15~": "f5",
+  "[17~": "f6",
+  "[18~": "f7",
+  "[19~": "f8",
+  "[20~": "f9",
+  "[21~": "f10",
+  "[23~": "f11",
+  "[24~": "f12",
+  "[29~": "menu",
+  "[57427~": "clear",
+  /* xterm ESC [ letter */
+  "[A": "up",
+  "[B": "down",
+  "[C": "right",
+  "[D": "left",
+  "[E": "clear",
+  "[F": "end",
+  "[H": "home",
+  "[P": "f1",
+  "[Q": "f2",
+  "[S": "f4",
+  /* xterm/gnome ESC O letter */
+  OA: "up",
+  OB: "down",
+  OC: "right",
+  OD: "left",
+  OE: "clear",
+  OF: "end",
+  OH: "home",
+  /* VT100 application keypad (SS3) — sent when terminal enables DECKPAM (ESC =).
+   * macOS Terminal.app and other xterm-based terminals emit these when running
+   * full-screen apps with the alternate screen. */
+  OM: "return",
+  Oj: "*",
+  Ok: "+",
+  Ol: ",",
+  Om: "-",
+  On: ".",
+  Oo: "/",
+  Op: "0",
+  Oq: "1",
+  Or: "2",
+  Os: "3",
+  Ot: "4",
+  Ou: "5",
+  Ov: "6",
+  Ow: "7",
+  Ox: "8",
+  Oy: "9",
+  OX: "=",
+  /* xterm/rxvt ESC [ number ~ */
+  "[1~": "home",
+  "[2~": "insert",
+  "[3~": "delete",
+  "[4~": "end",
+  "[5~": "pageup",
+  "[6~": "pagedown",
+  /* putty */
+  "[[5~": "pageup",
+  "[[6~": "pagedown",
+  /* rxvt */
+  "[7~": "home",
+  "[8~": "end",
+  /* rxvt keys with modifiers */
+  "[a": "up",
+  "[b": "down",
+  "[c": "right",
+  "[d": "left",
+  "[e": "clear",
+  /* option + arrow keys (old style) */
+  f: "right",
+  b: "left",
+  p: "up",
+  n: "down",
+  "[2$": "insert",
+  "[3$": "delete",
+  "[5$": "pageup",
+  "[6$": "pagedown",
+  "[7$": "home",
+  "[8$": "end",
+  Oa: "up",
+  Ob: "down",
+  Oc: "right",
+  Od: "left",
+  Oe: "clear",
+  "[2^": "insert",
+  "[3^": "delete",
+  "[5^": "pageup",
+  "[6^": "pagedown",
+  "[7^": "home",
+  "[8^": "end",
+  /* misc. */
+  "[Z": "tab"
+};
+var nonAlphanumericKeys = [...Object.values(keyName), "backspace"];
+var terminalNamedSingleStrokeKeys = [
+  .../* @__PURE__ */ new Set(["return", "linefeed", "tab", "escape", "space", ...nonAlphanumericKeys, ...kittyNamedSingleStrokeKeys])
+];
+var isShiftKey = (code) => {
+  return ["[a", "[b", "[c", "[d", "[e", "[2$", "[3$", "[5$", "[6$", "[7$", "[8$", "[Z"].includes(code);
+};
+var isCtrlKey = (code) => {
+  return ["Oa", "Ob", "Oc", "Od", "Oe", "[2^", "[3^", "[5^", "[6^", "[7^", "[8^"].includes(code);
+};
+var getCtrlKeyName = (charCode) => {
+  if (charCode === 0) {
+    return "space";
+  }
+  if (charCode >= 1 && charCode <= 26) {
+    return String.fromCharCode(charCode + "a".charCodeAt(0) - 1);
+  }
+  if (charCode >= 28 && charCode <= 31) {
+    return String.fromCharCode(charCode + 64);
+  }
+  return void 0;
+};
+var ss3NumpadPrintable = {
+  Op: "0",
+  Oq: "1",
+  Or: "2",
+  Os: "3",
+  Ot: "4",
+  Ou: "5",
+  Ov: "6",
+  Ow: "7",
+  Ox: "8",
+  Oy: "9",
+  Oj: "*",
+  Ok: "+",
+  Ol: ",",
+  Om: "-",
+  On: ".",
+  Oo: "/",
+  OX: "="
+};
+var modifyOtherKeysRe = /^\x1b\[27;(\d+);(\d+)~$/;
+var parseKeypress = (s = "", options = {}) => {
+  let parts;
+  if (Buffer2.isBuffer(s)) {
+    if (s[0] > 127 && s[1] === void 0) {
+      ;
+      s[0] -= 128;
+      s = "\x1B" + String(s);
+    } else {
+      s = String(s);
+    }
+  } else if (s !== void 0 && typeof s !== "string") {
+    s = String(s);
+  } else if (!s) {
+    s = "";
+  }
+  if (/^\x1b\[<\d+;\d+;\d+[Mm]$/.test(s)) {
+    return null;
+  }
+  if (/^\[<\d+;\d+;\d+[Mm]$/.test(s)) {
+    return null;
+  }
+  if (/^\x1b\[<[\d;]*$/.test(s)) {
+    return null;
+  }
+  if (/^\[<[\d;]*$/.test(s)) {
+    return null;
+  }
+  if (s.startsWith("\x1B[M") && s.length >= 6) {
+    return null;
+  }
+  if (/^\x1b\[\d+;\d+;\d+t$/.test(s)) {
+    return null;
+  }
+  if (/^\x1b\[\d+;\d+R$/.test(s)) {
+    return null;
+  }
+  if (/^\x1b\[\?[\d;]+c$/.test(s)) {
+    return null;
+  }
+  if (/^\x1b\[\?[\d;]+\$y$/.test(s)) {
+    return null;
+  }
+  if (s === "\x1B[I" || s === "\x1B[O") {
+    return null;
+  }
+  if (/^\x1b\][\d;].*(\x1b\\|\x07)$/.test(s)) {
+    return null;
+  }
+  if (s === "\x1B[200~" || s === "\x1B[201~") {
+    return null;
+  }
+  const key = {
+    name: "",
+    ctrl: false,
+    meta: false,
+    shift: false,
+    option: false,
+    number: false,
+    sequence: s,
+    raw: s,
+    eventType: "press",
+    source: "raw"
+  };
+  key.sequence = key.sequence || s || key.name;
+  const ctrlKeyName = s.length === 1 ? getCtrlKeyName(s.charCodeAt(0)) : void 0;
+  const metaCtrlKeyName = s.length === 2 && s[0] === "\x1B" ? getCtrlKeyName(s.charCodeAt(1)) : void 0;
+  if (options.useKittyKeyboard) {
+    const kittyResult = parseKittyKeyboard(s);
+    if (kittyResult) {
+      return kittyResult;
+    }
+  }
+  const modifyOtherKeysMatch = modifyOtherKeysRe.exec(s);
+  if (modifyOtherKeysMatch) {
+    const modifier = parseInt(modifyOtherKeysMatch[1], 10) - 1;
+    const charCode = parseInt(modifyOtherKeysMatch[2], 10);
+    key.ctrl = !!(modifier & 4);
+    key.meta = !!(modifier & 2);
+    key.shift = !!(modifier & 1);
+    key.option = !!(modifier & 2);
+    key.super = !!(modifier & 8);
+    key.hyper = !!(modifier & 16);
+    if (charCode === 13) {
+      key.name = "return";
+    } else if (charCode === 27) {
+      key.name = "escape";
+    } else if (charCode === 9) {
+      key.name = "tab";
+    } else if (charCode === 32) {
+      key.name = "space";
+    } else if (charCode === 127 || charCode === 8) {
+      key.name = "backspace";
+    } else {
+      const char = String.fromCharCode(charCode);
+      key.name = char;
+      key.sequence = char;
+      if (charCode >= 48 && charCode <= 57) {
+        key.number = true;
+      }
+    }
+    return key;
+  }
+  if (s === "\r" || s === "\x1B\r") {
+    key.name = "return";
+    key.meta = s.length === 2;
+  } else if (s === "\n" || s === "\x1B\n") {
+    key.name = "linefeed";
+    key.meta = s.length === 2;
+  } else if (s === "	") {
+    key.name = "tab";
+  } else if (s === "\b" || s === "\x1B\b" || s === "\x7F" || s === "\x1B\x7F") {
+    key.name = "backspace";
+    key.meta = s.charAt(0) === "\x1B";
+  } else if (s === "\x1B" || s === "\x1B\x1B") {
+    key.name = "escape";
+    key.meta = s.length === 2;
+  } else if (s === " " || s === "\x1B ") {
+    key.name = "space";
+    key.meta = s.length === 2;
+  } else if (ctrlKeyName) {
+    key.name = ctrlKeyName;
+    key.ctrl = true;
+  } else if (s.length === 1 && s >= "0" && s <= "9") {
+    key.name = s;
+    key.number = true;
+  } else if (s.length === 1 && s >= "a" && s <= "z") {
+    key.name = s;
+  } else if (s.length === 1 && s >= "A" && s <= "Z") {
+    key.name = s.toLowerCase();
+    key.shift = true;
+  } else if (s.length === 1 || s.length === 2 && s.codePointAt(0) > 65535) {
+    key.name = s;
+  } else if (parts = metaKeyCodeRe.exec(s)) {
+    key.meta = true;
+    const char = parts[1];
+    const isUpperCase = /^[A-Z]$/.test(char);
+    if (char === "F") {
+      key.name = "right";
+    } else if (char === "B") {
+      key.name = "left";
+    } else if (isUpperCase) {
+      key.shift = true;
+      key.name = char;
+    } else {
+      key.name = char;
+    }
+  } else if (metaCtrlKeyName) {
+    key.meta = true;
+    key.ctrl = true;
+    key.name = metaCtrlKeyName;
+  } else if (parts = fnKeyRe.exec(s)) {
+    const segs = [...s];
+    if (segs[0] === "\x1B" && segs[1] === "\x1B") {
+      key.option = true;
+      key.meta = true;
+    }
+    const code = [parts[1], parts[2], parts[4], parts[6]].filter(Boolean).join("");
+    const modifier = parseInt(parts[3] || parts[5] || "1", 10) - 1;
+    key.ctrl = key.ctrl || !!(modifier & 4);
+    key.meta = key.meta || !!(modifier & 2);
+    key.shift = key.shift || !!(modifier & 1);
+    key.option = key.option || !!(modifier & 2);
+    key.super = !!(modifier & 8);
+    key.hyper = !!(modifier & 16);
+    key.code = code;
+    const keyNameResult = keyName[code];
+    if (keyNameResult) {
+      key.name = keyNameResult;
+      key.shift = isShiftKey(code) || key.shift;
+      key.ctrl = isCtrlKey(code) || key.ctrl;
+      const ss3Char = ss3NumpadPrintable[code];
+      if (ss3Char !== void 0) {
+        key.sequence = ss3Char;
+        if (key.name >= "0" && key.name <= "9") {
+          key.number = true;
+        }
+      }
+    } else {
+      key.name = "";
+      key.code = void 0;
+    }
+  } else if (s === "\x1B[3~") {
+    key.name = "delete";
+    key.meta = false;
+    key.code = "[3~";
+  }
+  return key;
 };
 
 // src/lib/scroll-acceleration.ts
@@ -17429,9 +17427,6 @@ export {
   getBorderSides,
   borderCharsToArray,
   BorderCharArrays,
-  nonAlphanumericKeys,
-  terminalNamedSingleStrokeKeys,
-  parseKeypress,
   KeyEvent,
   PasteEvent,
   KeyHandler,
@@ -17487,6 +17482,9 @@ export {
   SyntaxStyle,
   hastToStyledText,
   SystemClock,
+  nonAlphanumericKeys,
+  terminalNamedSingleStrokeKeys,
+  parseKeypress,
   LinearScrollAccel,
   MacOSScrollAccel,
   parseAlign,

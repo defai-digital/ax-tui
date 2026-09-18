@@ -16,6 +16,7 @@ test.skipIf(!supportsFfi)(
     try {
       const source = `
 import assert from "node:assert/strict"
+import { once } from "node:events"
 import { createSignal, onCleanup } from "solid-js"
 import { testRender, insertNode } from "ax-tui/solid"
 import { TreeSitterClient, resolveRenderLib, TextNodeRenderable, TextAttributes } from "ax-tui"
@@ -89,6 +90,25 @@ try {
   const highlighted = await client.highlightOnce("const value: number = 42", "typescript")
   assert.equal(highlighted.error, undefined)
   assert.ok(highlighted.highlights?.length > 0, JSON.stringify(highlighted))
+  const nextHighlights = async (action) => {
+    const response = once(client, "highlights:response", { signal: AbortSignal.timeout(3000) })
+    await action()
+    return response
+  }
+  const original = "const value = 42"
+  const initial = await nextHighlights(() => client.createBuffer(1, original, "typescript"))
+  assert.ok(initial[2].length > 0)
+  const reset = await nextHighlights(() => client.resetBuffer(1, 2, " "))
+  assert.deepEqual(reset, [1, 2, []])
+  await nextHighlights(() => client.resetBuffer(1, 3, original))
+  const edited = await nextHighlights(() => client.updateBuffer(1, [{
+    startIndex: 0, oldEndIndex: original.length, newEndIndex: 1,
+    startPosition: { row: 0, column: 0 },
+    oldEndPosition: { row: 0, column: original.length },
+    newEndPosition: { row: 0, column: 1 },
+  }], " ", 4))
+  assert.deepEqual(edited, [1, 4, []])
+  await client.removeBuffer(1)
 } finally {
   await client.destroy()
 }

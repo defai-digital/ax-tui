@@ -83,6 +83,12 @@ function _insertNode(parent: DomNode, node: DomNode, anchor?: DomNode): void {
           .join("")}" must have a <text> as a parent: ${parent.id} above ${node.id}`,
       )
     }
+
+    if (node === anchor) return
+
+    // Inline text insertion must move existing nodes, like layout insertion.
+    // Detach first so sibling indices reflect the tree after the move.
+    node.parent?.remove(node.id)
   }
 
   // Renderable nodes

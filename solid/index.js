@@ -518,6 +518,8 @@ function _insertNode(parent, node, anchor) {
         `Orphan text error: "${node.toChunks().map((c) => c.text).join("")}" must have a <text> as a parent: ${parent.id} above ${node.id}`
       );
     }
+    if (node === anchor) return;
+    node.parent?.remove(node.id);
   }
   if (!(parent instanceof BaseRenderable)) {
     console.error("[INSERT]", "Tried to mount a non base renderable");

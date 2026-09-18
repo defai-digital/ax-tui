@@ -72,3 +72,45 @@ test("syncing the only running timeline to a paused parent releases live renderi
   new Timeline({ autoplay: false }).sync(child)
   expect(renderer.dropLive).toHaveBeenCalledOnce()
 })
+
+test("resuming a parent preserves completed children until an explicit restart", () => {
+  const target = { x: 0 }
+  const onComplete = vi.fn()
+  const child = new Timeline({ duration: 100, onComplete }).add(target, { x: 10, duration: 100 })
+  const parent = new Timeline({ duration: 1000 }).sync(child).play()
+  parent.update(200)
+  expect(child.isComplete).toBe(true)
+  expect(onComplete).toHaveBeenCalledOnce()
+
+  parent.pause().play()
+  parent.update(50)
+  expect(child.isComplete).toBe(true)
+  expect(child.currentTime).toBe(100)
+  expect(target.x).toBe(10)
+  expect(onComplete).toHaveBeenCalledOnce()
+
+  parent.restart().update(50)
+  expect(child.isComplete).toBe(false)
+  expect(child.currentTime).toBe(50)
+  expect(target.x).toBe(5)
+  parent.update(50)
+  expect(onComplete).toHaveBeenCalledTimes(2)
+})
+
+test.each([
+  { loop: 1, alternate: false, endTime: 100, endValue: 10 },
+  { loop: 2, alternate: true, endTime: 250, endValue: 0 },
+])(
+  "once animations finish at the final duration without requiring a callback: $loop loops",
+  ({ loop, alternate, endTime, endValue }) => {
+    const target = { x: 0 }
+    const timeline = new Timeline({ duration: 1000 })
+      .once(target, { x: 10, duration: 100, loopDelay: 50, loop, alternate })
+      .play()
+    timeline.update(endTime - 1)
+    expect(timeline.items).toHaveLength(1)
+    timeline.update(1)
+    expect(target.x).toBe(endValue)
+    expect(timeline.items).toHaveLength(0)
+  },
+)
