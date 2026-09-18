@@ -1,6 +1,6 @@
 // Benchmark Runner CLI
 //
-// This is the main entry point for running performance benchmarks for opentui core components.
+// This is the main entry point for running performance benchmarks for AX TUI core components.
 //
 // Usage:
 //   zig build bench              - Run all benchmarks

@@ -31,7 +31,7 @@ const SUPPORTED_TARGETS = [_]SupportedTarget{
 
 const DEFAULT_MACOS_SDK_PATH = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk";
 
-const LIB_NAME = "opentui";
+const LIB_NAME = "axtui";
 const ROOT_SOURCE_FILE = "lib.zig";
 
 const YOGA_CXX_FLAGS = [_][]const u8{
@@ -334,7 +334,7 @@ pub fn build(b: *std.Build) void {
     });
     applyDependencies(b, bench_mod, bench_optimize, native_target, build_options);
     const bench_exe = b.addExecutable(.{
-        .name = "opentui-bench",
+        .name = "ax-tui-bench",
         .root_module = bench_mod,
     });
     const run_bench = b.addRunArtifact(bench_exe);
@@ -374,7 +374,7 @@ pub fn build(b: *std.Build) void {
     });
     applyDependencies(b, debug_mod, .Debug, native_target, build_options);
     const debug_exe = b.addExecutable(.{
-        .name = "opentui-debug",
+        .name = "ax-tui-debug",
         .root_module = debug_mod,
         .use_llvm = debug_use_llvm,
     });

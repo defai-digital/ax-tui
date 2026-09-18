@@ -170,7 +170,7 @@
     "check:patches": "tsx script/tui-patches.ts --check",
     "check:spinner-dist": "tsx script/check-tui-spinner-dist.ts",
     "check:chart-dist": "tsx script/check-tui-chart-dist.ts",
-    "check": "pnpm run check:vendor && pnpm run check:patches && pnpm run check:renderer-dist && pnpm run check:spinner-dist && pnpm run check:chart-dist",
+    "check": "pnpm run check:independence && pnpm run check:vendor && pnpm run check:patches && pnpm run check:renderer-dist && pnpm run check:spinner-dist && pnpm run check:chart-dist",
     "check:jsr": "jsr publish --dry-run",
     "publish:jsr": "jsr publish",
     "test": "vitest run",
@@ -178,7 +178,8 @@
     "build:renderer": "tsx script/sync-renderer.ts",
     "check:renderer-dist": "tsx script/sync-renderer.ts --check",
     "build:native": "tsx script/build-native.ts",
-    "test:native": "tsx script/build-native.ts --test"
+    "test:native": "tsx script/build-native.ts --test",
+    "check:independence": "tsx script/check-independence.ts"
   },
   "dependencies": {
     "@babel/core": "7.29.6",

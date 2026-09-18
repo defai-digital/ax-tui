@@ -5,6 +5,20 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- Complete native interface separation: AX-owned library filenames, ABI
+  version verification, native Yoga creation, notifications, diagnostics,
+  and debug tool names. No OpenTUI native library is loaded or accepted.
+- Move the former `OPENTUI_*` terminal overrides to `AX_CODE_TUI_*` names.
+  Existing AX settings remain unchanged. Two deprecated TypeScript Yoga
+  methods forward to AX TUI for application compatibility.
+- Verify source, generated runtime, package dependencies, and native build
+  configuration for accidental upstream coupling with `check:independence`.
+  Historical MIT source attribution remains intact.
+
+These native assets require a new release; published v1.0.0 assets are immutable.
+
 ## [1.0.0] - 2026-09-18
 
 ### Changed

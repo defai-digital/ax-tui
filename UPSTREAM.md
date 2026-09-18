@@ -28,8 +28,11 @@ copyright and license notices remain in the source and distributed licenses.
 target triple, optimization mode, binary size/hash, and license hash. Its
 `origin` field identifies historical source provenance, not a binary download
 location. `renderer-artifacts.json` records generated TypeScript artifacts.
-The `libopentui`/`opentui.dll` filenames and native ABI identifiers remain for
-compatibility; they do not require OpenTUI platform packages.
+Native libraries are named `libaxtui.so`, `libaxtui.dylib`, and `axtui.dll`.
+The loader verifies `axTuiAbiVersion()` before binding renderer functions.
+Terminal settings use `AX_CODE_TUI_*`, and notification identities belong to
+AX TUI. Two deprecated public TypeScript Yoga methods retain their old names
+and forward to the AX implementation; no upstream native symbol is required.
 
 Future fixes are developed here. Adopting external changes is a deliberate
 source review, with attribution and regression coverage, rather than a bundle

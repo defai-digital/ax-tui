@@ -200,7 +200,7 @@ async function writeFilePortable(destination, data, options) {
 }
 
 // src/platform/worker.ts
-var WORKER_UNAVAILABLE = "OpenTUI tree-sitter workers are not available for this runtime yet.";
+var WORKER_UNAVAILABLE = "AX TUI tree-sitter workers are not available for this runtime yet.";
 var globalWithWorker = globalThis;
 var nodeWorkerThreads = getBuiltinModule("node:worker_threads");
 var runtimeBridge = loadWorkerRuntime(nodeWorkerThreads);

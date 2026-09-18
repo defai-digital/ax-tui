@@ -11,7 +11,7 @@ describe("script.tui-dist", () => {
     expect(shouldCopyTuiDistPath(join(root, "parser.worker.js"), root)).toBe(true)
     expect(shouldCopyTuiDistPath(join(root, "package.json"), root)).toBe(true)
     expect(shouldCopyTuiDistPath(join(root, "assets/typescript/tree-sitter-typescript.wasm"), root)).toBe(true)
-    expect(shouldCopyTuiDistPath(join(root, "vendor/darwin-arm64/libopentui.dylib"), root)).toBe(true)
+    expect(shouldCopyTuiDistPath(join(root, "vendor/darwin-arm64/libaxtui.dylib"), root)).toBe(true)
   })
 
   test("drops tests, types, unused zig grammar, and patch docs", () => {

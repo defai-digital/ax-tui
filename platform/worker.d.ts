@@ -1,4 +1,4 @@
-export declare const WORKER_UNAVAILABLE = "OpenTUI tree-sitter workers are not available for this runtime yet.";
+export declare const WORKER_UNAVAILABLE = "AX TUI tree-sitter workers are not available for this runtime yet.";
 export interface WorkerMessageEvent<T = unknown> {
     readonly data: T;
 }

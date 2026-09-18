@@ -12,7 +12,7 @@ Inherited AX fixes now live in the owned TypeScript sources. Behavior changes mu
 | `drop-zig-parser`          | Tree-sitter assets       | The unused Zig parser and registration are omitted from the shipped package.                                                                                                                                                | `check:patches`                           |
 | `slim-solid-catalogue`     | Solid reconciler         | Unused ASCII font, select, and tab-select intrinsic registrations are omitted.                                                                                                                                              | `check:patches` and TUI surface tests     |
 | `drop-test-remnants`       | Package contents         | Upstream-only test/reproduction artifacts are not shipped.                                                                                                                                                                  | `check:patches`                           |
-| `ax-runtime-identity`      | JS runtime configuration | AX-owned flags, virtual module IDs, worker globals, and Solid plugin keys use AX Code TUI names. Native ABI filenames, symbols, and capability keys retain their pinned upstream spelling.                                  | `check:patches` and source contract tests |
+| `ax-runtime-identity`      | JS runtime configuration | AX-owned flags, virtual module IDs, worker globals, and Solid plugin keys use AX Code TUI names. Native libraries, terminal overrides, notifications, and the Yoga FFI entry use AX TUI identities.                         | `check:patches` and source contract tests |
 
 ## Source ownership
 
@@ -45,3 +45,9 @@ configuration and parser cache do not share OpenTUI defaults.
 
 External source changes must preserve these contracts or include an explicit
 behavioral change and updated tests. Never replace generated bundles directly.
+
+`independent-native-interface` gives the native backend AX library names and
+an explicit ABI version probe, replaces inherited terminal environment and
+notification identities, and preserves two public TypeScript forwarding aliases.
+`script/check-independence.test.ts`, `test/native-abi.test.ts`, the native Yoga
+and terminal suites, and the source renderer integration guard this boundary.

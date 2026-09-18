@@ -44,7 +44,7 @@ let requests = 0
 globalThis.fetch = async (url) => {
   assert.ok(url.startsWith("https://github.com/defai-digital/ax-tui/releases/download/"))
   const filename = path.basename(url).slice(("ax-tui-native-" + target + "-").length)
-  assert.ok(["LICENSE", "libopentui.dylib", "libopentui.so", "opentui.dll"].includes(filename))
+  assert.ok(["LICENSE", "libaxtui.dylib", "libaxtui.so", "axtui.dll"].includes(filename))
   requests++
   return new Response(await readFile(path.join(original, "vendor", target, filename)))
 }

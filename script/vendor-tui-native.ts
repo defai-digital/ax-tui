@@ -71,6 +71,11 @@ export function checkVendorTree(vendorDir = VENDOR_DIR, manifestPath = MANIFEST_
   for (const target of NATIVE_TARGETS) {
     const entry = manifest.targets?.[target.key]
     const dir = join(vendorDir, target.key)
+    if (existsSync(dir)) {
+      for (const file of readdirSync(dir)) {
+        if (file !== target.libFile && file !== "LICENSE") problems.push(`${target.key}: unexpected artifact ${file}`)
+      }
+    }
     if (!entry) {
       problems.push(`${target.key}: missing from manifest`)
       continue

@@ -49,7 +49,7 @@ TypeScript 7.0.2 is the development compiler; Solid's JSX transform uses Babel.
 - `pnpm run build`: regenerate renderer JS/declarations and spinner/chart dist.
 - `pnpm run build:renderer`: regenerate only renderer, Solid, and native-delivery artifacts.
 - `pnpm run typecheck`: check core, Solid, native delivery, spinner, and chart sources.
-- `pnpm run check`: verify native hashes/source provenance, AX contracts, and all generated output.
+- `pnpm run check`: verify independence, native hashes/source provenance, AX contracts, and generated output.
 - `pnpm test`: Vitest framework and maintenance regressions.
 - `pnpm run build:native`: build the host's library with Zig pinned in `.zig-version`.
 - `pnpm run build:native --all`: build and stage all eight native targets.
@@ -80,8 +80,10 @@ or internal generated files.
 
 - Preserve `import.meta.url`-relative native and tree-sitter asset resolution.
 - Preserve `AX_CODE_TUI_*` public environment variables and runtime identities.
-- Keep `libopentui`/`opentui.dll` and native ABI symbol names for compatibility;
-  these names are not upstream package dependencies.
+- Use `libaxtui`/`axtui.dll`, AX TUI native ABI versioning, and
+  `AX_CODE_TUI_*` terminal settings. Do not restore upstream native identities.
+  The two deprecated public TypeScript Yoga aliases forward locally and do
+  not require upstream libraries. Preserve them until an explicit API break.
 - Prefer bundled native libraries; verify downloaded/cached binary and license
   hashes. Signed downstream bundles are verified before signing, not against
   unsigned hashes when loaded after signing.

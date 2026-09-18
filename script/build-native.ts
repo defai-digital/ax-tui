@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { basename, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { NATIVE_TARGETS, type BuildTarget } from "./native-targets.js"
 import { NATIVE_SOURCE_ROOT, nativeSourceDigest } from "./native-source.js"
@@ -80,6 +80,13 @@ function run(): void {
     mkdirSync(directory, { recursive: true })
     writeFileSync(join(directory, target.libFile), library)
     writeFileSync(join(directory, "LICENSE"), license)
+    const previousFile = previous?.targets?.[target.key]?.lib?.file
+    if (typeof previousFile === "string" && previousFile !== target.libFile) {
+      if (basename(previousFile) !== previousFile || !/\.(?:so|dylib|dll)$/.test(previousFile)) {
+        throw new Error(`Invalid previous native library filename: ${previousFile}`)
+      }
+      rmSync(join(directory, previousFile), { force: true })
+    }
     entries[target.key] = entry
   }
   const manifest: NativeBuildManifest = {

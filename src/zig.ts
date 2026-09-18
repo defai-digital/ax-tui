@@ -1,3 +1,4 @@
+import { verifyNativeAbi } from "./platform/native-abi.js"
 import {
   dlopen,
   ffiBool,
@@ -132,25 +133,25 @@ registerEnvVar({
 
 // Env vars used in terminal.zig
 registerEnvVar({
-  name: "OPENTUI_FORCE_WCWIDTH",
+  name: "AX_CODE_TUI_FORCE_WCWIDTH",
   description: "Use wcwidth for character width calculations",
   type: "boolean",
   default: false,
 })
 registerEnvVar({
-  name: "OPENTUI_FORCE_UNICODE",
+  name: "AX_CODE_TUI_FORCE_UNICODE",
   description: "Force Mode 2026 Unicode support in terminal capabilities",
   type: "boolean",
   default: false,
 })
 registerEnvVar({
-  name: "OPENTUI_GRAPHICS",
+  name: "AX_CODE_TUI_GRAPHICS",
   description: "Enable Kitty graphics protocol detection",
   type: "boolean",
   default: true,
 })
 registerEnvVar({
-  name: "OPENTUI_FORCE_NOZWJ",
+  name: "AX_CODE_TUI_FORCE_NOZWJ",
   description: "Use no_zwj width method (Unicode without ZWJ joining)",
   type: "boolean",
   default: false,
@@ -213,6 +214,7 @@ function ffiCellOrigin(x: number, y: number): { x: number; y: number } | null {
 function openRenderLibrary(libPath?: string) {
   const resolvedLibPath = libPath || targetLibPath
 
+  verifyNativeAbi(resolvedLibPath)
   const rawSymbols = dlopen(resolvedLibPath, {
     // Logging
     setLogCallback: {
@@ -1280,7 +1282,7 @@ function openRenderLibrary(libPath?: string) {
       args: [],
       returns: "ptr",
     },
-    yogaNodeCreateForOpenTUI: {
+    yogaNodeCreateForAxTui: {
       args: [],
       returns: "ptr",
     },
@@ -2136,7 +2138,9 @@ export interface RenderLib extends AudioEngineLib {
   yogaConfigSetExperimentalFeatureEnabled: (config: Pointer, feature: number, enabled: boolean) => void
   yogaConfigIsExperimentalFeatureEnabled: (config: Pointer, feature: number) => boolean
   yogaNodeCreate: () => Pointer
+  /** @deprecated Use yogaNodeCreateForAxTui. */
   yogaNodeCreateForOpenTUI: () => Pointer
+  yogaNodeCreateForAxTui: () => Pointer
   yogaNodeCreateWithConfig: (config: Pointer) => Pointer
   yogaNodeFree: (node: Pointer) => void
   yogaNodeFreeRecursive: (node: Pointer) => void
@@ -3505,9 +3509,14 @@ class FFIRenderLib implements RenderLib {
     return node
   }
 
+  /** @deprecated Use yogaNodeCreateForAxTui. This alias calls the AX TUI native implementation. */
   public yogaNodeCreateForOpenTUI(): Pointer {
-    const node = this.native.symbols.yogaNodeCreateForOpenTUI()
-    if (!node) throw new Error("Failed to create OpenTUI Yoga node")
+    return this.yogaNodeCreateForAxTui()
+  }
+
+  public yogaNodeCreateForAxTui(): Pointer {
+    const node = this.native.symbols.yogaNodeCreateForAxTui()
+    if (!node) throw new Error("Failed to create AX TUI Yoga node")
     return node
   }
 
@@ -5165,7 +5174,7 @@ export function resolveRenderLib(): RenderLib {
       renderLib = new FFIRenderLib(renderLibPath)
     } catch (error) {
       throw new Error(
-        `Failed to initialize OpenTUI render library: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to initialize AX TUI render library: ${error instanceof Error ? error.message : "Unknown error"}`,
       )
     }
   }

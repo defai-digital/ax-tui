@@ -140,7 +140,7 @@ var FFIType = {
   napi_value: "napi_value",
   buffer: "buffer"
 };
-var FFI_UNAVAILABLE = "OpenTUI native FFI is not available for this runtime yet";
+var FFI_UNAVAILABLE = "AX TUI native FFI is not available for this runtime yet";
 var BUN_DLOPEN_NULL = "Bun FFI backend does not support dlopen(null)";
 var LIBRARY_CLOSED = "Cannot create FFI callback after library.close() has been called";
 var NODE_CALLBACK_THREADSAFE = "Node FFI callbacks are same-thread only and do not support threadsafe callbacks";
@@ -521,6 +521,25 @@ var dlopen = backend.dlopen;
 var ptr = backend.ptr;
 var suffix = backend.suffix;
 var toArrayBuffer = backend.toArrayBuffer;
+
+// src/platform/native-abi.ts
+var AX_TUI_NATIVE_ABI = 1;
+function verifyNativeAbi(libraryPath) {
+  let probe;
+  try {
+    probe = dlopen(libraryPath, { axTuiAbiVersion: { args: [], returns: "u32" } });
+  } catch (cause) {
+    throw new Error(`Native library does not expose the AX TUI ABI: ${libraryPath}`, { cause });
+  }
+  try {
+    const actual = probe.symbols.axTuiAbiVersion();
+    if (actual !== AX_TUI_NATIVE_ABI) {
+      throw new Error(`Incompatible AX TUI native ABI: expected ${AX_TUI_NATIVE_ABI}, received ${actual}`);
+    }
+  } finally {
+    probe.close();
+  }
+}
 
 // src/platform/runtime.ts
 import { existsSync } from "node:fs";
@@ -5534,7 +5553,7 @@ var Renderable = class _Renderable extends BaseRenderable {
     this._live = options.live ?? false;
     this._liveCount = this._live && this._visible ? 1 : 0;
     this._opacity = options.opacity !== void 0 ? Math.max(0, Math.min(1, options.opacity)) : 1;
-    this.yogaNode = yoga_default.Node.createForOpenTUI();
+    this.yogaNode = yoga_default.Node.createForAxTui();
     this.yogaNode.setDisplay(this._visible ? 0 /* Flex */ : 1 /* None */);
     this.setupYogaProperties(options);
     this.applyEventOptions(options);
@@ -6636,7 +6655,7 @@ var RootRenderable = class extends Renderable {
     if (this.yogaNode) {
       this.yogaNode.free();
     }
-    this.yogaNode = yoga_default.Node.createForOpenTUI();
+    this.yogaNode = yoga_default.Node.createForAxTui();
     this.yogaNode.setWidth(ctx.width);
     this.yogaNode.setHeight(ctx.height);
     this.yogaNode.setFlexDirection(0 /* Column */);
@@ -9471,7 +9490,7 @@ function normalizeBunfsPath(fileName) {
 }
 
 // src/platform/worker.ts
-var WORKER_UNAVAILABLE = "OpenTUI tree-sitter workers are not available for this runtime yet.";
+var WORKER_UNAVAILABLE = "AX TUI tree-sitter workers are not available for this runtime yet.";
 var globalWithWorker = globalThis;
 var nodeWorkerThreads = getBuiltinModule("node:worker_threads");
 var runtimeBridge = loadWorkerRuntime(nodeWorkerThreads);
@@ -12863,25 +12882,25 @@ registerEnvVar({
   default: false
 });
 registerEnvVar({
-  name: "OPENTUI_FORCE_WCWIDTH",
+  name: "AX_CODE_TUI_FORCE_WCWIDTH",
   description: "Use wcwidth for character width calculations",
   type: "boolean",
   default: false
 });
 registerEnvVar({
-  name: "OPENTUI_FORCE_UNICODE",
+  name: "AX_CODE_TUI_FORCE_UNICODE",
   description: "Force Mode 2026 Unicode support in terminal capabilities",
   type: "boolean",
   default: false
 });
 registerEnvVar({
-  name: "OPENTUI_GRAPHICS",
+  name: "AX_CODE_TUI_GRAPHICS",
   description: "Enable Kitty graphics protocol detection",
   type: "boolean",
   default: true
 });
 registerEnvVar({
-  name: "OPENTUI_FORCE_NOZWJ",
+  name: "AX_CODE_TUI_FORCE_NOZWJ",
   description: "Use no_zwj width method (Unicode without ZWJ joining)",
   type: "boolean",
   default: false
@@ -12928,6 +12947,7 @@ function ffiCellOrigin(x, y) {
 }
 function openRenderLibrary(libPath) {
   const resolvedLibPath = libPath || targetLibPath;
+  verifyNativeAbi(resolvedLibPath);
   const rawSymbols = dlopen(resolvedLibPath, {
     // Logging
     setLogCallback: {
@@ -13970,7 +13990,7 @@ function openRenderLibrary(libPath) {
       args: [],
       returns: "ptr"
     },
-    yogaNodeCreateForOpenTUI: {
+    yogaNodeCreateForAxTui: {
       args: [],
       returns: "ptr"
     },
@@ -15147,9 +15167,13 @@ var FFIRenderLib = class {
     if (!node) throw new Error("Failed to create Yoga node");
     return node;
   }
+  /** @deprecated Use yogaNodeCreateForAxTui. This alias calls the AX TUI native implementation. */
   yogaNodeCreateForOpenTUI() {
-    const node = this.native.symbols.yogaNodeCreateForOpenTUI();
-    if (!node) throw new Error("Failed to create OpenTUI Yoga node");
+    return this.yogaNodeCreateForAxTui();
+  }
+  yogaNodeCreateForAxTui() {
+    const node = this.native.symbols.yogaNodeCreateForAxTui();
+    if (!node) throw new Error("Failed to create AX TUI Yoga node");
     return node;
   }
   yogaNodeCreateWithConfig(config) {
@@ -16385,7 +16409,7 @@ function resolveRenderLib() {
       renderLib = new FFIRenderLib(renderLibPath);
     } catch (error) {
       throw new Error(
-        `Failed to initialize OpenTUI render library: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to initialize AX TUI render library: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   }
@@ -16740,8 +16764,12 @@ var Node = class _Node {
   static create(config) {
     return _Node.fromPointer(config ? lib().yogaNodeCreateWithConfig(config.ptr) : lib().yogaNodeCreate());
   }
+  /** @deprecated Use createForAxTui. Retained for applications built against AX TUI 1.0. */
   static createForOpenTUI() {
-    return _Node.fromPointer(lib().yogaNodeCreateForOpenTUI());
+    return _Node.createForAxTui();
+  }
+  static createForAxTui() {
+    return _Node.fromPointer(lib().yogaNodeCreateForAxTui());
   }
   static createDefault() {
     return _Node.create();

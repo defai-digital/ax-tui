@@ -61,7 +61,7 @@ pub const Multiplexer = enum(u8) {
     unknown,
 };
 
-const NOTIFICATION_QUERY_ID = "opentui-notifications";
+const NOTIFICATION_QUERY_ID = "ax-tui-notifications";
 
 pub const MouseLevel = enum {
     none,
@@ -709,7 +709,7 @@ fn checkEnvironmentOverrides(self: *Terminal) void {
         }
     }
 
-    if (env_map.get("OPENTUI_GRAPHICS")) |val| {
+    if (env_map.get("AX_CODE_TUI_GRAPHICS")) |val| {
         if (std.mem.eql(u8, val, "false") or std.mem.eql(u8, val, "0")) {
             self.skip_graphics_query = true;
         } else if (std.mem.eql(u8, val, "true") or std.mem.eql(u8, val, "1")) {
@@ -779,10 +779,10 @@ fn checkEnvironmentOverrides(self: *Terminal) void {
         self.setNotificationProtocol(.osc777, .heuristic);
     }
 
-    if (env_map.get("OPENTUI_NOTIFICATION_PROTOCOL")) |protocol| {
+    if (env_map.get("AX_CODE_TUI_NOTIFICATION_PROTOCOL")) |protocol| {
         self.applyNotificationProtocolOverride(protocol);
     }
-    if (env_map.get("OPENTUI_NOTIFICATIONS")) |value| {
+    if (env_map.get("AX_CODE_TUI_NOTIFICATIONS")) |value| {
         if (std.mem.eql(u8, value, "0") or std.ascii.eqlIgnoreCase(value, "false") or std.ascii.eqlIgnoreCase(value, "off")) {
             self.applyNotificationProtocolOverride("none");
         }
@@ -802,17 +802,17 @@ fn checkEnvironmentOverrides(self: *Terminal) void {
         }
     }
 
-    if (env_map.get("OPENTUI_FORCE_WCWIDTH")) |_| {
+    if (env_map.get("AX_CODE_TUI_FORCE_WCWIDTH")) |_| {
         self.caps.unicode = .wcwidth;
     }
-    if (env_map.get("OPENTUI_FORCE_UNICODE")) |_| {
+    if (env_map.get("AX_CODE_TUI_FORCE_UNICODE")) |_| {
         self.caps.unicode = .unicode;
     }
-    if (env_map.get("OPENTUI_FORCE_NOZWJ")) |_| {
+    if (env_map.get("AX_CODE_TUI_FORCE_NOZWJ")) |_| {
         self.caps.unicode = .no_zwj;
     }
 
-    if (env_map.get("OPENTUI_FORCE_EXPLICIT_WIDTH")) |val| {
+    if (env_map.get("AX_CODE_TUI_FORCE_EXPLICIT_WIDTH")) |val| {
         if (std.mem.eql(u8, val, "true") or std.mem.eql(u8, val, "1")) {
             self.caps.explicit_width = true;
         } else if (std.mem.eql(u8, val, "false") or std.mem.eql(u8, val, "0")) {
@@ -1353,7 +1353,7 @@ pub fn writeNotification(self: *Terminal, allocator: std.mem.Allocator, tty: any
     switch (self.notification_protocol) {
         .none => return false,
         .osc99 => {
-            const id = try std.fmt.allocPrint(allocator, "opentui-{d}", .{self.notification_id_counter});
+            const id = try std.fmt.allocPrint(allocator, "ax-tui-{d}", .{self.notification_id_counter});
             defer allocator.free(id);
 
             if (title) |notification_title| {

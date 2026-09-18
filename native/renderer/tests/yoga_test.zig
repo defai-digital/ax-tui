@@ -26,10 +26,10 @@ test "Yoga wrapper computes basic flex layout" {
     try std.testing.expectApproxEqAbs(@as(f32, 100), layout.height, 0.001);
 }
 
-test "OpenTUI Yoga nodes use the native fixed config" {
-    const first = yoga.yogaNodeCreateForOpenTUI();
+test "AX TUI Yoga nodes use the native fixed config" {
+    const first = yoga.yogaNodeCreateForAxTui();
     defer yoga.yogaNodeFree(first);
-    const second = yoga.yogaNodeCreateForOpenTUI();
+    const second = yoga.yogaNodeCreateForAxTui();
     defer yoga.yogaNodeFree(second);
 
     const first_config = yoga.yogaNodeGetConfig(first);

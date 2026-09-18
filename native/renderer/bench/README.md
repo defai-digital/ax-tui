@@ -1,22 +1,18 @@
-# OpenTUI Benchmarks
+# AX TUI Benchmarks
 
-This directory contains benchmarks for the OpenTUI core library.
+This directory contains benchmarks for the AX TUI core library.
 
 ## Running Benchmarks
 
-From the `packages/core` directory:
+From this repository's `native/renderer` directory, with Zig 0.15.2:
 
 ```bash
-# Using the npm script (recommended)
-bun bench:native
-
-# Include memory statistics
-bun bench:native --mem
-
-# Or from packages/core/src/zig directory:
 zig build bench -Doptimize=ReleaseFast
 zig build bench -Doptimize=ReleaseFast -- --mem
 ```
+
+Pass `-Dmacos-sdk=/path/to/MacOSX.sdk` when required by the host toolchain.
+See the root `MAINTENANCE.md` for compiler and SDK setup.
 
 ## Adding New Benchmarks
 

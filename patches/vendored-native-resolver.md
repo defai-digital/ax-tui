@@ -9,7 +9,7 @@ package so enterprise/offline installs do not hit the registry.
 
 1. `resolveVendoredNativeTarget()` maps `(platform, arch, AX_CODE_TUI_LIBC)` to a
    vendor directory key.
-2. The resolved path is `./vendor/<target>/libopentui.{dylib,so,dll}` relative
+2. The resolved path is `./vendor/<target>/libaxtui.{dylib,so}` (or `axtui.dll`) relative
    to the FFI module (via `import.meta.url`).
 3. The bundle must not contain `import("@opentui/core-`.
 

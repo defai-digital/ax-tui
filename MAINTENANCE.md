@@ -63,8 +63,17 @@ The initial local validation used a task-local copy of the SDK with arm64
 aliases added to those stubs; no system SDK was modified. Other platforms
 were cross-compiled; their runtime acceptance must be verified on those hosts.
 
-The native ABI names and `libopentui`/`opentui.dll` filenames remain compatible.
-Changes to the TypeScript FFI and native ABI must be built and tested together.
+Native libraries use `libaxtui`/`axtui.dll` and export `axTuiAbiVersion()`.
+The TypeScript loader verifies this interface before binding renderer functions.
+Advance the ABI version on incompatible FFI changes and rebuild all platforms.
+`check:independence` rejects upstream dependencies, native filenames, and terminal
+settings in maintained sources and generated runtime artifacts.
+
+The former `OPENTUI_*` terminal overrides have moved to `AX_CODE_TUI_*`
+(e.g. `AX_CODE_TUI_GRAPHICS` and `AX_CODE_TUI_NOTIFICATION_PROTOCOL`). Existing
+AX-prefixed settings keep their meanings. Public Yoga methods with legacy names
+remain deprecated TypeScript forwarding aliases. Changes to the TypeScript FFI
+and native ABI must be built and tested together.
 Native source, Zig caches, and SDKs are excluded from runtime distributions.
 
 ## Runtime and packaging invariants

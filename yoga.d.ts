@@ -228,7 +228,9 @@ export declare class Node {
     private dirtiedCallback;
     private constructor();
     static create(config?: Config): Node;
+    /** @deprecated Use createForAxTui. Retained for applications built against AX TUI 1.0. */
     static createForOpenTUI(): Node;
+    static createForAxTui(): Node;
     static createDefault(): Node;
     static createWithConfig(config: Config): Node;
     static destroy(node: Node): void;

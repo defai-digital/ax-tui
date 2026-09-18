@@ -326,7 +326,7 @@ Options:
   --help           Show this help message
 
 Examples:
-  # Use default paths (for OpenTUI core development)
+  # Use default paths (for AX TUI core development)
   bun ${command}
 
   # Use custom paths (for application integration)

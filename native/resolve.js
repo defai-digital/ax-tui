@@ -20,10 +20,10 @@ export function nativeMetadata(packageRoot, target) {
     const manifest = JSON.parse(readFileSync(path.join(packageRoot, "vendor/manifest.json"), "utf8"));
     const entry = manifest.targets?.[target];
     const filename = target.startsWith("darwin-")
-        ? "libopentui.dylib"
+        ? "libaxtui.dylib"
         : target.startsWith("win32-")
-            ? "opentui.dll"
-            : "libopentui.so";
+            ? "axtui.dll"
+            : "libaxtui.so";
     if (!entry ||
         entry.lib?.file !== filename ||
         !Number.isSafeInteger(entry.lib.size) ||

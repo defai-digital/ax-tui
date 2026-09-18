@@ -22,7 +22,7 @@ async function fixture() {
   const packageRoot = path.join(root, "package")
   const cacheDir = path.join(root, "cache")
   const entry = {
-    lib: { file: "libopentui.dylib", size: library.length, sha256: hash(library) },
+    lib: { file: "libaxtui.dylib", size: library.length, sha256: hash(library) },
     licenseSha256: hash(license),
   }
   await mkdir(path.join(packageRoot, "vendor"), { recursive: true })
@@ -40,7 +40,7 @@ describe("native delivery", () => {
     expect(await readFile(result.licensePath)).toEqual(license)
     expect(f.fetcher.mock.calls.map(([url]) => url).sort()).toEqual([
       "https://github.com/defai-digital/ax-tui/releases/download/v0.1.1/ax-tui-native-darwin-arm64-LICENSE",
-      "https://github.com/defai-digital/ax-tui/releases/download/v0.1.1/ax-tui-native-darwin-arm64-libopentui.dylib",
+      "https://github.com/defai-digital/ax-tui/releases/download/v0.1.1/ax-tui-native-darwin-arm64-libaxtui.dylib",
     ])
     expect(
       await prepareNativeLibraryFrom(f.packageRoot, target, { cacheDir: f.cacheDir, offline: true }, f.fetcher),

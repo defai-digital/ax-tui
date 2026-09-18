@@ -426,8 +426,13 @@ export class Node {
     return Node.fromPointer(config ? lib().yogaNodeCreateWithConfig(config.ptr) : lib().yogaNodeCreate())
   }
 
+  /** @deprecated Use createForAxTui. Retained for applications built against AX TUI 1.0. */
   static createForOpenTUI(): Node {
-    return Node.fromPointer(lib().yogaNodeCreateForOpenTUI())
+    return Node.createForAxTui()
+  }
+
+  static createForAxTui(): Node {
+    return Node.fromPointer(lib().yogaNodeCreateForAxTui())
   }
 
   static createDefault(): Node {

@@ -13,14 +13,14 @@ test("stages only verified native and license bytes and rejects replacement", as
     const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex")
     const vendor = path.join(root, "vendor/linux-x64")
     await mkdir(vendor, { recursive: true })
-    await writeFile(path.join(vendor, "libopentui.so"), library)
+    await writeFile(path.join(vendor, "libaxtui.so"), library)
     await writeFile(path.join(vendor, "LICENSE"), license)
     await writeFile(
       path.join(root, "vendor/manifest.json"),
       JSON.stringify({
         targets: {
           "linux-x64": {
-            lib: { file: "libopentui.so", size: library.length, sha256: sha256(library) },
+            lib: { file: "libaxtui.so", size: library.length, sha256: sha256(library) },
             licenseSha256: sha256(license),
           },
         },
@@ -29,7 +29,7 @@ test("stages only verified native and license bytes and rejects replacement", as
     const output = path.join(root, "staged")
     const result = await stageNativeAssets(root, output)
     expect(result).toEqual([
-      { name: "ax-tui-native-linux-x64-libopentui.so", size: library.length, sha256: sha256(library) },
+      { name: "ax-tui-native-linux-x64-libaxtui.so", size: library.length, sha256: sha256(library) },
       { name: "ax-tui-native-linux-x64-LICENSE", size: license.length, sha256: sha256(license) },
     ])
     expect(await readFile(path.join(output, result[0].name))).toEqual(library)

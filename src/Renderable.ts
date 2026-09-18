@@ -314,7 +314,7 @@ export abstract class Renderable extends BaseRenderable {
     this._liveCount = this._live && this._visible ? 1 : 0
     this._opacity = options.opacity !== undefined ? Math.max(0, Math.min(1, options.opacity)) : 1.0
 
-    this.yogaNode = Yoga.Node.createForOpenTUI()
+    this.yogaNode = Yoga.Node.createForAxTui()
     this.yogaNode.setDisplay(this._visible ? Display.Flex : Display.None)
     this.setupYogaProperties(options)
 
@@ -1769,7 +1769,7 @@ export class RootRenderable extends Renderable {
       this.yogaNode.free()
     }
 
-    this.yogaNode = Yoga.Node.createForOpenTUI()
+    this.yogaNode = Yoga.Node.createForAxTui()
     this.yogaNode.setWidth(ctx.width)
     this.yogaNode.setHeight(ctx.height)
     this.yogaNode.setFlexDirection(FlexDirection.Column)

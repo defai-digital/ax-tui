@@ -87,8 +87,8 @@ const CallbackContext = struct {
 const JsMeasureCallback = *const fn (?*anyopaque, f32, u32, f32, u32) callconv(.c) void;
 const JsDirtiedCallback = *const fn () callconv(.c) void;
 const callback_allocator = std.heap.c_allocator;
-var opentui_config: YGConfigRef = null;
-var opentui_config_mutex: std.Thread.Mutex = .{};
+var ax_tui_config: YGConfigRef = null;
+var ax_tui_config_mutex: std.Thread.Mutex = .{};
 
 threadlocal var tls_measure_width: f32 = 0;
 threadlocal var tls_measure_height: f32 = 0;
@@ -153,18 +153,18 @@ fn undefinedValue() c.YGValue {
     return .{ .value = std.math.nan(f32), .unit = c.YGUnitUndefined };
 }
 
-fn getOpenTUIConfig() YGConfigRef {
-    opentui_config_mutex.lock();
-    defer opentui_config_mutex.unlock();
+fn getAxTuiConfig() YGConfigRef {
+    ax_tui_config_mutex.lock();
+    defer ax_tui_config_mutex.unlock();
 
-    if (opentui_config == null) {
+    if (ax_tui_config == null) {
         const config = c.YGConfigNew();
         c.YGConfigSetUseWebDefaults(config, false);
         c.YGConfigSetPointScaleFactor(config, 1);
-        opentui_config = config;
+        ax_tui_config = config;
     }
 
-    return opentui_config;
+    return ax_tui_config;
 }
 
 fn pointValue(value: f32) c.YGValue {
@@ -299,8 +299,8 @@ pub export fn yogaNodeCreate() YGNodeRef {
     return c.YGNodeNew();
 }
 
-pub export fn yogaNodeCreateForOpenTUI() YGNodeRef {
-    return c.YGNodeNewWithConfig(getOpenTUIConfig());
+pub export fn yogaNodeCreateForAxTui() YGNodeRef {
+    return c.YGNodeNewWithConfig(getAxTuiConfig());
 }
 
 pub export fn yogaNodeCreateWithConfig(config: YGConfigConstRef) YGNodeRef {

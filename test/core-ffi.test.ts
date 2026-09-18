@@ -252,7 +252,7 @@ describe("platform/ffi", () => {
 
   test("converts file: URLs to filesystem paths at Node dlopen", () => {
     const { backend, paths } = createMockNodeBackend()
-    const filePath = join(process.cwd(), "libopentui.mock")
+    const filePath = join(process.cwd(), "libaxtui.mock")
     const fileUrl = pathToFileURL(filePath)
 
     backend.dlopen(fileUrl, {})

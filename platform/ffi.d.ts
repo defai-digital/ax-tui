@@ -104,7 +104,7 @@ interface NodeFfiBackend {
     suffix: string;
     toArrayBuffer(pointer: bigint, length: number, copy?: boolean): ArrayBuffer;
 }
-export declare const FFI_UNAVAILABLE = "OpenTUI native FFI is not available for this runtime yet";
+export declare const FFI_UNAVAILABLE = "AX TUI native FFI is not available for this runtime yet";
 export declare const BUN_DLOPEN_NULL = "Bun FFI backend does not support dlopen(null)";
 export declare const LIBRARY_CLOSED = "Cannot create FFI callback after library.close() has been called";
 export declare const NODE_CALLBACK_THREADSAFE = "Node FFI callbacks are same-thread only and do not support threadsafe callbacks";

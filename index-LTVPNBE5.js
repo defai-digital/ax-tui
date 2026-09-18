@@ -34,7 +34,7 @@ import {
   stringToStyledText,
   toArrayBuffer,
   treeSitterToTextChunks
-} from "./index-AGVZRKG3.js";
+} from "./index-EXDC7ZIT.js";
 
 // src/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -4662,7 +4662,7 @@ function isCapabilityResponse(sequence) {
   if (/\x1b\[\?[0-9;]*c/.test(sequence)) {
     return true;
   }
-  if (/\x1b\]99;[^\x07\x1b]*i=opentui-notifications[^\x07\x1b]*p=\?[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
+  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
     return true;
   }
   if (/\x1b\]1337;Capabilities=[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
@@ -5022,7 +5022,7 @@ var DEFAULT_FORWARDED_ENV_KEYS = [
   "ZELLIJ_SESSION_NAME",
   "ZELLIJ_PANE_ID",
   "TERM",
-  "OPENTUI_GRAPHICS",
+  "AX_CODE_TUI_GRAPHICS",
   "TERM_PROGRAM",
   "TERM_PROGRAM_VERSION",
   "TERM_FEATURES",
@@ -5031,12 +5031,12 @@ var DEFAULT_FORWARDED_ENV_KEYS = [
   "COLORTERM",
   "TERMUX_VERSION",
   "VHS_RECORD",
-  "OPENTUI_FORCE_WCWIDTH",
-  "OPENTUI_FORCE_UNICODE",
-  "OPENTUI_FORCE_NOZWJ",
-  "OPENTUI_FORCE_EXPLICIT_WIDTH",
-  "OPENTUI_NOTIFICATION_PROTOCOL",
-  "OPENTUI_NOTIFICATIONS",
+  "AX_CODE_TUI_FORCE_WCWIDTH",
+  "AX_CODE_TUI_FORCE_UNICODE",
+  "AX_CODE_TUI_FORCE_NOZWJ",
+  "AX_CODE_TUI_FORCE_EXPLICIT_WIDTH",
+  "AX_CODE_TUI_NOTIFICATION_PROTOCOL",
+  "AX_CODE_TUI_NOTIFICATIONS",
   "WT_SESSION",
   "STY",
   "WSL_DISTRO_NAME",

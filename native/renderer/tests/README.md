@@ -1,18 +1,16 @@
-# Test Suite
+# Native test suite
 
-This directory contains the test suite for the OpenTUI Zig components.
+This directory contains tests for AX TUI's Zig components.
 
-### Run all tests:
+From the repository root:
 
-```bash
-zig build test --summary all
+```sh
+pnpm run test:native
 ```
 
-## Adding New Test Files
+The wrapper selects the compiler pinned in `.zig-version` and supports
+`AX_CODE_TUI_ZIG` and `AX_CODE_TUI_MACOS_SDK`; see `MAINTENANCE.md`.
 
-1. Create a new `*_test.zig` file in this directory
-2. Import it in `../index.zig`:
-   ```zig
-   const new_tests = @import("new_test.zig");
-   ```
-3. Update the build system if needed to include any new dependencies
+To add a suite, create `tests/<name>_test.zig`, import it in `../test.zig`
+using `@import("tests/<name>_test.zig")`, and reference the imported module
+in that file's test block. Add dependencies in `../build.zig` if needed.

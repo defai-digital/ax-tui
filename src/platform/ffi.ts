@@ -3,12 +3,12 @@ import { fileURLToPath } from "node:url"
 
 declare const pointerBrand: unique symbol
 
-// This module owns OpenTUI's native FFI surface. Portable code imports this
+// This module owns AX TUI's native FFI surface. Portable code imports this
 // file instead of bun:ffi, so backends can keep the same call sites.
 
 // External FFI producers may expose their own branded pointer types. Public APIs
 // that consume foreign pointers should accept the raw pointer shape and normalize
-// it before crossing OpenTUI's native boundary.
+// it before crossing AX TUI's native boundary.
 export type PointerInput = number | bigint
 
 // Runtime pointers are numbers in Bun and bigints in Node's experimental FFI.
@@ -21,7 +21,7 @@ type PointerSource = ArrayBufferLike | ArrayBufferView
 // model does not leak into the exported surface.
 type BunPointer = number
 
-// These names match the Bun FFI type strings OpenTUI uses today. Other
+// These names match the Bun FFI type strings AX TUI uses today. Other
 // backends map them at library load time instead of wrapping every native call.
 export const FFIType = {
   char: "char",
@@ -146,7 +146,7 @@ interface NodeFfiBackend {
   toArrayBuffer(pointer: bigint, length: number, copy?: boolean): ArrayBuffer
 }
 
-export const FFI_UNAVAILABLE = "OpenTUI native FFI is not available for this runtime yet"
+export const FFI_UNAVAILABLE = "AX TUI native FFI is not available for this runtime yet"
 export const BUN_DLOPEN_NULL = "Bun FFI backend does not support dlopen(null)"
 export const LIBRARY_CLOSED = "Cannot create FFI callback after library.close() has been called"
 export const NODE_CALLBACK_THREADSAFE =
@@ -332,7 +332,7 @@ export function createBunBackend(bun: BunFfiBackend): FfiBackend {
             throw new Error(LIBRARY_CLOSED)
           }
 
-          // Bun callbacks are standalone objects. OpenTUI treats them as
+          // Bun callbacks are standalone objects. AX TUI treats them as
           // library-owned to match the future Node FFI shape and to avoid
           // leaked trampolines.
           const raw = new bun.JSCallback(callback, normalizeBunDefinition(definition))

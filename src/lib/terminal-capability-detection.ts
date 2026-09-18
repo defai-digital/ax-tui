@@ -55,7 +55,7 @@ export function isCapabilityResponse(sequence: string): boolean {
   }
 
   // Kitty desktop notification capability query response.
-  if (/\x1b\]99;[^\x07\x1b]*i=opentui-notifications[^\x07\x1b]*p=\?[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
+  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
     return true
   }
 

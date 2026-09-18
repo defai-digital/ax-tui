@@ -75,7 +75,7 @@ test "parseXtversion - full ghostty response" {
 test "notifications - OSC99 query response enables OSC99 protocol" {
     var term = Terminal.init(.{});
 
-    term.processCapabilityResponse("\x1b]99;i=opentui-notifications:p=?;p=title,body:o=always:u=0,1,2\x1b\\");
+    term.processCapabilityResponse("\x1b]99;i=ax-tui-notifications:p=?;p=title,body:o=always:u=0,1,2\x1b\\");
 
     try testing.expect(term.caps.notifications);
     try testing.expectEqual(Terminal.NotificationProtocol.osc99, term.notification_protocol);
@@ -157,7 +157,7 @@ test "notifications - Zellij env suppresses inherited host notification heuristi
     try testing.expect(!term.caps.notifications);
     try testing.expectEqual(Terminal.NotificationProtocol.none, term.notification_protocol);
 
-    term.processCapabilityResponse("\x1b]99;i=opentui-notifications:p=?;p=title,body:o=always\x1b\\");
+    term.processCapabilityResponse("\x1b]99;i=ax-tui-notifications:p=?;p=title,body:o=always\x1b\\");
     try testing.expect(term.caps.notifications);
     try testing.expectEqual(Terminal.NotificationProtocol.osc99, term.notification_protocol);
 }
@@ -181,7 +181,7 @@ test "notifications - Zellij XTVERSION overrides inherited tmux and clears heuri
     try testing.expect(!term.caps.notifications);
     try testing.expectEqual(Terminal.NotificationProtocol.none, term.notification_protocol);
 
-    term.processCapabilityResponse("\x1b]99;i=opentui-notifications:p=?;p=title,body:o=always\x1b\\");
+    term.processCapabilityResponse("\x1b]99;i=ax-tui-notifications:p=?;p=title,body:o=always\x1b\\");
     try testing.expect(term.caps.notifications);
     try testing.expectEqual(Terminal.NotificationProtocol.osc99, term.notification_protocol);
 }
@@ -191,7 +191,7 @@ test "notifications - explicit protocol override works in tmux" {
     defer env.deinit();
     try env.put("TMUX", "/tmp/tmux-1000/default,12345,0");
     try env.put("TERM", "screen-256color");
-    try env.put("OPENTUI_NOTIFICATION_PROTOCOL", "osc9");
+    try env.put("AX_CODE_TUI_NOTIFICATION_PROTOCOL", "osc9");
 
     const term = Terminal.init(.{ .env_map = &env });
 
@@ -203,13 +203,13 @@ test "notifications - explicit protocol override works in tmux" {
 test "notifications - explicit disable blocks later queries" {
     var env = std.process.EnvMap.init(testing.allocator);
     defer env.deinit();
-    try env.put("OPENTUI_NOTIFICATION_PROTOCOL", "none");
+    try env.put("AX_CODE_TUI_NOTIFICATION_PROTOCOL", "none");
 
     var term = Terminal.init(.{ .env_map = &env });
     try testing.expect(!term.caps.notifications);
     try testing.expectEqual(Terminal.NotificationProtocol.none, term.notification_protocol);
 
-    term.processCapabilityResponse("\x1b]99;i=opentui-notifications:p=?;p=title,body:o=always\x1b\\");
+    term.processCapabilityResponse("\x1b]99;i=ax-tui-notifications:p=?;p=title,body:o=always\x1b\\");
     try testing.expect(!term.caps.notifications);
     try testing.expectEqual(Terminal.NotificationProtocol.none, term.notification_protocol);
 }
@@ -347,10 +347,10 @@ test "setHostEnvVar applies env overrides in shared library mode" {
     try testing.expect(term.caps.unicode == .wcwidth);
     try testing.expect(term.caps.explicit_cursor_positioning);
 
-    try term.setHostEnvVar(testing.allocator, "OPENTUI_FORCE_UNICODE", "1");
+    try term.setHostEnvVar(testing.allocator, "AX_CODE_TUI_FORCE_UNICODE", "1");
     try testing.expect(term.caps.unicode == .unicode);
 
-    try term.setHostEnvVar(testing.allocator, "OPENTUI_GRAPHICS", "0");
+    try term.setHostEnvVar(testing.allocator, "AX_CODE_TUI_GRAPHICS", "0");
     try testing.expect(term.skip_graphics_query);
 }
 
@@ -816,7 +816,7 @@ test "writeNotification - writes OSC99 title and body with base64 payloads" {
     const ok = try term.writeNotification(testing.allocator, &writer, "Body", "Title");
 
     try testing.expect(ok);
-    try testing.expectEqualStrings("\x1b]99;i=opentui-1:p=title:e=1:d=0;VGl0bGU=\x1b\\\x1b]99;i=opentui-1:p=body:e=1:d=1;Qm9keQ==\x1b\\", writer.getWritten());
+    try testing.expectEqualStrings("\x1b]99;i=ax-tui-1:p=title:e=1:d=0;VGl0bGU=\x1b\\\x1b]99;i=ax-tui-1:p=body:e=1:d=1;Qm9keQ==\x1b\\", writer.getWritten());
 }
 
 test "writeNotification - writes OSC777 and sanitizes semicolons and controls" {
@@ -887,7 +887,7 @@ test "writeNotification - wraps OSC99 in tmux passthrough" {
 
     try testing.expect(ok);
     try testing.expect(std.mem.startsWith(u8, writer.getWritten(), "\x1bPtmux;"));
-    try testing.expect(std.mem.indexOf(u8, writer.getWritten(), "\x1b\x1b]99;i=opentui-1:p=body:e=1:d=1;Qm9keQ==") != null);
+    try testing.expect(std.mem.indexOf(u8, writer.getWritten(), "\x1b\x1b]99;i=ax-tui-1:p=body:e=1:d=1;Qm9keQ==") != null);
     try testing.expect(std.mem.endsWith(u8, writer.getWritten(), "\x1b\\"));
 }
 
@@ -899,7 +899,7 @@ test "writeNotification - writes raw OSC99 in Zellij" {
 
     var term = Terminal.init(.{ .env_map = &env });
     term.processCapabilityResponse("\x1bP>|Zellij(0.44.1)\x1b\\");
-    term.processCapabilityResponse("\x1b]99;i=opentui-notifications:p=?;p=title,body:o=always\x1b\\");
+    term.processCapabilityResponse("\x1b]99;i=ax-tui-notifications:p=?;p=title,body:o=always\x1b\\");
 
     var writer = TestWriter.init(testing.allocator);
     defer writer.deinit();
@@ -908,7 +908,7 @@ test "writeNotification - writes raw OSC99 in Zellij" {
 
     try testing.expect(ok);
     try testing.expect(!std.mem.startsWith(u8, writer.getWritten(), "\x1bPtmux;"));
-    try testing.expectEqualStrings("\x1b]99;i=opentui-1:p=body:e=1:d=1;Qm9keQ==\x1b\\", writer.getWritten());
+    try testing.expectEqualStrings("\x1b]99;i=ax-tui-1:p=body:e=1:d=1;Qm9keQ==\x1b\\", writer.getWritten());
 }
 
 test "writeClipboard - supports different targets" {
@@ -1045,12 +1045,12 @@ fn countSubstring(haystack: []const u8, needle: []const u8) usize {
     return count;
 }
 
-test "queryTerminalSend - skips OSC 66 queries when OPENTUI_FORCE_EXPLICIT_WIDTH=false" {
+test "queryTerminalSend - skips OSC 66 queries when AX_CODE_TUI_FORCE_EXPLICIT_WIDTH=false" {
     if (builtin.os.tag == .windows) return error.SkipZigTest;
 
     var env = std.process.EnvMap.init(testing.allocator);
     defer env.deinit();
-    try env.put("OPENTUI_FORCE_EXPLICIT_WIDTH", "false");
+    try env.put("AX_CODE_TUI_FORCE_EXPLICIT_WIDTH", "false");
 
     var term = Terminal.init(.{ .env_map = &env });
 
@@ -1097,12 +1097,12 @@ test "queryTerminalSend - sends OSC 66 queries by default" {
     try testing.expect(!term.skip_explicit_width_query);
 }
 
-test "queryTerminalSend - sends OSC 66 queries when OPENTUI_FORCE_EXPLICIT_WIDTH=true" {
+test "queryTerminalSend - sends OSC 66 queries when AX_CODE_TUI_FORCE_EXPLICIT_WIDTH=true" {
     if (builtin.os.tag == .windows) return error.SkipZigTest;
 
     var env = std.process.EnvMap.init(testing.allocator);
     defer env.deinit();
-    try env.put("OPENTUI_FORCE_EXPLICIT_WIDTH", "true");
+    try env.put("AX_CODE_TUI_FORCE_EXPLICIT_WIDTH", "true");
 
     var term = Terminal.init(.{ .env_map = &env });
 

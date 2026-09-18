@@ -206,7 +206,9 @@ export interface RenderLib extends AudioEngineLib {
     yogaConfigSetExperimentalFeatureEnabled: (config: Pointer, feature: number, enabled: boolean) => void;
     yogaConfigIsExperimentalFeatureEnabled: (config: Pointer, feature: number) => boolean;
     yogaNodeCreate: () => Pointer;
+    /** @deprecated Use yogaNodeCreateForAxTui. */
     yogaNodeCreateForOpenTUI: () => Pointer;
+    yogaNodeCreateForAxTui: () => Pointer;
     yogaNodeCreateWithConfig: (config: Pointer) => Pointer;
     yogaNodeFree: (node: Pointer) => void;
     yogaNodeFreeRecursive: (node: Pointer) => void;

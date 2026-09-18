@@ -6,21 +6,21 @@
     "commit": "b7e0bb9c3d2a75c2bc267d2af27b7237f734d13b",
     "license": "MIT"
   },
-  "builtAt": "2026-09-18T09:19:17.674Z",
+  "builtAt": "2026-09-18T09:33:05.876Z",
   "targets": {
     "darwin-arm64": {
       "os": "darwin",
       "cpu": "arm64",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "aarch64-macos",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "libopentui.dylib",
-        "size": 3755584,
-        "sha256": "23f49368471c89c0143b3f4c3e19f7980a30de8bbb157d6bbf0598841741a7d2"
+        "file": "libaxtui.dylib",
+        "size": 3755744,
+        "sha256": "239f4657ebe094d27c72007b054dcb123ba4f44b23a216de3866467103b097ae"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -28,15 +28,15 @@
       "os": "darwin",
       "cpu": "x64",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "x86_64-macos",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "libopentui.dylib",
-        "size": 3732539,
-        "sha256": "3313d474a21f7e68954a1aef3791c671782f153d37c64ef78884a3fd2858d4ac"
+        "file": "libaxtui.dylib",
+        "size": 3732652,
+        "sha256": "1eaad310bab526ba2c0241cfcbb89667ccf07c1b01127cb8b7018fab96980c8d"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -44,15 +44,15 @@
       "os": "linux",
       "cpu": "arm64",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "aarch64-linux-gnu.2.17",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "libopentui.so",
-        "size": 13781872,
-        "sha256": "d7e4070febacdfeaa1e25888fd06c2dde9175c1721c73a631adb5bd61800cbc4"
+        "file": "libaxtui.so",
+        "size": 13781432,
+        "sha256": "5b314b32bda23e6bb944b31d243c9bcec028220361cd26ff14afb69d748f63f0"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -61,15 +61,15 @@
       "cpu": "arm64",
       "libc": "musl",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "aarch64-linux-musl",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "libopentui.so",
-        "size": 13649928,
-        "sha256": "68854e632d7a8c368cf5496f7a2ecd6f0d702f0682f74aecab2126f2d2f238fa"
+        "file": "libaxtui.so",
+        "size": 13649608,
+        "sha256": "aeeb8ade505850d290f1f39720cf7e1e29cc84a2723a97a8ae9936e844eeaeba"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -77,15 +77,15 @@
       "os": "linux",
       "cpu": "x64",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "x86_64-linux-gnu.2.17",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "libopentui.so",
-        "size": 13549200,
-        "sha256": "b1a38381e3d5f48aaaa9d637a836c8d4fc1c12a425003224db3f50a5412b9b82"
+        "file": "libaxtui.so",
+        "size": 13549232,
+        "sha256": "54cdc743e960ea414e7e7c4cbb747b1bff0cf99fbe2219af53c30a5fc10e85ed"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -94,15 +94,15 @@
       "cpu": "x64",
       "libc": "musl",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "x86_64-linux-musl",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "libopentui.so",
-        "size": 13419024,
-        "sha256": "f1b06291edc9c17c581ac98937ebd5c42d9b423f09c9bee7073ce9a93e599bad"
+        "file": "libaxtui.so",
+        "size": 13419064,
+        "sha256": "3f177f0ca2bdef95581cd023a6a2eae6e82be598a62149238dfe78974d47dc8a"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -110,15 +110,15 @@
       "os": "win32",
       "cpu": "arm64",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "aarch64-windows-gnu",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "opentui.dll",
+        "file": "axtui.dll",
         "size": 3521536,
-        "sha256": "5a59488a828613035f07c093e7f3855949547ef4c0c3ba032fe0f97efcb4be3f"
+        "sha256": "5bfd9f4dcc526518de057c0dd972982c3e1eefb7f727a37f466b694d18896e8e"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -126,15 +126,15 @@
       "os": "win32",
       "cpu": "x64",
       "build": {
-        "sourceSha256": "2b60e97e29b745cb0b79ea1b68011ba2af22b46ac7366953e335bbee0bb33e04",
+        "sourceSha256": "96e8ba64160849c868a8b029902ea8ad837dec2d554e1cc7b94a3b36d871f1df",
         "zigVersion": "0.15.2",
         "target": "x86_64-windows-gnu",
         "optimize": "ReleaseFast"
       },
       "lib": {
-        "file": "opentui.dll",
-        "size": 3738112,
-        "sha256": "462d5c9cdbd47108d5bfb466e8cc593ba1c66ff5eb04f35e4dfae6ae096e6eea"
+        "file": "axtui.dll",
+        "size": 3738624,
+        "sha256": "0a9cf4fa9e755ec2bb7df8931e9375d3706ef291f325ee727b143022bbadd76d"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     }

@@ -27,17 +27,17 @@ function assertCompatibleInstall(install: RuntimePluginSupportInstall, options: 
   for (const specifier of Object.keys(options.additional ?? {})) {
     if (!install.additionalSpecifiers.has(specifier)) {
       throw new Error(
-        `OpenTUI Core runtime plugin support is already installed without ${specifier}. Call ensureRuntimePluginSupport({ additional }) from ax-tui/runtime-plugin-support/configure before importing ax-tui/runtime-plugin-support.`,
+        `AX TUI Core runtime plugin support is already installed without ${specifier}. Call ensureRuntimePluginSupport({ additional }) from ax-tui/runtime-plugin-support/configure before importing ax-tui/runtime-plugin-support.`,
       )
     }
   }
 
   if (options.core && options.core !== install.core) {
-    throw new Error("OpenTUI Core runtime plugin support is already installed with a different core runtime module.")
+    throw new Error("AX TUI Core runtime plugin support is already installed with a different core runtime module.")
   }
 
   if (options.rewrite && normalizeRewriteKey(options.rewrite) !== install.rewriteKey) {
-    throw new Error("OpenTUI Core runtime plugin support is already installed with different rewrite options.")
+    throw new Error("AX TUI Core runtime plugin support is already installed with different rewrite options.")
   }
 }
 

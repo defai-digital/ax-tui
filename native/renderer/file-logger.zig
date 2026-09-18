@@ -17,7 +17,7 @@ fn ensureInit() void {
 
     const timestamp = std.time.timestamp();
     var filename_buf: [128]u8 = undefined;
-    const filename = std.fmt.bufPrint(&filename_buf, "opentui_debug_{d}.log", .{timestamp}) catch return;
+    const filename = std.fmt.bufPrint(&filename_buf, "ax_tui_debug_{d}.log", .{timestamp}) catch return;
 
     log_file = std.fs.cwd().createFile(filename, .{ .truncate = true }) catch return;
 

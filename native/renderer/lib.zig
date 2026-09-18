@@ -1,3 +1,9 @@
+/// AX TUI owns this native interface independently of its source origin.
+/// Increment when incompatible FFI layouts or calling conventions change.
+pub export fn axTuiAbiVersion() u32 {
+    return 1;
+}
+
 const std = @import("std");
 const build_options = @import("build_options");
 const Allocator = std.mem.Allocator;

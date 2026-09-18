@@ -17,7 +17,7 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     cpu: "arm64",
     zig: "aarch64-macos",
     output: "aarch64-macos",
-    libFile: "libopentui.dylib",
+    libFile: "libaxtui.dylib",
   },
   {
     key: "darwin-x64",
@@ -25,7 +25,7 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     cpu: "x64",
     zig: "x86_64-macos",
     output: "x86_64-macos",
-    libFile: "libopentui.dylib",
+    libFile: "libaxtui.dylib",
   },
   {
     key: "linux-arm64",
@@ -33,7 +33,7 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     cpu: "arm64",
     zig: "aarch64-linux-gnu.2.17",
     output: "aarch64-linux",
-    libFile: "libopentui.so",
+    libFile: "libaxtui.so",
   },
   {
     key: "linux-x64",
@@ -41,7 +41,7 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     cpu: "x64",
     zig: "x86_64-linux-gnu.2.17",
     output: "x86_64-linux",
-    libFile: "libopentui.so",
+    libFile: "libaxtui.so",
   },
   {
     key: "linux-arm64-musl",
@@ -50,7 +50,7 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     libc: "musl",
     zig: "aarch64-linux-musl",
     output: "aarch64-linux-musl",
-    libFile: "libopentui.so",
+    libFile: "libaxtui.so",
   },
   {
     key: "linux-x64-musl",
@@ -59,7 +59,7 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     libc: "musl",
     zig: "x86_64-linux-musl",
     output: "x86_64-linux-musl",
-    libFile: "libopentui.so",
+    libFile: "libaxtui.so",
   },
   {
     key: "win32-arm64",
@@ -67,7 +67,7 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     cpu: "arm64",
     zig: "aarch64-windows-gnu",
     output: "aarch64-windows",
-    libFile: "opentui.dll",
+    libFile: "axtui.dll",
   },
   {
     key: "win32-x64",
@@ -75,6 +75,6 @@ export const NATIVE_TARGETS: readonly BuildTarget[] = [
     cpu: "x64",
     zig: "x86_64-windows-gnu",
     output: "x86_64-windows",
-    libFile: "opentui.dll",
+    libFile: "axtui.dll",
   },
 ]

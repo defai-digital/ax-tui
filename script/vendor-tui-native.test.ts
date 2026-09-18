@@ -51,16 +51,16 @@ describe("script.vendor-tui-native", () => {
   })
 
   test("binary format validation accepts matching and rejects mismatched targets", () => {
-    const dylibArm64 = readFileSync(join(VENDOR, "darwin-arm64", "libopentui.dylib"))
+    const dylibArm64 = readFileSync(join(VENDOR, "darwin-arm64", "libaxtui.dylib"))
     expect(() => assertBinaryFormat(dylibArm64, { os: "darwin", cpu: "arm64", key: "darwin-arm64" })).not.toThrow()
     expect(() => assertBinaryFormat(dylibArm64, { os: "darwin", cpu: "x64", key: "darwin-x64" })).toThrow()
     expect(() => assertBinaryFormat(dylibArm64, { os: "linux", cpu: "arm64", key: "linux-arm64" })).toThrow()
 
-    const elf = readFileSync(join(VENDOR, "linux-x64", "libopentui.so"))
+    const elf = readFileSync(join(VENDOR, "linux-x64", "libaxtui.so"))
     expect(() => assertBinaryFormat(elf, { os: "linux", cpu: "x64", key: "linux-x64" })).not.toThrow()
     expect(() => assertBinaryFormat(elf, { os: "linux", cpu: "arm64", key: "linux-arm64" })).toThrow()
 
-    const dll = readFileSync(join(VENDOR, "win32-arm64", "opentui.dll"))
+    const dll = readFileSync(join(VENDOR, "win32-arm64", "axtui.dll"))
     expect(() => assertBinaryFormat(dll, { os: "win32", cpu: "arm64", key: "win32-arm64" })).not.toThrow()
     expect(() => assertBinaryFormat(dll, { os: "win32", cpu: "x64", key: "win32-x64" })).toThrow()
 

@@ -18,7 +18,16 @@ test.skipIf(!supportsFfi)(
 import assert from "node:assert/strict"
 import { createSignal, onCleanup } from "solid-js"
 import { testRender } from "ax-tui/solid"
-import { TreeSitterClient } from "ax-tui"
+import { TreeSitterClient, resolveRenderLib } from "ax-tui"
+import { Node as YogaNode } from "ax-tui/yoga"
+
+const ownNode = YogaNode.createForAxTui()
+const compatibilityNode = YogaNode.createForOpenTUI()
+ownNode.free()
+compatibilityNode.free()
+const native = resolveRenderLib()
+const compatibilityPointer = native.yogaNodeCreateForOpenTUI()
+native.yogaNodeFree(compatibilityPointer)
 
 let setCount
 let cleaned = 0

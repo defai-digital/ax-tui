@@ -12,7 +12,7 @@ describe("owned renderer contracts", () => {
     expect(axRuntimeIdentityApplied('name: "OTUI_DEBUG"')).toBe(false)
     expect(axRuntimeIdentityApplied('Symbol.for("opentui.solid.transform")')).toBe(false)
     expect(axRuntimeIdentityApplied('name: "AX_CODE_TUI_DEBUG"')).toBe(true)
-    expect(axRuntimeIdentityApplied('const file = "libopentui.so"')).toBe(true)
+    expect(axRuntimeIdentityApplied('const file = "libaxtui.so"')).toBe(true)
   })
 
   test("the generated Solid catalogue omits unsupported intrinsics", () => {
