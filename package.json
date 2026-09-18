@@ -1,6 +1,6 @@
 {
   "name": "ax-tui",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "SolidJS terminal UI framework with a TypeScript renderer and a locally built native backend",
   "license": "MIT",
   "type": "module",

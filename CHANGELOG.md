@@ -3,7 +3,7 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
-## [Unreleased]
+## [1.0.2] - 2026-09-18
 
 ### Fixed
 
