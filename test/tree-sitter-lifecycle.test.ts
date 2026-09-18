@@ -111,3 +111,44 @@ test("initialization send failure clears the timeout immediately", async () => {
   expect(vi.getTimerCount()).toBe(0)
   await client.destroy()
 })
+
+test("edits arriving before a pending reset are folded into the latest full content", async () => {
+  vi.useFakeTimers()
+  const { client, postMessage } = initializedClient()
+  await client.resetBuffer(1, 2, "reset content")
+  await client.updateBuffer(1, [], "newer content", 3)
+  await vi.advanceTimersByTimeAsync(10)
+  expect(postMessage.mock.calls.map(([message]) => message)).toEqual([
+    expect.objectContaining({ type: "RESET_BUFFER", bufferId: 1, version: 3, content: "newer content" }),
+  ])
+  await client.destroy()
+})
+
+test("reset supersedes edits still waiting in the local queue", async () => {
+  vi.useFakeTimers()
+  const { client, postMessage } = initializedClient()
+  void client.updateBuffer(1, [], "old edit", 2)
+  await client.resetBuffer(1, 3, "replacement")
+  await vi.advanceTimersByTimeAsync(10)
+  expect(postMessage.mock.calls.map(([message]) => message.type)).toEqual(["RESET_BUFFER"])
+  await client.destroy()
+})
+
+test("failed initialization retires its worker and permits a fresh retry", async () => {
+  const { client, state, postMessage } = initializedClient()
+  state.initialized = false
+  state.registerDefaultParsers = vi.fn().mockResolvedValue(undefined)
+  const oldWorker = state.worker
+  postMessage.mockImplementation(() => {
+    throw new Error("worker closed")
+  })
+  await expect(client.initialize()).rejects.toThrow("worker closed")
+  expect(oldWorker.terminate).toHaveBeenCalledOnce()
+  expect(state.worker).toBeUndefined()
+  state.worker = { postMessage: vi.fn(), terminate: vi.fn(), onmessage: null, onerror: null }
+  const retry = client.initialize()
+  state.handleWorkerMessage({ data: { type: "INIT_RESPONSE" } })
+  await retry
+  expect(client.isInitialized()).toBe(true)
+  await client.destroy()
+})

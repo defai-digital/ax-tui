@@ -17,8 +17,8 @@ test.skipIf(!supportsFfi)(
       const source = `
 import assert from "node:assert/strict"
 import { createSignal, onCleanup } from "solid-js"
-import { testRender } from "ax-tui/solid"
-import { TreeSitterClient, resolveRenderLib } from "ax-tui"
+import { testRender, insertNode } from "ax-tui/solid"
+import { TreeSitterClient, resolveRenderLib, TextNodeRenderable, TextAttributes } from "ax-tui"
 import { Node as YogaNode } from "ax-tui/yoga"
 
 const ownNode = YogaNode.createForAxTui()
@@ -50,6 +50,39 @@ try {
   setup.renderer.destroy()
 }
 assert.equal(cleaned, 1)
+
+let setStyle
+let span
+let bold
+const styled = await testRender(() => {
+  const [style, update] = createSignal({ bold: true, fg: "red", bg: "blue" })
+  setStyle = update
+  return <text fg="green"><span ref={span} style={style()}>span</span><b ref={bold} style={style()}>bold</b></text>
+}, { width: 20, height: 2, useKittyKeyboard: null })
+try {
+  await styled.renderOnce()
+  assert.equal(span.attributes, TextAttributes.BOLD)
+  assert.ok(span.fg)
+  setStyle({ italic: true })
+  await styled.renderOnce()
+  assert.equal(span.attributes, TextAttributes.ITALIC)
+  assert.equal(bold.attributes, TextAttributes.BOLD | TextAttributes.ITALIC)
+  assert.equal(span.fg, undefined)
+  assert.equal(span.bg, undefined)
+  setStyle(undefined)
+  await styled.renderOnce()
+  assert.equal(span.attributes, 0)
+  assert.equal(bold.attributes, TextAttributes.BOLD)
+} finally {
+  styled.renderer.destroy()
+}
+
+const parent = new TextNodeRenderable({ id: "parent" })
+const children = ["a", "b", "c"].map(id => new TextNodeRenderable({ id }))
+parent.add(children[0])
+parent.add(children[1])
+insertNode(parent, children[2], new TextNodeRenderable({ id: "stale" }))
+assert.deepEqual(parent.getChildren().map(child => child.id), ["a", "b", "c"])
 
 const client = new TreeSitterClient({ dataPath: process.argv[2] })
 try {

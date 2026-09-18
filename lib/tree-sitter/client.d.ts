@@ -13,6 +13,7 @@ export declare class TreeSitterClient extends EventEmitter<TreeSitterClientEvent
     private messageCallbacks;
     private messageIdCounter;
     private editQueues;
+    private pendingResets;
     private debouncer;
     private options;
     private destroyCallbacks;

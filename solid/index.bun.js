@@ -205,7 +205,6 @@ import {
   InputRenderable as InputRenderable2,
   InputRenderableEvents,
   isTextNodeRenderable,
-  parseColor,
   Renderable,
   RootTextNodeRenderable,
   ScrollBoxRenderable as ScrollBoxRenderable2,
@@ -532,6 +531,8 @@ function _insertNode(parent, node, anchor) {
   const anchorIndex = children2.findIndex((el) => el.id === anchor.id);
   if (anchorIndex === -1) {
     log("[INSERT]", "Could not find anchor", logId(parent), logId(anchor), "[children]", ...children2.map((c) => c.id));
+    parent.add(node);
+    return;
   }
   parent.add(node, anchorIndex);
 }
@@ -583,6 +584,7 @@ function _getParentNode(childNode) {
   }
   return parent;
 }
+var textStyleDefaults = /* @__PURE__ */ new WeakMap();
 var {
   render: _render,
   effect,
@@ -636,9 +638,14 @@ var {
         return;
       }
       if (name === "style") {
-        node.attributes |= createTextAttributes(value);
-        node.fg = value.fg ? parseColor(value.fg) : node.fg;
-        node.bg = value.bg ? parseColor(value.bg) : node.bg;
+        let defaults = textStyleDefaults.get(node);
+        if (!defaults) {
+          defaults = { attributes: node.attributes, fg: node.fg, bg: node.bg };
+          textStyleDefaults.set(node, defaults);
+        }
+        node.attributes = defaults.attributes | createTextAttributes(value ?? {});
+        node.fg = value?.fg ?? defaults.fg;
+        node.bg = value?.bg ?? defaults.bg;
         return;
       }
       return;

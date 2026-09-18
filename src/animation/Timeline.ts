@@ -386,6 +386,15 @@ export class Timeline {
   }
 
   sync(timeline: Timeline, startTime: number = 0): this {
+    const pending = [timeline]
+    const visited = new Set<Timeline>()
+    while (pending.length > 0) {
+      const current = pending.pop()!
+      if (current === this) throw new Error("Cannot create a cyclic timeline sync")
+      if (visited.has(current)) continue
+      visited.add(current)
+      for (const child of current.subTimelines) pending.push(child.timeline)
+    }
     if (timeline.synced) {
       throw new Error("Timeline already synced")
     }
@@ -395,6 +404,7 @@ export class Timeline {
       timeline,
     })
     timeline.synced = true
+    timeline.notifyStateChange()
 
     return this
   }
@@ -455,13 +465,16 @@ export class Timeline {
   }
 
   update(deltaTime: number): void {
-    for (const subTimeline of this.subTimelines) {
-      evaluateTimelineSync(subTimeline, this.currentTime + deltaTime, deltaTime)
-    }
-
     if (!this.isPlaying) return
 
-    this.currentTime += deltaTime
+    const nextTime = this.currentTime + deltaTime
+    const boundedTime = Math.min(nextTime, this.duration)
+    const elapsed = boundedTime - this.currentTime
+    for (const subTimeline of this.subTimelines) {
+      evaluateTimelineSync(subTimeline, boundedTime, elapsed)
+    }
+
+    this.currentTime = boundedTime
 
     for (const item of this.items) {
       evaluateItem(item, this.currentTime, deltaTime)
@@ -476,7 +489,7 @@ export class Timeline {
     }
 
     if (this.loop && this.currentTime >= this.duration) {
-      const overshoot = this.currentTime % this.duration
+      const overshoot = nextTime % this.duration
 
       this.resetItems()
       this.currentTime = 0
@@ -517,6 +530,7 @@ class TimelineEngine {
     }
 
     renderer.setFrameCallback(this.frameCallback)
+    this.updateLiveState()
   }
 
   detach(): void {

@@ -3,9 +3,18 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
-## [Unreleased]
+## [1.0.1] - 2026-09-18
 
 ### Fixed
+
+- Replace and remove reactive Solid text styles without retaining stale colors
+  or attributes; preserve intrinsic tag styles. Append nodes when an insertion
+  anchor has disappeared, including within inline text.
+- Keep paused timelines from advancing children, reject cyclic synchronization,
+  bound child progress to the parent duration, and refresh live rendering when
+  attaching the engine or synchronizing a running child.
+- Fold edits into pending parser resets using the latest content, discard
+  superseded queued edits, and retire failed workers so initialization can retry.
 
 - Make native buffer resize atomic on allocation failure and report failure to
   TypeScript. Reject overflowing dimensions and undersized grayscale/border
@@ -48,7 +57,7 @@ All notable changes to ax-tui are documented here. The format is based on
   configuration for accidental upstream coupling with `check:independence`.
   Historical MIT source attribution remains intact.
 
-These native assets require a new release; published v1.0.0 assets are immutable.
+Version 1.0.1 supplies the matching ABI 2 native assets; published v1.0.0 assets remain immutable.
 
 ## [1.0.0] - 2026-09-18
 

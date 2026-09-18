@@ -5,7 +5,6 @@ import {
   InputRenderable,
   InputRenderableEvents,
   isTextNodeRenderable,
-  parseColor,
   Renderable,
   RootTextNodeRenderable,
   ScrollBoxRenderable,
@@ -103,6 +102,8 @@ function _insertNode(parent: DomNode, node: DomNode, anchor?: DomNode): void {
   const anchorIndex = children.findIndex((el) => el.id === anchor.id)
   if (anchorIndex === -1) {
     log("[INSERT]", "Could not find anchor", logId(parent), logId(anchor), "[children]", ...children.map((c) => c.id))
+    parent.add(node)
+    return
   }
 
   parent.add(node, anchorIndex)
@@ -174,6 +175,9 @@ function _getParentNode(childNode: DomNode): DomNode | undefined {
   return parent
 }
 
+// Retain intrinsic/custom defaults while reactive style objects are replaced or removed.
+const textStyleDefaults = new WeakMap<TextNodeRenderable, Pick<TextNodeRenderable, "attributes" | "fg" | "bg">>()
+
 export const {
   render: _render,
   effect,
@@ -237,9 +241,14 @@ export const {
       }
 
       if (name === "style") {
-        node.attributes |= createTextAttributes(value)
-        node.fg = value.fg ? parseColor(value.fg) : node.fg
-        node.bg = value.bg ? parseColor(value.bg) : node.bg
+        let defaults = textStyleDefaults.get(node)
+        if (!defaults) {
+          defaults = { attributes: node.attributes, fg: node.fg, bg: node.bg }
+          textStyleDefaults.set(node, defaults)
+        }
+        node.attributes = defaults.attributes | createTextAttributes(value ?? {})
+        node.fg = value?.fg ?? defaults.fg
+        node.bg = value?.bg ?? defaults.bg
         return
       }
 

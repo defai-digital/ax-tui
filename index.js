@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-KVNO7LZO.js";
+} from "./index-AJ7ASKHW.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -183,7 +183,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-FJESUMWG.js";
+} from "./index-SYMAOMWA.js";
 
 // src/post/effects.ts
 function toU8(value) {
@@ -1871,6 +1871,15 @@ var Timeline = class {
     return this;
   }
   sync(timeline, startTime = 0) {
+    const pending = [timeline];
+    const visited = /* @__PURE__ */ new Set();
+    while (pending.length > 0) {
+      const current = pending.pop();
+      if (current === this) throw new Error("Cannot create a cyclic timeline sync");
+      if (visited.has(current)) continue;
+      visited.add(current);
+      for (const child of current.subTimelines) pending.push(child.timeline);
+    }
     if (timeline.synced) {
       throw new Error("Timeline already synced");
     }
@@ -1880,6 +1889,7 @@ var Timeline = class {
       timeline
     });
     timeline.synced = true;
+    timeline.notifyStateChange();
     return this;
   }
   play() {
@@ -1933,11 +1943,14 @@ var Timeline = class {
     return this;
   }
   update(deltaTime) {
-    for (const subTimeline of this.subTimelines) {
-      evaluateTimelineSync(subTimeline, this.currentTime + deltaTime, deltaTime);
-    }
     if (!this.isPlaying) return;
-    this.currentTime += deltaTime;
+    const nextTime = this.currentTime + deltaTime;
+    const boundedTime = Math.min(nextTime, this.duration);
+    const elapsed = boundedTime - this.currentTime;
+    for (const subTimeline of this.subTimelines) {
+      evaluateTimelineSync(subTimeline, boundedTime, elapsed);
+    }
+    this.currentTime = boundedTime;
     for (const item of this.items) {
       evaluateItem(item, this.currentTime, deltaTime);
     }
@@ -1948,7 +1961,7 @@ var Timeline = class {
       }
     }
     if (this.loop && this.currentTime >= this.duration) {
-      const overshoot = this.currentTime % this.duration;
+      const overshoot = nextTime % this.duration;
       this.resetItems();
       this.currentTime = 0;
       if (overshoot > 0) {
@@ -1982,6 +1995,7 @@ var TimelineEngine = class {
       this.update(deltaTime);
     };
     renderer.setFrameCallback(this.frameCallback);
+    this.updateLiveState();
   }
   detach() {
     if (this.renderer && this.frameCallback) {

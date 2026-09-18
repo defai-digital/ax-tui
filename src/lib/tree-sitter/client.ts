@@ -81,6 +81,7 @@ export class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
   private messageCallbacks = new Map<string, PendingRequest>()
   private messageIdCounter: number = 0
   private editQueues: Map<number, ProcessQueue<EditQueueItem>> = new Map()
+  private pendingResets = new Set<number>()
   private debouncer: DebounceController
   private options: TreeSitterClientOptions
   private destroyCallbacks = new Set<() => void>()
@@ -187,6 +188,7 @@ export class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
     this.rejectPendingRequests(error)
     for (const queue of this.editQueues.values()) queue.clear()
     this.editQueues.clear()
+    this.pendingResets.clear()
     this.buffers.clear()
     this.debouncer.clear()
 
@@ -290,9 +292,10 @@ export class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
           this.rejectInitialization = undefined
         }
       },
-      () => {
+      (error) => {
         if (this.initializePromise === initialization) {
-          this.rejectInitialization = undefined
+          // Retire this generation so a late INIT_RESPONSE cannot satisfy a retry.
+          this.handleWorkerFailure(worker, error instanceof Error ? error : new Error(String(error)))
         }
       },
     )
@@ -645,6 +648,9 @@ export class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
     // Update buffer state
     this.buffers.set(id, { ...buffer, content: newContent, version })
 
+    // The pending full reset includes these edits and establishes the worker's new baseline.
+    if (this.pendingResets.has(id)) return
+
     if (!this.editQueues.has(id)) {
       this.editQueues.set(
         id,
@@ -680,6 +686,7 @@ export class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
     }
 
     this.debouncer.clearDebounce(`reset-${bufferId}`)
+    this.pendingResets.delete(bufferId)
     if (!this.buffers.has(bufferId)) return
     this.buffers.delete(bufferId)
 
@@ -751,6 +758,7 @@ export class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
     this.destroyCallbacks.clear()
 
     this.debouncer.clear()
+    this.pendingResets.clear()
 
     for (const queue of this.editQueues.values()) queue.clear()
     this.editQueues.clear()
@@ -788,10 +796,16 @@ export class TreeSitterClient extends EventEmitter<TreeSitterClientEvents> {
 
     // Update buffer state
     this.buffers.set(bufferId, { ...buffer, content, version })
+    this.editQueues.get(bufferId)?.clear()
+    this.pendingResets.add(bufferId)
 
     // Use debouncer to avoid excessive resets
     void this.debouncer
-      .debounce(`reset-${bufferId}`, 10, () => this.processEdit(bufferId, [], content, version, true))
+      .debounce(`reset-${bufferId}`, 10, async () => {
+        this.pendingResets.delete(bufferId)
+        const current = this.buffers.get(bufferId)
+        if (current?.hasParser) return this.processEdit(bufferId, [], current.content, current.version, true)
+      })
       .catch((error: Error) => {
         if (error.name !== "AbortError") this.emitError(`Error resetting buffer: ${error.message}`, bufferId)
       })

@@ -9770,6 +9770,7 @@ var TreeSitterClient = class extends EventEmitter3 {
   messageCallbacks = /* @__PURE__ */ new Map();
   messageIdCounter = 0;
   editQueues = /* @__PURE__ */ new Map();
+  pendingResets = /* @__PURE__ */ new Set();
   debouncer;
   options;
   destroyCallbacks = /* @__PURE__ */ new Set();
@@ -9860,6 +9861,7 @@ var TreeSitterClient = class extends EventEmitter3 {
     this.rejectPendingRequests(error);
     for (const queue of this.editQueues.values()) queue.clear();
     this.editQueues.clear();
+    this.pendingResets.clear();
     this.buffers.clear();
     this.debouncer.clear();
     try {
@@ -9947,9 +9949,9 @@ var TreeSitterClient = class extends EventEmitter3 {
           this.rejectInitialization = void 0;
         }
       },
-      () => {
+      (error) => {
         if (this.initializePromise === initialization) {
-          this.rejectInitialization = void 0;
+          this.handleWorkerFailure(worker, error instanceof Error ? error : new Error(String(error)));
         }
       }
     );
@@ -10240,6 +10242,7 @@ var TreeSitterClient = class extends EventEmitter3 {
       return;
     }
     this.buffers.set(id, { ...buffer, content: newContent, version });
+    if (this.pendingResets.has(id)) return;
     if (!this.editQueues.has(id)) {
       this.editQueues.set(
         id,
@@ -10265,6 +10268,7 @@ var TreeSitterClient = class extends EventEmitter3 {
       return;
     }
     this.debouncer.clearDebounce(`reset-${bufferId}`);
+    this.pendingResets.delete(bufferId);
     if (!this.buffers.has(bufferId)) return;
     this.buffers.delete(bufferId);
     if (this.editQueues.has(bufferId)) {
@@ -10329,6 +10333,7 @@ var TreeSitterClient = class extends EventEmitter3 {
     }
     this.destroyCallbacks.clear();
     this.debouncer.clear();
+    this.pendingResets.clear();
     for (const queue of this.editQueues.values()) queue.clear();
     this.editQueues.clear();
     this.buffers.clear();
@@ -10360,7 +10365,13 @@ var TreeSitterClient = class extends EventEmitter3 {
       return;
     }
     this.buffers.set(bufferId, { ...buffer, content, version });
-    void this.debouncer.debounce(`reset-${bufferId}`, 10, () => this.processEdit(bufferId, [], content, version, true)).catch((error) => {
+    this.editQueues.get(bufferId)?.clear();
+    this.pendingResets.add(bufferId);
+    void this.debouncer.debounce(`reset-${bufferId}`, 10, async () => {
+      this.pendingResets.delete(bufferId);
+      const current = this.buffers.get(bufferId);
+      if (current?.hasParser) return this.processEdit(bufferId, [], current.content, current.version, true);
+    }).catch((error) => {
       if (error.name !== "AbortError") this.emitError(`Error resetting buffer: ${error.message}`, bufferId);
     });
   }
