@@ -1,3 +1,6 @@
+# Keep native provenance hashes and generated artifacts identical on every OS.
+* text=auto eol=lf
+
 # Generated distribution files should not dominate the repository language view.
 *.js linguist-generated=true
 *.d.ts linguist-generated=true

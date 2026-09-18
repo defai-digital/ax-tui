@@ -171,11 +171,6 @@ export declare enum MouseButton {
     WHEEL_UP = 4,
     WHEEL_DOWN = 5
 }
-/**
- * Create a CLI renderer and run its async terminal setup. The constructor
- * owns all stream and backend decisions; this factory only layers on the
- * `--delay-start` flag and the `await setupTerminal()` convenience.
- */
 export declare function createCliRenderer(config?: CliRendererConfig): Promise<CliRenderer>;
 export declare enum CliRenderEvents {
     RESIZE = "resize",

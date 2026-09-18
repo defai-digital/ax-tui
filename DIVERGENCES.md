@@ -51,3 +51,26 @@ an explicit ABI version probe, replaces inherited terminal environment and
 notification identities, and preserves two public TypeScript forwarding aliases.
 `script/check-independence.test.ts`, `test/native-abi.test.ts`, the native Yoga
 and terminal suites, and the source renderer integration guard this boundary.
+
+## Stability and boundary contracts
+
+- `atomic-buffer-resize`: native allocation failure preserves old storage and
+  dimensions. ABI 2 returns a resize success flag; TypeScript throws on failure.
+  Guards: `native/renderer/tests/buffer_test.zig`, `test/buffer-boundaries.test.ts`.
+- `capture-graphemes`: captured rows retain right-edge wide characters, combining
+  marks, emoji clusters, color intent, and independent color snapshots. Guards:
+  `test/native-buffer-runtime.test.ts` and the native buffer suite.
+- `client-lifecycle-isolation`: client cleanup cannot cancel another client's
+  timers or resurrect removed buffers. Guards: `test/tree-sitter-lifecycle.test.ts`
+  and `test/debounce.test.ts`.
+- `complete-viewport-overlap`: scan all candidates before the viewport end;
+  arbitrary overlapping sizes cannot be culled with a fixed look-behind limit.
+  `test/layout-boundaries.test.ts` compares against a full rectangle oracle.
+- `bounded-parser-download`: URL identity uses SHA-256, writes use atomic rename,
+  and remote bodies have a 64 MiB / 30 second limit. Empty responses are errors.
+  Guards: `test/parser-download.test.ts`; bundled parsing remains offline.
+
+Cancelled debounce operations now reject with an `AbortError` instead of leaving
+promises pending forever. Internal scheduled resets consume cancellation; direct
+users of this helper must handle rejection. Invalid public buffer dimensions and
+renderer frame rates throw `RangeError` before native allocation or scheduling.

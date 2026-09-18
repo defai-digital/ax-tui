@@ -37,10 +37,6 @@ export function getObjectsInViewport<T extends ViewportObject>(
     return []
   }
 
-  if (objects.length < minTriggerSize) {
-    return objects
-  }
-
   const viewportTop = viewport.y - padding
   const viewportBottom = viewport.y + viewport.height + padding
   const viewportLeft = viewport.x - padding
@@ -55,71 +51,25 @@ export function getObjectsInViewport<T extends ViewportObject>(
   const vpStart = isRow ? viewportLeft : viewportTop
   const vpEnd = isRow ? viewportRight : viewportBottom
 
-  // Binary search to find any child that overlaps along the primary axis
-  let lo = 0
-  let hi = totalChildren - 1
-  let candidate = -1
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1
-    const c = children[mid]
-    const start = isRow ? c.screenX : c.screenY
-    const end = isRow ? c.screenX + c.width : c.screenY + c.height
-
-    if (end < vpStart) {
-      lo = mid + 1
-    } else if (start > vpEnd) {
-      hi = mid - 1
-    } else {
-      candidate = mid
-      break
+  // Starts are sorted, but ends need not be: an early background panel may
+  // extend past thousands of shorter siblings. Bound the right edge by start
+  // position, then inspect the full prefix so no overlapping object is lost.
+  let right = totalChildren
+  if (totalChildren >= minTriggerSize) {
+    let lo = 0
+    let hi = totalChildren
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2)
+      const start = isRow ? children[mid].screenX : children[mid].screenY
+      if (start < vpEnd) lo = mid + 1
+      else hi = mid
     }
+    right = lo
   }
-
   const visibleChildren: T[] = []
 
-  // If binary search found no candidate, the viewport might be in a gap between objects
-  // Start from the position where the search ended
-  if (candidate === -1) {
-    // Binary search failed to find overlap - viewport is in a gap
-    // We need to check objects before lo for any that extend into the viewport
-    candidate = lo > 0 ? lo - 1 : 0
-  }
-
-  // Expand left to find all objects that overlap the viewport
-  // To handle large objects that start early but extend far, we continue
-  // checking even after finding objects that don't overlap, up to a limit
-  // This handles cases where many small objects sit between a large object and the viewport
-  // Real-world examples: background panels, large images, or spanning containers
-  const maxLookBehind = 50
-  let left = candidate
-  let gapCount = 0
-
-  while (left - 1 >= 0) {
-    const prev = children[left - 1]
-    const prevEnd = isRow ? prev.screenX + prev.width : prev.screenY + prev.height
-
-    if (prevEnd <= vpStart) {
-      gapCount++
-      if (gapCount >= maxLookBehind) {
-        break
-      }
-    } else {
-      gapCount = 0
-    }
-
-    left--
-  }
-
-  // Expand right to find the rightmost overlapping object
-  let right = candidate + 1
-  while (right < totalChildren) {
-    const next = children[right]
-    if ((isRow ? next.screenX : next.screenY) >= vpEnd) break
-    right++
-  }
-
   // Collect candidates that also overlap on the cross axis
-  for (let i = left; i < right; i++) {
+  for (let i = 0; i < right; i++) {
     const child = children[i]
     const start = isRow ? child.screenX : child.screenY
     const end = isRow ? child.screenX + child.width : child.screenY + child.height
@@ -131,14 +81,14 @@ export function getObjectsInViewport<T extends ViewportObject>(
     // Check cross-axis overlap
     if (isRow) {
       const childBottom = child.screenY + child.height
-      if (childBottom < viewportTop) continue
+      if (childBottom <= viewportTop) continue
       const childTop = child.screenY
-      if (childTop > viewportBottom) continue
+      if (childTop >= viewportBottom) continue
     } else {
       const childRight = child.screenX + child.width
-      if (childRight < viewportLeft) continue
+      if (childRight <= viewportLeft) continue
       const childLeft = child.screenX
-      if (childLeft > viewportRight) continue
+      if (childLeft >= viewportRight) continue
     }
 
     visibleChildren.push(child)

@@ -2924,3 +2924,64 @@ test "renderer - CJK graphemes shifting left must preserve continuation cells (#
     const id8 = gp.graphemeIdFromChar(cell8.char);
     try std.testing.expectEqual(id7, id8);
 }
+
+test "OptimizedBuffer - resolved rows retain newlines after wide and invalid cells" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    var lp = link.LinkPool.init(std.testing.allocator);
+    defer lp.deinit();
+    const buf = try OptimizedBuffer.init(std.testing.allocator, 2, 2, .{ .pool = pool, .link_pool = &lp });
+    defer buf.deinit();
+    buf.clear(ansi.rgbColor(0, 0, 0, 255), null);
+    try buf.drawText("界", 0, 0, ansi.rgbColor(255, 255, 255, 255), null, 0);
+    buf.buffer.char[3] = 0;
+    var output: [64]u8 = undefined;
+    const written = try buf.writeResolvedChars(&output, true);
+    try std.testing.expectEqualStrings("界\n  \n", output[0..written]);
+}
+
+test "OptimizedBuffer - resize allocation failure preserves all original storage" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    var lp = link.LinkPool.init(std.testing.allocator);
+    defer lp.deinit();
+    for (0..4) |failure_index| {
+        const buf = try OptimizedBuffer.init(std.testing.allocator, 2, 2, .{ .pool = pool, .link_pool = &lp });
+        defer buf.deinit();
+        buf.clear(ansi.rgbColor(0, 0, 0, 255), 'x');
+        const original = buf.buffer;
+        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = failure_index, .resize_fail_index = 0 });
+        buf.allocator = failing.allocator();
+        defer buf.allocator = std.testing.allocator;
+        try std.testing.expectError(error.OutOfMemory, buf.resize(100, 100));
+        try std.testing.expectEqual(@as(u32, 2), buf.width);
+        try std.testing.expectEqual(@as(u32, 2), buf.height);
+        try std.testing.expectEqual(original.char.ptr, buf.buffer.char.ptr);
+        try std.testing.expectEqual(original.fg.ptr, buf.buffer.fg.ptr);
+        try std.testing.expectEqual(original.bg.ptr, buf.buffer.bg.ptr);
+        try std.testing.expectEqual(original.attributes.ptr, buf.buffer.attributes.ptr);
+        try std.testing.expectEqualSlices(u32, &.{ 'x', 'x', 'x', 'x' }, buf.buffer.char);
+    }
+}
+
+test "OptimizedBuffer - overflowing dimensions fail before allocation" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    try std.testing.expectError(error.InvalidDimensions, OptimizedBuffer.init(std.testing.allocator, 65536, 65536, .{ .pool = pool }));
+}
+
+test "OptimizedBuffer - grayscale ignores non-finite samples and clips minimum coordinates" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    var lp = link.LinkPool.init(std.testing.allocator);
+    defer lp.deinit();
+    const buf = try OptimizedBuffer.init(std.testing.allocator, 2, 2, .{ .pool = pool, .link_pool = &lp });
+    defer buf.deinit();
+    buf.clear(ansi.rgbColor(0, 0, 0, 255), null);
+    const samples = [_]f32{ std.math.nan(f32), std.math.inf(f32), -std.math.inf(f32), 1.0 };
+    buf.drawGrayscaleBuffer(0, 0, &samples, 2, 2, null, null);
+    try std.testing.expectEqual(@as(u32, ' '), buf.buffer.char[0]);
+    buf.drawGrayscaleBufferSupersampled(0, 0, &samples, 2, 2, null, null);
+    buf.drawGrayscaleBuffer(std.math.minInt(i32), std.math.minInt(i32), &samples, 2, 2, null, null);
+    buf.drawGrayscaleBufferSupersampled(std.math.minInt(i32), std.math.minInt(i32), &samples, 2, 2, null, null);
+}

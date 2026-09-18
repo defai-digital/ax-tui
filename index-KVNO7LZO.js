@@ -33,8 +33,9 @@ import {
   sleep,
   stringToStyledText,
   toArrayBuffer,
-  treeSitterToTextChunks
-} from "./index-EXDC7ZIT.js";
+  treeSitterToTextChunks,
+  validateBufferDimensions
+} from "./index-FJESUMWG.js";
 
 // src/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -4540,9 +4541,6 @@ function getObjectsInViewport(viewport, objects, direction = "column", padding =
   if (objects.length === 0) {
     return [];
   }
-  if (objects.length < minTriggerSize) {
-    return objects;
-  }
   const viewportTop = viewport.y - padding;
   const viewportBottom = viewport.y + viewport.height + padding;
   const viewportLeft = viewport.x - padding;
@@ -4553,50 +4551,20 @@ function getObjectsInViewport(viewport, objects, direction = "column", padding =
   if (totalChildren === 0) return [];
   const vpStart = isRow ? viewportLeft : viewportTop;
   const vpEnd = isRow ? viewportRight : viewportBottom;
-  let lo = 0;
-  let hi = totalChildren - 1;
-  let candidate = -1;
-  while (lo <= hi) {
-    const mid = lo + hi >> 1;
-    const c = children[mid];
-    const start = isRow ? c.screenX : c.screenY;
-    const end = isRow ? c.screenX + c.width : c.screenY + c.height;
-    if (end < vpStart) {
-      lo = mid + 1;
-    } else if (start > vpEnd) {
-      hi = mid - 1;
-    } else {
-      candidate = mid;
-      break;
+  let right = totalChildren;
+  if (totalChildren >= minTriggerSize) {
+    let lo = 0;
+    let hi = totalChildren;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      const start = isRow ? children[mid].screenX : children[mid].screenY;
+      if (start < vpEnd) lo = mid + 1;
+      else hi = mid;
     }
+    right = lo;
   }
   const visibleChildren = [];
-  if (candidate === -1) {
-    candidate = lo > 0 ? lo - 1 : 0;
-  }
-  const maxLookBehind = 50;
-  let left = candidate;
-  let gapCount = 0;
-  while (left - 1 >= 0) {
-    const prev = children[left - 1];
-    const prevEnd = isRow ? prev.screenX + prev.width : prev.screenY + prev.height;
-    if (prevEnd <= vpStart) {
-      gapCount++;
-      if (gapCount >= maxLookBehind) {
-        break;
-      }
-    } else {
-      gapCount = 0;
-    }
-    left--;
-  }
-  let right = candidate + 1;
-  while (right < totalChildren) {
-    const next = children[right];
-    if ((isRow ? next.screenX : next.screenY) >= vpEnd) break;
-    right++;
-  }
-  for (let i = left; i < right; i++) {
+  for (let i = 0; i < right; i++) {
     const child = children[i];
     const start = isRow ? child.screenX : child.screenY;
     const end = isRow ? child.screenX + child.width : child.screenY + child.height;
@@ -4604,14 +4572,14 @@ function getObjectsInViewport(viewport, objects, direction = "column", padding =
     if (start >= vpEnd) break;
     if (isRow) {
       const childBottom = child.screenY + child.height;
-      if (childBottom < viewportTop) continue;
+      if (childBottom <= viewportTop) continue;
       const childTop = child.screenY;
-      if (childTop > viewportBottom) continue;
+      if (childTop >= viewportBottom) continue;
     } else {
       const childRight = child.screenX + child.width;
-      if (childRight < viewportLeft) continue;
+      if (childRight <= viewportLeft) continue;
       const childLeft = child.screenX;
-      if (childLeft > viewportRight) continue;
+      if (childLeft >= viewportRight) continue;
     }
     visibleChildren.push(child);
   }
@@ -5121,6 +5089,11 @@ var rendererTracker = singleton("RendererTracker", () => ({
   renderers: /* @__PURE__ */ new Set(),
   streamOwners: /* @__PURE__ */ new WeakMap()
 }));
+function validateFrameRate(value, name) {
+  if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(1e3 / value) || 1e3 / value > 2147483647) {
+    throw new RangeError(`${name} must be a positive finite frame rate with a supported timer interval`);
+  }
+}
 async function createCliRenderer(config = {}) {
   if (process.argv.includes("--delay-start")) {
     await new Promise((resolve) => setTimeout(resolve, 5e3));
@@ -5401,6 +5374,12 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
    */
   constructor(stdin, stdout, width, height, config = {}) {
     super();
+    validateBufferDimensions(width, height);
+    validateFrameRate(config.targetFps ?? 30, "targetFps");
+    validateFrameRate(config.maxFps ?? 60, "maxFps");
+    if (!Number.isFinite(config.debounceDelay ?? 100) || (config.debounceDelay ?? 100) < 0 || (config.debounceDelay ?? 100) > 2147483647) {
+      throw new RangeError("debounceDelay must be between 0 and 2147483647 milliseconds");
+    }
     this.stdin = stdin;
     this.stdout = stdout;
     this._usesProcessStdout = stdout === process.stdout;
@@ -5498,9 +5477,9 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
       // Bus error
     ];
     this.clipboard = new Clipboard(this.lib, this.rendererPtr);
-    this.resizeDebounceDelay = config.debounceDelay || 100;
-    this.targetFps = config.targetFps || 30;
-    this.maxFps = config.maxFps || 60;
+    this.resizeDebounceDelay = config.debounceDelay ?? 100;
+    this.targetFps = config.targetFps ?? 30;
+    this.maxFps = config.maxFps ?? 60;
     this.clock = config.clock ?? new SystemClock();
     this.themeModeState = new RendererThemeMode(
       {
@@ -5888,6 +5867,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     return this._targetFps;
   }
   set targetFps(targetFps) {
+    validateFrameRate(targetFps, "targetFps");
     this._targetFps = targetFps;
     this.targetFrameTime = 1e3 / this._targetFps;
   }
@@ -5895,6 +5875,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     return this._maxFps;
   }
   set maxFps(maxFps) {
+    validateFrameRate(maxFps, "maxFps");
     this._maxFps = maxFps;
     this.minTargetFrameTime = 1e3 / this._maxFps;
   }
@@ -7534,6 +7515,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
    */
   resize(width, height) {
     if (this._isDestroyed) return;
+    validateBufferDimensions(width, height);
     this.processResize(width, height);
   }
   setBackgroundColor(color) {

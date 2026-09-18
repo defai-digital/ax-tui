@@ -1,3 +1,4 @@
+import { validateBufferDimensions } from "./lib/buffer.validations.js"
 import { verifyNativeAbi } from "./platform/native-abi.js"
 import {
   dlopen,
@@ -416,7 +417,7 @@ function openRenderLibrary(libPath?: string) {
     },
     bufferResize: {
       args: ["u32", "u32", "u32"],
-      returns: "void",
+      returns: "bool",
     },
 
     // Link API
@@ -3157,7 +3158,10 @@ class FFIRenderLib implements RenderLib {
   }
 
   public bufferResize(buffer: Pointer, width: number, height: number): void {
-    this.native.symbols.bufferResize(buffer, width, height)
+    validateBufferDimensions(width, height)
+    if (!this.native.symbols.bufferResize(buffer, width, height)) {
+      throw new Error(`Failed to resize optimized buffer: ${width}x${height}`)
+    }
   }
 
   // Link API
@@ -3271,9 +3275,7 @@ class FFIRenderLib implements RenderLib {
     respectAlpha: boolean = false,
     id?: string,
   ): OptimizedBuffer {
-    if (Number.isNaN(width) || Number.isNaN(height)) {
-      console.error(new Error(`Invalid dimensions for OptimizedBuffer: ${width}x${height}`).stack)
-    }
+    validateBufferDimensions(width, height)
 
     const widthMethodCode = widthMethod === "wcwidth" ? 0 : 1
     const idToUse = id || "unnamed buffer"

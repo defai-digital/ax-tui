@@ -3,28 +3,26 @@ import type { PositionTypeString, OverflowString } from "./yoga.options.js"
 
 export function validateOptions(id: string, options: RenderableOptions<Renderable>): void {
   if (typeof options.width === "number") {
-    if (options.width < 0) {
+    if (!Number.isFinite(Math.fround(options.width)) || options.width < 0) {
       throw new TypeError(`Invalid width for Renderable ${id}: ${options.width}`)
     }
   }
   if (typeof options.height === "number") {
-    if (options.height < 0) {
+    if (!Number.isFinite(Math.fround(options.height)) || options.height < 0) {
       throw new TypeError(`Invalid height for Renderable ${id}: ${options.height}`)
     }
   }
 }
 
 export function isValidPercentage(value: any): value is `${number}%` {
-  if (typeof value === "string" && value.endsWith("%")) {
-    const numPart = value.slice(0, -1)
-    const num = parseFloat(numPart)
-    return !Number.isNaN(num)
+  if (typeof value === "string" && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%$/i.test(value)) {
+    return Number.isFinite(Math.fround(Number(value.slice(0, -1))))
   }
   return false
 }
 
 export function isMarginType(value: any): value is number | "auto" | `${number}%` {
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true
   }
   if (value === "auto") {
@@ -34,14 +32,15 @@ export function isMarginType(value: any): value is number | "auto" | `${number}%
 }
 
 export function isPaddingType(value: any): value is number | `${number}%` {
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" ? value < 0 : typeof value === "string" && parseFloat(value) < 0) return false
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true
   }
   return isValidPercentage(value)
 }
 
 export function isPositionType(value: any): value is number | "auto" | `${number}%` {
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true
   }
   if (value === "auto") {
@@ -59,14 +58,14 @@ export function isOverflowType(value: any): value is OverflowString {
 }
 
 export function isDimensionType(value: any): value is number | "auto" | `${number}%` {
-  return isPositionType(value)
+  return value === "auto" || isPaddingType(value)
 }
 
 export function isFlexBasisType(value: any): value is number | "auto" | undefined {
   if (value === undefined || value === "auto") {
     return true
   }
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true
   }
   return false
@@ -76,7 +75,7 @@ export function isSizeType(value: any): value is number | `${number}%` | undefin
   if (value === undefined) {
     return true
   }
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true
   }
   return isValidPercentage(value)

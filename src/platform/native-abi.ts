@@ -1,6 +1,6 @@
 import { dlopen } from "./ffi.js"
 
-export const AX_TUI_NATIVE_ABI = 1
+export const AX_TUI_NATIVE_ABI = 2
 
 /** Verify the AX-owned interface before binding any renderer functions. */
 export function verifyNativeAbi(libraryPath: string): void {

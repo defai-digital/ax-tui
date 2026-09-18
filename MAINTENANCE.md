@@ -121,3 +121,27 @@ and preserve the verified library/license pair.
 The JSR page settings remain external to `jsr.json`: select the README as the
 readme source and use the package description. Runtime support is Node and
 Bun; the native renderer does not target web browsers or Cloudflare Workers.
+
+## Product quality gates
+
+The Quality workflow runs on branch pushes, pull requests, and release preflight.
+It requires Node FFI support, then checks TypeScript, native/source provenance,
+all generated output, runtime regressions, and the Linux JSR dry-run. Linux,
+macOS, and Windows must pass before a release uploads immutable native assets.
+Native source changes also require `pnpm run test:native` locally and rebuilding
+all eight targets. ABI 2 reports buffer resize failure; ABI 1 is incompatible.
+
+Use `node --experimental-ffi --import tsx script/benchmark-capture.ts` to measure
+span capture. It warms up 50 captures, then reports seven samples of 200 captures
+and their median. Compare the same machine, runtime, frame, and sample settings.
+Do not use this number as a whole-application frame-rate or latency claim.
+
+Parser downloads have a 30 second timeout and 64 MiB size limit. URL-keyed cache
+entries use SHA-256; older basename/32-bit-hash entries are not reused. Bundled
+local grammars do not require downloads. Failed or incomplete downloads never
+replace a valid target file.
+
+Native raw buffer views alias native storage. Callers must reacquire `buffers`
+after successful resize and must not use retained views after destruction.
+Failed resizes retain the original storage and dimensions. Captured span colors
+are independent copies and remain valid after later draws, resize, or destroy.

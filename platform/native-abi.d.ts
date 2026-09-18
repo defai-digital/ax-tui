@@ -1,3 +1,3 @@
-export declare const AX_TUI_NATIVE_ABI = 1;
+export declare const AX_TUI_NATIVE_ABI = 2;
 /** Verify the AX-owned interface before binding any renderer functions. */
 export declare function verifyNativeAbi(libraryPath: string): void;

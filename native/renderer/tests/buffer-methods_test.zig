@@ -252,7 +252,7 @@ test "colorMatrix - skips NaN and Inf coordinates" {
 
     // Apply with NaN and valid coordinates
     const nan = std.math.nan(f32);
-    const cell_mask = [_]f32{ nan, 1.0, 1.0, 1.0, 1.0, 1.0 };
+    const cell_mask = [_]f32{ nan, 1.0, 1.0, 4294967296.0, 1.0, 1.0, 1.0, 4294967296.0, 1.0, 1.0, 1.0, 1.0 };
     buffer_effects.colorMatrix(buf, &SEPIA_MATRIX, &cell_mask, 1.0, ColorTarget.FG);
 
     // Valid cell should be transformed

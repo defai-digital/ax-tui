@@ -102,6 +102,18 @@ __export(yoga_exports, {
   default: () => yoga_default
 });
 
+// src/lib/buffer.validations.ts
+function validateBufferDimensions(width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width > 2147483647 || height > 2147483647 || width * height > 1073741823) {
+    throw new RangeError(`Invalid dimensions for OptimizedBuffer: ${width}x${height}`);
+  }
+}
+function validateGrayscaleSource(intensities, width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 0 || height < 0 || width > 2147483647 || height > 2147483647 || width * height > 4294967295 || width * height > intensities.length) {
+    throw new RangeError(`Grayscale intensities do not contain a valid ${width}x${height} image`);
+  }
+}
+
 // src/platform/ffi.ts
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -523,7 +535,7 @@ var suffix = backend.suffix;
 var toArrayBuffer = backend.toArrayBuffer;
 
 // src/platform/native-abi.ts
-var AX_TUI_NATIVE_ABI = 1;
+var AX_TUI_NATIVE_ABI = 2;
 function verifyNativeAbi(libraryPath) {
   let probe;
   try {
@@ -5338,26 +5350,24 @@ function delegate(mapping, vnode) {
 // src/lib/renderable.validations.ts
 function validateOptions(id, options) {
   if (typeof options.width === "number") {
-    if (options.width < 0) {
+    if (!Number.isFinite(Math.fround(options.width)) || options.width < 0) {
       throw new TypeError(`Invalid width for Renderable ${id}: ${options.width}`);
     }
   }
   if (typeof options.height === "number") {
-    if (options.height < 0) {
+    if (!Number.isFinite(Math.fround(options.height)) || options.height < 0) {
       throw new TypeError(`Invalid height for Renderable ${id}: ${options.height}`);
     }
   }
 }
 function isValidPercentage(value) {
-  if (typeof value === "string" && value.endsWith("%")) {
-    const numPart = value.slice(0, -1);
-    const num = parseFloat(numPart);
-    return !Number.isNaN(num);
+  if (typeof value === "string" && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%$/i.test(value)) {
+    return Number.isFinite(Math.fround(Number(value.slice(0, -1))));
   }
   return false;
 }
 function isMarginType(value) {
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true;
   }
   if (value === "auto") {
@@ -5366,13 +5376,14 @@ function isMarginType(value) {
   return isValidPercentage(value);
 }
 function isPaddingType(value) {
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" ? value < 0 : typeof value === "string" && parseFloat(value) < 0) return false;
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true;
   }
   return isValidPercentage(value);
 }
 function isPositionType(value) {
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true;
   }
   if (value === "auto") {
@@ -5387,13 +5398,13 @@ function isOverflowType(value) {
   return value === "visible" || value === "hidden" || value === "scroll";
 }
 function isDimensionType(value) {
-  return isPositionType(value);
+  return value === "auto" || isPaddingType(value);
 }
 function isFlexBasisType(value) {
   if (value === void 0 || value === "auto") {
     return true;
   }
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true;
   }
   return false;
@@ -5402,7 +5413,7 @@ function isSizeType(value) {
   if (value === void 0) {
     return true;
   }
-  if (typeof value === "number" && !Number.isNaN(value)) {
+  if (typeof value === "number" && Number.isFinite(Math.fround(value))) {
     return true;
   }
   return isValidPercentage(value);
@@ -9249,71 +9260,62 @@ var StdinParser = class {
 import { EventEmitter as EventEmitter3 } from "events";
 
 // src/lib/debounce.ts
-var TIMERS_MAP = /* @__PURE__ */ new Map();
+var scopes = /* @__PURE__ */ new Map();
+function cancellation() {
+  const error = new Error("Debounced operation cancelled");
+  error.name = "AbortError";
+  return error;
+}
+function clearTimer(scopeId, id) {
+  const scope = scopes.get(scopeId);
+  const pending = scope?.get(id);
+  if (!pending) return;
+  clearTimeout(pending.timer);
+  scope.delete(id);
+  if (scope.size === 0) scopes.delete(scopeId);
+  pending.reject(cancellation());
+}
 var DebounceController = class {
   constructor(scopeId) {
     this.scopeId = scopeId;
-    if (!TIMERS_MAP.has(this.scopeId)) {
-      TIMERS_MAP.set(this.scopeId, /* @__PURE__ */ new Map());
-    }
   }
   scopeId;
-  /**
-   * Debounces the provided function with the given ID
-   *
-   * @param id Unique identifier within this scope
-   * @param ms Milliseconds to wait before executing
-   * @param fn Function to execute
-   */
+  /** Replacing a pending call cancels its promise; each promise always settles. */
   debounce(id, ms, fn) {
-    const scopeMap = TIMERS_MAP.get(this.scopeId);
+    if (!Number.isFinite(ms) || ms < 0 || ms > 2147483647) {
+      return Promise.reject(new RangeError("Debounce delay must be between 0 and 2147483647 milliseconds"));
+    }
+    this.clearDebounce(id);
+    let scope = scopes.get(this.scopeId);
+    if (!scope) scopes.set(this.scopeId, scope = /* @__PURE__ */ new Map());
+    const activeScope = scope;
     return new Promise((resolve3, reject) => {
-      if (scopeMap.has(id)) {
-        clearTimeout(scopeMap.get(id));
-      }
-      const timerId = setTimeout(() => {
+      const timer = setTimeout(() => {
+        activeScope.delete(id);
+        if (activeScope.size === 0) scopes.delete(this.scopeId);
         try {
           resolve3(fn());
         } catch (error) {
           reject(error);
         }
-        scopeMap.delete(id);
       }, ms);
-      scopeMap.set(id, timerId);
+      activeScope.set(id, { timer, reject });
     });
   }
-  /**
-   * Clear a specific debounce timer in this scope
-   *
-   * @param id The debounce ID to clear
-   */
   clearDebounce(id) {
-    const scopeMap = TIMERS_MAP.get(this.scopeId);
-    if (scopeMap && scopeMap.has(id)) {
-      clearTimeout(scopeMap.get(id));
-      scopeMap.delete(id);
-    }
+    clearTimer(this.scopeId, id);
   }
-  /**
-   * Clear all debounce timers in this scope
-   */
   clear() {
-    const scopeMap = TIMERS_MAP.get(this.scopeId);
-    if (scopeMap) {
-      scopeMap.forEach((timerId) => clearTimeout(timerId));
-      scopeMap.clear();
-    }
+    clearDebounceScope(this.scopeId);
   }
 };
 function createDebounce(scopeId) {
   return new DebounceController(scopeId);
 }
 function clearDebounceScope(scopeId) {
-  const scopeMap = TIMERS_MAP.get(scopeId);
-  if (scopeMap) {
-    scopeMap.forEach((timerId) => clearTimeout(timerId));
-    scopeMap.clear();
-  }
+  const scope = scopes.get(scopeId);
+  if (!scope) return;
+  for (const id of scope.keys()) clearTimer(scopeId, id);
 }
 
 // src/lib/queue.ts
@@ -9748,6 +9750,7 @@ registerEnvVar({
   type: "string",
   default: ""
 });
+var nextClientId = 0;
 var DEFAULT_PARSER_OVERRIDES = [];
 function addDefaultParsers(parsers) {
   for (const parser of parsers) {
@@ -9777,7 +9780,7 @@ var TreeSitterClient = class extends EventEmitter3 {
   constructor(options, internalOptions = {}) {
     super();
     this.options = options;
-    this.debouncer = createDebounce("tree-sitter-client");
+    this.debouncer = createDebounce(`tree-sitter-client-${nextClientId++}`);
     if (internalOptions.autoStartWorker ?? true) {
       this.startWorker();
     }
@@ -9855,6 +9858,7 @@ var TreeSitterClient = class extends EventEmitter3 {
     this.initializePromise = void 0;
     this.rejectActiveInitialization(error);
     this.rejectPendingRequests(error);
+    for (const queue of this.editQueues.values()) queue.clear();
     this.editQueues.clear();
     this.buffers.clear();
     this.debouncer.clear();
@@ -9931,10 +9935,10 @@ var TreeSitterClient = class extends EventEmitter3 {
     const worker = this.worker;
     const generation = this.lifecycleGeneration;
     let rejectCancellation;
-    const cancellation = new Promise((_, reject) => {
+    const cancellation2 = new Promise((_, reject) => {
       rejectCancellation = reject;
     });
-    const initialization = Promise.race([this.initializeClient(generation, worker), cancellation]);
+    const initialization = Promise.race([this.initializeClient(generation, worker), cancellation2]);
     this.rejectInitialization = rejectCancellation;
     this.initializePromise = initialization;
     void initialization.then(
@@ -9966,10 +9970,16 @@ var TreeSitterClient = class extends EventEmitter3 {
         reject(error);
       }, timeoutMs);
       this.initializeResolvers = { resolve: resolve3, reject, timeoutId };
-      this.sendWorkerMessage({
-        type: "INIT",
-        dataPath: this.options.dataPath
-      });
+      try {
+        this.sendWorkerMessage({
+          type: "INIT",
+          dataPath: this.options.dataPath
+        });
+      } catch (error) {
+        clearTimeout(timeoutId);
+        this.initializeResolvers = void 0;
+        reject(error);
+      }
     });
     this.assertCurrentInitialization(generation, worker);
     await this.registerDefaultParsers(generation, worker);
@@ -10182,7 +10192,14 @@ var TreeSitterClient = class extends EventEmitter3 {
     if (this.buffers.has(id)) {
       throw new Error(`Buffer with id ${id} already exists`);
     }
-    this.buffers.set(id, { id, content, filetype, version, hasParser: false });
+    const pendingBuffer = {
+      id,
+      content,
+      filetype,
+      version,
+      hasParser: false
+    };
+    this.buffers.set(id, pendingBuffer);
     const messageId = `init_${this.messageIdCounter++}`;
     const response = await new Promise((resolve3, reject) => {
       this.messageCallbacks.set(messageId, { resolve: resolve3, reject });
@@ -10197,9 +10214,11 @@ var TreeSitterClient = class extends EventEmitter3 {
         });
       } catch (error) {
         this.messageCallbacks.delete(messageId);
+        if (this.buffers.get(id) === pendingBuffer) this.buffers.delete(id);
         reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
+    if (!this.initialized || this.buffers.get(id) !== pendingBuffer) return false;
     if (!response.hasParser) {
       this.emit("buffer:initialized", id, false);
       if (filetype !== "plaintext") {
@@ -10245,6 +10264,8 @@ var TreeSitterClient = class extends EventEmitter3 {
     if (!this.initialized) {
       return;
     }
+    this.debouncer.clearDebounce(`reset-${bufferId}`);
+    if (!this.buffers.has(bufferId)) return;
     this.buffers.delete(bufferId);
     if (this.editQueues.has(bufferId)) {
       this.editQueues.get(bufferId)?.clear();
@@ -10253,27 +10274,34 @@ var TreeSitterClient = class extends EventEmitter3 {
     if (this.worker) {
       await new Promise((resolve3, reject) => {
         const messageId = `dispose_${bufferId}`;
-        this.messageCallbacks.set(messageId, { resolve: resolve3, reject });
+        const timeout = setTimeout(() => {
+          this.messageCallbacks.delete(messageId);
+          this.emitWarning("Timed out waiting for buffer to be disposed", bufferId);
+          resolve3(false);
+        }, 3e3);
+        this.messageCallbacks.set(messageId, {
+          resolve: (value) => {
+            clearTimeout(timeout);
+            resolve3(value);
+          },
+          reject: (error) => {
+            clearTimeout(timeout);
+            reject(error);
+          }
+        });
         try {
           this.sendWorkerMessage({
             type: "DISPOSE_BUFFER",
             bufferId
           });
         } catch (error) {
-          console.error("Error disposing buffer", error);
+          clearTimeout(timeout);
           this.messageCallbacks.delete(messageId);
+          this.emitWarning(`Error disposing buffer: ${error}`, bufferId);
           resolve3(false);
         }
-        setTimeout(() => {
-          if (this.messageCallbacks.has(messageId)) {
-            this.messageCallbacks.delete(messageId);
-            console.warn({ bufferId }, "Timed out waiting for buffer to be disposed");
-            resolve3(false);
-          }
-        }, 3e3);
       });
     }
-    this.debouncer.clearDebounce(`reset-${bufferId}`);
   }
   destroy() {
     if (this.destroyPromise) {
@@ -10300,8 +10328,8 @@ var TreeSitterClient = class extends EventEmitter3 {
       }
     }
     this.destroyCallbacks.clear();
-    clearDebounceScope("tree-sitter-client");
     this.debouncer.clear();
+    for (const queue of this.editQueues.values()) queue.clear();
     this.editQueues.clear();
     this.buffers.clear();
     void this.stopWorker().then(
@@ -10332,7 +10360,9 @@ var TreeSitterClient = class extends EventEmitter3 {
       return;
     }
     this.buffers.set(bufferId, { ...buffer, content, version });
-    this.debouncer.debounce(`reset-${bufferId}`, 10, () => this.processEdit(bufferId, [], content, version, true));
+    void this.debouncer.debounce(`reset-${bufferId}`, 10, () => this.processEdit(bufferId, [], content, version, true)).catch((error) => {
+      if (error.name !== "AbortError") this.emitError(`Error resetting buffer: ${error.message}`, bufferId);
+    });
   }
   getBuffer(bufferId) {
     return this.buffers.get(bufferId);
@@ -12032,6 +12062,10 @@ function detectLinks(chunks, context) {
 }
 
 // src/buffer.ts
+var captureDecoder = new TextDecoder();
+var captureSegmenter = new Intl.Segmenter(void 0, {
+  granularity: "grapheme"
+});
 function packDrawOptions(border, shouldFill, titleAlignment, bottomTitleAlignment) {
   let packed = 0;
   if (border === true) {
@@ -12107,6 +12141,7 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
     this.bufferPtr = ptr2;
   }
   static create(width, height, widthMethod, options = {}) {
+    validateBufferDimensions(width, height);
     const lib2 = resolveRenderLib();
     const respectAlpha = options.respectAlpha || false;
     const id = options.id && options.id.trim() !== "" ? options.id : "unnamed buffer";
@@ -12134,9 +12169,9 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
   getRealCharBytes(addLineBreaks = false) {
     this.guard();
     const realSize = this.lib.bufferGetRealCharSize(this.bufferPtr);
-    const outputBuffer = new Uint8Array(realSize);
+    const outputBuffer = new Uint8Array(realSize + (addLineBreaks ? this._height : 0));
     const bytesWritten = this.lib.bufferWriteResolvedChars(this.bufferPtr, outputBuffer, addLineBreaks);
-    return outputBuffer.slice(0, bytesWritten);
+    return outputBuffer.subarray(0, bytesWritten);
   }
   getSpanLines() {
     this.guard();
@@ -12145,21 +12180,21 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
     const CHAR_FLAG_CONTINUATION = 3221225472 | 0;
     const CHAR_FLAG_MASK = 3221225472 | 0;
     const realTextBytes = this.getRealCharBytes(true);
-    const realTextLines = new TextDecoder().decode(realTextBytes).split("\n");
+    const realTextLines = captureDecoder.decode(realTextBytes).split("\n");
     for (let y = 0; y < this._height; y++) {
       const spans = [];
       let currentSpan = null;
-      const lineChars = [...realTextLines[y] || ""];
+      const lineText = realTextLines[y] || "";
+      const segments = /[^\x20-\x7e]/.test(lineText) ? captureSegmenter.segment(lineText)[Symbol.iterator]() : null;
       let charIdx = 0;
       for (let x = 0; x < this._width; x++) {
         const i = y * this._width + x;
         const cp = char[i];
-        const cellFg = RGBA.fromArray(fg2.slice(i * 4, i * 4 + 4));
-        const cellBg = RGBA.fromArray(bg2.slice(i * 4, i * 4 + 4));
+        const offset = i * 4;
         const cellAttrs = attributes[i] & 255;
         const isContinuation = (cp & CHAR_FLAG_MASK) === CHAR_FLAG_CONTINUATION;
-        const cellChar = isContinuation ? "" : lineChars[charIdx++] ?? " ";
-        if (currentSpan && currentSpan.fg.equals(cellFg) && currentSpan.bg.equals(cellBg) && currentSpan.attributes === cellAttrs) {
+        const cellChar = isContinuation ? "" : segments ? segments.next().value?.segment ?? " " : lineText[charIdx++] ?? " ";
+        if (currentSpan && currentSpan.fg.buffer[0] === fg2[offset] && currentSpan.fg.buffer[1] === fg2[offset + 1] && currentSpan.fg.buffer[2] === fg2[offset + 2] && currentSpan.fg.buffer[3] === fg2[offset + 3] && currentSpan.bg.buffer[0] === bg2[offset] && currentSpan.bg.buffer[1] === bg2[offset + 1] && currentSpan.bg.buffer[2] === bg2[offset + 2] && currentSpan.bg.buffer[3] === bg2[offset + 3] && currentSpan.attributes === cellAttrs) {
           currentSpan.text += cellChar;
           currentSpan.width += 1;
         } else {
@@ -12168,8 +12203,8 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
           }
           currentSpan = {
             text: cellChar,
-            fg: cellFg,
-            bg: cellBg,
+            fg: RGBA.fromArray(fg2.subarray(offset, offset + 4)),
+            bg: RGBA.fromArray(bg2.subarray(offset, offset + 4)),
             attributes: cellAttrs,
             width: 1
           };
@@ -12231,13 +12266,19 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
   colorMatrix(matrix, cellMask, strength = 1, target = 3 /* Both */) {
     this.guard();
     if (matrix.length !== 16) throw new RangeError(`colorMatrix matrix must have length 16, got ${matrix.length}`);
-    const cellMaskCount = Math.floor(cellMask.length / 3);
+    if (target !== 1 /* FG */ && target !== 2 /* BG */ && target !== 3 /* Both */)
+      throw new RangeError("Invalid color matrix target");
+    if (cellMask.length % 3 !== 0) throw new RangeError("Color matrix mask must contain x, y, strength triples");
+    const cellMaskCount = cellMask.length / 3;
+    if (cellMaskCount === 0) return;
     this.lib.bufferColorMatrix(this.bufferPtr, ptr(matrix), ptr(cellMask), cellMaskCount, strength, target);
   }
   colorMatrixUniform(matrix, strength = 1, target = 3 /* Both */) {
     this.guard();
     if (matrix.length !== 16)
       throw new RangeError(`colorMatrixUniform matrix must have length 16, got ${matrix.length}`);
+    if (target !== 1 /* FG */ && target !== 2 /* BG */ && target !== 3 /* Both */)
+      throw new RangeError("Invalid color matrix target");
     if (strength === 0) return;
     this.lib.bufferColorMatrixUniform(this.bufferPtr, ptr(matrix), strength, target);
   }
@@ -12285,10 +12326,14 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
   }
   drawGrayscaleBuffer(posX, posY, intensities, srcWidth, srcHeight, fg2 = null, bg2 = null) {
     this.guard();
+    validateGrayscaleSource(intensities, srcWidth, srcHeight);
+    if (srcWidth === 0 || srcHeight === 0) return;
     this.lib.bufferDrawGrayscaleBuffer(this.bufferPtr, posX, posY, ptr(intensities), srcWidth, srcHeight, fg2, bg2);
   }
   drawGrayscaleBufferSupersampled(posX, posY, intensities, srcWidth, srcHeight, fg2 = null, bg2 = null) {
     this.guard();
+    validateGrayscaleSource(intensities, srcWidth, srcHeight);
+    if (srcWidth < 2 || srcHeight < 2) return;
     this.lib.bufferDrawGrayscaleBufferSupersampled(
       this.bufferPtr,
       posX,
@@ -12302,16 +12347,18 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
   }
   resize(width, height) {
     this.guard();
+    validateBufferDimensions(width, height);
     if (this._width === width && this._height === height) return;
+    this.lib.bufferResize(this.bufferPtr, width, height);
     this._width = width;
     this._height = height;
     this._rawBuffers = null;
-    this.lib.bufferResize(this.bufferPtr, width, height);
   }
   drawBox(options) {
     this.guard();
     const style = parseBorderStyle(options.borderStyle, "single");
     const borderChars = options.customBorderChars ?? BorderCharArrays[style];
+    if (borderChars.length !== 11) throw new RangeError("Custom border characters must contain exactly 11 entries");
     const packedOptions = packDrawOptions(
       options.border,
       options.shouldFill ?? false,
@@ -13145,7 +13192,7 @@ function openRenderLibrary(libPath) {
     },
     bufferResize: {
       args: ["u32", "u32", "u32"],
-      returns: "void"
+      returns: "bool"
     },
     // Link API
     linkAlloc: {
@@ -14913,7 +14960,10 @@ var FFIRenderLib = class {
     );
   }
   bufferResize(buffer, width, height) {
-    this.native.symbols.bufferResize(buffer, width, height);
+    validateBufferDimensions(width, height);
+    if (!this.native.symbols.bufferResize(buffer, width, height)) {
+      throw new Error(`Failed to resize optimized buffer: ${width}x${height}`);
+    }
   }
   // Link API
   linkAlloc(url) {
@@ -14991,9 +15041,7 @@ var FFIRenderLib = class {
     );
   }
   createOptimizedBuffer(width, height, widthMethod, respectAlpha = false, id) {
-    if (Number.isNaN(width) || Number.isNaN(height)) {
-      console.error(new Error(`Invalid dimensions for OptimizedBuffer: ${width}x${height}`).stack);
-    }
+    validateBufferDimensions(width, height);
     const widthMethodCode = widthMethod === "wcwidth" ? 0 : 1;
     const idToUse = id || "unnamed buffer";
     const idBytes = this.encoder.encode(idToUse);
@@ -17343,6 +17391,7 @@ var Yoga = {
 var yoga_default = Yoga;
 
 export {
+  validateBufferDimensions,
   toArrayBuffer,
   sleep,
   stringWidth,

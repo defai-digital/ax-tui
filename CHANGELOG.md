@@ -5,6 +5,34 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- Make native buffer resize atomic on allocation failure and report failure to
+  TypeScript. Reject overflowing dimensions and undersized grayscale/border
+  arrays before native access. Native ABI 2 is required for checked resize.
+- Preserve Unicode grapheme clusters, color intent, and row endings in captured
+  frames, including wide characters at the right edge.
+- Keep tree-sitter timers and queued edits isolated per client; cancel removed
+  buffers before disposal, clear acknowledged timeouts, and ignore stale parser
+  initialization responses. Cancelled debounce promises reject with AbortError.
+- Reject malformed percentages, non-finite layout values, and invalid frame
+  rates. Preserve large overlapping objects during viewport culling.
+- Key parser caches by SHA-256 of the full source URL, commit downloads
+  atomically, and bound network downloads to 64 MiB and 30 seconds.
+
+### Performance
+
+- Allocate captured colors once per span and use an ASCII capture fast path.
+  A fixed 120 by 40 ASCII frame benchmark on macOS arm64 / Node 26.5.0 improved
+  from 1.75 ms to 0.088 ms median per capture. This measures span capture only;
+  it is not an application-wide rendering benchmark.
+
+### Validation
+
+- Add Linux, macOS, and Windows CI for source checking, artifact freshness,
+  native runtime integration, and regressions. Release asset publication now
+  waits for these gates. Keep checkout and compiler line endings deterministic.
+
 ### Changed
 
 - Move the remaining inline widget-build and release-validation JavaScript

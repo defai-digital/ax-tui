@@ -1,3 +1,4 @@
+import { validateBufferDimensions } from "./lib/buffer.validations.js"
 import { ANSI } from "./ansi.js"
 import { Renderable, RootRenderable } from "./Renderable.js"
 import { BoxRenderable } from "./renderables/Box.js"
@@ -667,6 +668,12 @@ const rendererTracker = singleton("RendererTracker", () => ({
  * owns all stream and backend decisions; this factory only layers on the
  * `--delay-start` flag and the `await setupTerminal()` convenience.
  */
+function validateFrameRate(value: number, name: string): void {
+  if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(1000 / value) || 1000 / value > 2_147_483_647) {
+    throw new RangeError(`${name} must be a positive finite frame rate with a supported timer interval`)
+  }
+}
+
 export async function createCliRenderer(config: CliRendererConfig = {}): Promise<CliRenderer> {
   if (process.argv.includes("--delay-start")) {
     await new Promise((resolve) => setTimeout(resolve, 5000))
@@ -999,6 +1006,17 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   ) {
     super()
 
+    validateBufferDimensions(width, height)
+    validateFrameRate(config.targetFps ?? 30, "targetFps")
+    validateFrameRate(config.maxFps ?? 60, "maxFps")
+    if (
+      !Number.isFinite(config.debounceDelay ?? 100) ||
+      (config.debounceDelay ?? 100) < 0 ||
+      (config.debounceDelay ?? 100) > 2_147_483_647
+    ) {
+      throw new RangeError("debounceDelay must be between 0 and 2147483647 milliseconds")
+    }
+
     this.stdin = stdin
     this.stdout = stdout
     this._usesProcessStdout = stdout === process.stdout
@@ -1121,9 +1139,9 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     ]
 
     this.clipboard = new Clipboard(this.lib, this.rendererPtr)
-    this.resizeDebounceDelay = config.debounceDelay || 100
-    this.targetFps = config.targetFps || 30
-    this.maxFps = config.maxFps || 60
+    this.resizeDebounceDelay = config.debounceDelay ?? 100
+    this.targetFps = config.targetFps ?? 30
+    this.maxFps = config.maxFps ?? 60
     this.clock = config.clock ?? new SystemClock()
     this.themeModeState = new RendererThemeMode(
       {
@@ -1628,6 +1646,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   }
 
   public set targetFps(targetFps: number) {
+    validateFrameRate(targetFps, "targetFps")
     this._targetFps = targetFps
     this.targetFrameTime = 1000 / this._targetFps
   }
@@ -1637,6 +1656,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   }
 
   public set maxFps(maxFps: number) {
+    validateFrameRate(maxFps, "maxFps")
     this._maxFps = maxFps
     this.minTargetFrameTime = 1000 / this._maxFps
   }
@@ -3801,6 +3821,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
    */
   public resize(width: number, height: number): void {
     if (this._isDestroyed) return
+    validateBufferDimensions(width, height)
     this.processResize(width, height)
   }
 

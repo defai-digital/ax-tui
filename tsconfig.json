@@ -9,8 +9,17 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["node", "bun"],
-    "lib": ["ESNext", "DOM"]
+    "types": [
+      "node",
+      "bun"
+    ],
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "newLine": "lf"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

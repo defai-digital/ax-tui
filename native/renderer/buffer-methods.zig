@@ -104,7 +104,7 @@ pub fn colorMatrix(self: anytype, matrix: []const f32, cellMask: []const f32, st
         // Skip if coordinates are negative or non-finite before conversion
         if (x_f < 0.0 or y_f < 0.0) continue;
         if (!math.isFinite(x_f) or !math.isFinite(y_f)) continue;
-        if (x_f > max_u32_f or y_f > max_u32_f) continue;
+        if (x_f >= max_u32_f or y_f >= max_u32_f) continue;
 
         const x: u32 = @intFromFloat(x_f);
         const y: u32 = @intFromFloat(y_f);

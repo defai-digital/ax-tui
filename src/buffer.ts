@@ -1,3 +1,4 @@
+import { validateBufferDimensions, validateGrayscaleSource } from "./lib/buffer.validations.js"
 import { RGBA } from "./lib/index.js"
 import { resolveRenderLib, type OptimizedBufferHandle, type RenderLib } from "./zig.js"
 import { type Pointer, type PointerInput, toArrayBuffer, toPointer, ptr } from "./platform/ffi.js"
@@ -5,6 +6,11 @@ import { type BorderStyle, type BorderSides, BorderCharArrays, parseBorderStyle 
 import { TargetChannel, type WidthMethod, type CapturedSpan, type CapturedLine } from "./types.js"
 import type { TextBufferView } from "./text-buffer-view.js"
 import type { EditorView } from "./editor-view.js"
+
+const captureDecoder = new TextDecoder()
+const captureSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+})
 
 // Pack drawing options into a single u32
 // bits 0-3: borderSides, bit 4: shouldFill, bits 5-6: titleAlignment, bits 7-8: bottomTitleAlignment
@@ -123,6 +129,7 @@ export class OptimizedBuffer {
     widthMethod: WidthMethod,
     options: { respectAlpha?: boolean; id?: string } = {},
   ): OptimizedBuffer {
+    validateBufferDimensions(width, height)
     const lib = resolveRenderLib()
     const respectAlpha = options.respectAlpha || false
     const id = options.id && options.id.trim() !== "" ? options.id : "unnamed buffer"
@@ -156,9 +163,9 @@ export class OptimizedBuffer {
   public getRealCharBytes(addLineBreaks: boolean = false): Uint8Array {
     this.guard()
     const realSize = this.lib.bufferGetRealCharSize(this.bufferPtr)
-    const outputBuffer = new Uint8Array(realSize)
+    const outputBuffer = new Uint8Array(realSize + (addLineBreaks ? this._height : 0))
     const bytesWritten = this.lib.bufferWriteResolvedChars(this.bufferPtr, outputBuffer, addLineBreaks)
-    return outputBuffer.slice(0, bytesWritten)
+    return outputBuffer.subarray(0, bytesWritten)
   }
 
   public getSpanLines(): CapturedLine[] {
@@ -170,31 +177,42 @@ export class OptimizedBuffer {
     const CHAR_FLAG_MASK = 0xc0000000 | 0
 
     const realTextBytes = this.getRealCharBytes(true)
-    const realTextLines = new TextDecoder().decode(realTextBytes).split("\n")
+    const realTextLines = captureDecoder.decode(realTextBytes).split("\n")
 
     for (let y = 0; y < this._height; y++) {
       const spans: CapturedSpan[] = []
       let currentSpan: CapturedSpan | null = null
 
-      const lineChars = [...(realTextLines[y] || "")]
+      const lineText = realTextLines[y] || ""
+      // Most terminal content is ASCII: avoid segmentation and per-cell arrays.
+      const segments = /[^\x20-\x7e]/.test(lineText) ? captureSegmenter.segment(lineText)[Symbol.iterator]() : null
       let charIdx = 0
 
       for (let x = 0; x < this._width; x++) {
         const i = y * this._width + x
         const cp = char[i]
-        const cellFg = RGBA.fromArray(fg.slice(i * 4, i * 4 + 4))
-        const cellBg = RGBA.fromArray(bg.slice(i * 4, i * 4 + 4))
+        const offset = i * 4
         const cellAttrs = attributes[i] & 0xff
 
         // Continuation cells are placeholders for wide characters (emojis, CJK)
         const isContinuation = (cp & CHAR_FLAG_MASK) === CHAR_FLAG_CONTINUATION
-        const cellChar = isContinuation ? "" : (lineChars[charIdx++] ?? " ")
+        const cellChar = isContinuation
+          ? ""
+          : segments
+            ? (segments.next().value?.segment ?? " ")
+            : (lineText[charIdx++] ?? " ")
 
         // Check if this cell continues the current span
         if (
           currentSpan &&
-          currentSpan.fg.equals(cellFg) &&
-          currentSpan.bg.equals(cellBg) &&
+          currentSpan.fg.buffer[0] === fg[offset] &&
+          currentSpan.fg.buffer[1] === fg[offset + 1] &&
+          currentSpan.fg.buffer[2] === fg[offset + 2] &&
+          currentSpan.fg.buffer[3] === fg[offset + 3] &&
+          currentSpan.bg.buffer[0] === bg[offset] &&
+          currentSpan.bg.buffer[1] === bg[offset + 1] &&
+          currentSpan.bg.buffer[2] === bg[offset + 2] &&
+          currentSpan.bg.buffer[3] === bg[offset + 3] &&
           currentSpan.attributes === cellAttrs
         ) {
           currentSpan.text += cellChar
@@ -206,8 +224,8 @@ export class OptimizedBuffer {
           }
           currentSpan = {
             text: cellChar,
-            fg: cellFg,
-            bg: cellBg,
+            fg: RGBA.fromArray(fg.subarray(offset, offset + 4)),
+            bg: RGBA.fromArray(bg.subarray(offset, offset + 4)),
             attributes: cellAttrs,
             width: 1,
           }
@@ -305,7 +323,11 @@ export class OptimizedBuffer {
   ): void {
     this.guard()
     if (matrix.length !== 16) throw new RangeError(`colorMatrix matrix must have length 16, got ${matrix.length}`)
-    const cellMaskCount = Math.floor(cellMask.length / 3)
+    if (target !== TargetChannel.FG && target !== TargetChannel.BG && target !== TargetChannel.Both)
+      throw new RangeError("Invalid color matrix target")
+    if (cellMask.length % 3 !== 0) throw new RangeError("Color matrix mask must contain x, y, strength triples")
+    const cellMaskCount = cellMask.length / 3
+    if (cellMaskCount === 0) return
     this.lib.bufferColorMatrix(this.bufferPtr, ptr(matrix), ptr(cellMask), cellMaskCount, strength, target)
   }
 
@@ -317,6 +339,8 @@ export class OptimizedBuffer {
     this.guard()
     if (matrix.length !== 16)
       throw new RangeError(`colorMatrixUniform matrix must have length 16, got ${matrix.length}`)
+    if (target !== TargetChannel.FG && target !== TargetChannel.BG && target !== TargetChannel.Both)
+      throw new RangeError("Invalid color matrix target")
     if (strength === 0.0) return
     this.lib.bufferColorMatrixUniform(this.bufferPtr, ptr(matrix), strength, target)
   }
@@ -402,6 +426,8 @@ export class OptimizedBuffer {
     bg: RGBA | null = null,
   ): void {
     this.guard()
+    validateGrayscaleSource(intensities, srcWidth, srcHeight)
+    if (srcWidth === 0 || srcHeight === 0) return
     this.lib.bufferDrawGrayscaleBuffer(this.bufferPtr, posX, posY, ptr(intensities), srcWidth, srcHeight, fg, bg)
   }
 
@@ -415,6 +441,8 @@ export class OptimizedBuffer {
     bg: RGBA | null = null,
   ): void {
     this.guard()
+    validateGrayscaleSource(intensities, srcWidth, srcHeight)
+    if (srcWidth < 2 || srcHeight < 2) return
     this.lib.bufferDrawGrayscaleBufferSupersampled(
       this.bufferPtr,
       posX,
@@ -429,13 +457,14 @@ export class OptimizedBuffer {
 
   public resize(width: number, height: number): void {
     this.guard()
+    validateBufferDimensions(width, height)
     if (this._width === width && this._height === height) return
+
+    this.lib.bufferResize(this.bufferPtr, width, height)
 
     this._width = width
     this._height = height
     this._rawBuffers = null
-
-    this.lib.bufferResize(this.bufferPtr, width, height)
   }
 
   public drawBox(options: {
@@ -458,6 +487,8 @@ export class OptimizedBuffer {
     this.guard()
     const style = parseBorderStyle(options.borderStyle, "single")
     const borderChars: Uint32Array = options.customBorderChars ?? BorderCharArrays[style]
+
+    if (borderChars.length !== 11) throw new RangeError("Custom border characters must contain exactly 11 entries")
 
     const packedOptions = packDrawOptions(
       options.border,

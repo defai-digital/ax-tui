@@ -194,6 +194,13 @@ pub const OptimizedBuffer = struct {
         endX: i32 = 0,
     };
 
+    fn checkedCellCount(width: u32, height: u32) BufferError!u32 {
+        if (width == 0 or height == 0 or width > std.math.maxInt(i32) or height > std.math.maxInt(i32)) return BufferError.InvalidDimensions;
+        const size = std.math.mul(u32, width, height) catch return BufferError.InvalidDimensions;
+        if (size > std.math.maxInt(u32) / @sizeOf(u32)) return BufferError.InvalidDimensions;
+        return size;
+    }
+
     pub fn init(allocator: Allocator, width: u32, height: u32, options: InitOptions) BufferError!*OptimizedBuffer {
         if (width == 0 or height == 0) {
             logger.warn("OptimizedBuffer.init: Invalid dimensions {}x{}", .{ width, height });
@@ -203,7 +210,7 @@ pub const OptimizedBuffer = struct {
         const self = allocator.create(OptimizedBuffer) catch return BufferError.OutOfMemory;
         errdefer allocator.destroy(self);
 
-        const size = width * height;
+        const size = try checkedCellCount(width, height);
 
         const owned_id = allocator.dupe(u8, options.id) catch return BufferError.OutOfMemory;
         errdefer allocator.free(owned_id);
@@ -403,17 +410,32 @@ pub const OptimizedBuffer = struct {
         if (self.width == width and self.height == height) return;
         if (width == 0 or height == 0) return BufferError.InvalidDimensions;
 
-        const size = width * height;
+        const size = try checkedCellCount(width, height);
 
-        self.buffer.char = self.allocator.realloc(self.buffer.char, size) catch return BufferError.OutOfMemory;
-        self.buffer.fg = self.allocator.realloc(self.buffer.fg, size) catch return BufferError.OutOfMemory;
-        self.buffer.bg = self.allocator.realloc(self.buffer.bg, size) catch return BufferError.OutOfMemory;
-        self.buffer.attributes = self.allocator.realloc(self.buffer.attributes, size) catch return BufferError.OutOfMemory;
+        // Allocate the complete replacement first. A failed resize must leave
+        // every old pointer and dimension valid for callers holding raw views.
+        const chars = self.allocator.alloc(u32, size) catch return BufferError.OutOfMemory;
+        errdefer self.allocator.free(chars);
+        const fg = self.allocator.alloc(RGBA, size) catch return BufferError.OutOfMemory;
+        errdefer self.allocator.free(fg);
+        const bg = self.allocator.alloc(RGBA, size) catch return BufferError.OutOfMemory;
+        errdefer self.allocator.free(bg);
+        const attributes = self.allocator.alloc(u32, size) catch return BufferError.OutOfMemory;
+        errdefer self.allocator.free(attributes);
+
+        self.allocator.free(self.buffer.char);
+        self.allocator.free(self.buffer.fg);
+        self.allocator.free(self.buffer.bg);
+        self.allocator.free(self.buffer.attributes);
+        self.buffer.char = chars;
+        self.buffer.fg = fg;
+        self.buffer.bg = bg;
+        self.buffer.attributes = attributes;
 
         self.width = width;
         self.height = height;
 
-        // Always clear after resize to initialize cells (realloc doesn't zero memory)
+        // Always clear after resize to initialize cells (alloc does not zero memory)
         // This handles both growing (new cells are garbage) and shrinking (grapheme cleanup)
         self.clear(ansi.rgbColor(0, 0, 0, 255), null);
     }
@@ -680,6 +702,11 @@ pub const OptimizedBuffer = struct {
 
         var i: u32 = 0;
         while (i < total_cells) : (i += 1) {
+            if (addLineBreaks and i > 0 and i % self.width == 0) {
+                if (bytes_written == output_buffer.len) return BufferError.BufferTooSmall;
+                output_buffer[bytes_written] = '\n';
+                bytes_written += 1;
+            }
             const char_code = self.buffer.char[i];
 
             if (gp.isGraphemeChar(char_code)) {
@@ -727,14 +754,11 @@ pub const OptimizedBuffer = struct {
                 @memcpy(output_buffer[bytes_written .. bytes_written + utf8_len], utf8_bytes[0..utf8_len]);
                 bytes_written += @intCast(utf8_len);
             }
-
-            if (addLineBreaks and (i + 1) % self.width == 0) {
-                if (bytes_written + 1 > output_buffer.len) {
-                    return BufferError.BufferTooSmall;
-                }
-                output_buffer[bytes_written] = '\n';
-                bytes_written += 1;
-            }
+        }
+        if (addLineBreaks and total_cells > 0) {
+            if (bytes_written == output_buffer.len) return BufferError.BufferTooSmall;
+            output_buffer[bytes_written] = '\n';
+            bytes_written += 1;
         }
 
         return bytes_written;
@@ -2226,8 +2250,8 @@ pub const OptimizedBuffer = struct {
         if (srcWidth == 0 or srcHeight == 0) return;
         if (posX >= @as(i32, @intCast(self.width)) or posY >= @as(i32, @intCast(self.height))) return;
 
-        const startX: u32 = if (posX < 0) @intCast(-posX) else 0;
-        const startY: u32 = if (posY < 0) @intCast(-posY) else 0;
+        const startX: u32 = if (posX < 0) @intCast(-@as(i64, posX)) else 0;
+        const startY: u32 = if (posY < 0) @intCast(-@as(i64, posY)) else 0;
 
         const destStartX: u32 = if (posX < 0) 0 else @intCast(posX);
         const destStartY: u32 = if (posY < 0) 0 else @intCast(posY);
@@ -2262,7 +2286,7 @@ pub const OptimizedBuffer = struct {
                 const srcIndex = srcY * srcWidth + srcX;
                 const intensity = intensities[srcIndex];
 
-                if (intensity < 0.01) continue;
+                if (!std.math.isFinite(intensity) or intensity < 0.01) continue;
 
                 const char = getGrayscaleChar(intensity);
 
@@ -2295,8 +2319,8 @@ pub const OptimizedBuffer = struct {
         if (termWidth == 0 or termHeight == 0) return;
         if (posX >= @as(i32, @intCast(self.width)) or posY >= @as(i32, @intCast(self.height))) return;
 
-        const startX: u32 = if (posX < 0) @intCast(-posX) else 0;
-        const startY: u32 = if (posY < 0) @intCast(-posY) else 0;
+        const startX: u32 = if (posX < 0) @intCast(-@as(i64, posX)) else 0;
+        const startY: u32 = if (posY < 0) @intCast(-@as(i64, posY)) else 0;
 
         const destStartX: u32 = if (posX < 0) 0 else @intCast(posX);
         const destStartY: u32 = if (posY < 0) 0 else @intCast(posY);
@@ -2344,7 +2368,7 @@ pub const OptimizedBuffer = struct {
 
                 const avgIntensity = (tl + tr + bl + br) / 4.0;
 
-                if (avgIntensity < 0.01) continue;
+                if (!std.math.isFinite(avgIntensity) or avgIntensity < 0.01) continue;
 
                 const char = getGrayscaleChar(avgIntensity);
 

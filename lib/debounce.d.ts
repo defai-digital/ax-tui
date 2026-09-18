@@ -1,42 +1,14 @@
-/**
- * Debounce controller that manages debounce instances for a specific scope
- */
+type ScopeId = string | number;
+/** Debounces asynchronous work within a named scope. Cancelled calls reject with AbortError. */
 export declare class DebounceController {
     private scopeId;
-    constructor(scopeId: string | number);
-    /**
-     * Debounces the provided function with the given ID
-     *
-     * @param id Unique identifier within this scope
-     * @param ms Milliseconds to wait before executing
-     * @param fn Function to execute
-     */
-    debounce<R>(id: string | number, ms: number, fn: () => Promise<R>): Promise<R>;
-    /**
-     * Clear a specific debounce timer in this scope
-     *
-     * @param id The debounce ID to clear
-     */
-    clearDebounce(id: string | number): void;
-    /**
-     * Clear all debounce timers in this scope
-     */
+    constructor(scopeId: ScopeId);
+    /** Replacing a pending call cancels its promise; each promise always settles. */
+    debounce<R>(id: ScopeId, ms: number, fn: () => Promise<R>): Promise<R>;
+    clearDebounce(id: ScopeId): void;
     clear(): void;
 }
-/**
- * Creates a new debounce controller for a specific scope
- *
- * @param scopeId Unique identifier for this debounce scope
- * @returns A DebounceController for the specified scope
- */
-export declare function createDebounce(scopeId: string | number): DebounceController;
-/**
- * Clears all debounce timers for a specific scope
- *
- * @param scopeId The scope identifier
- */
-export declare function clearDebounceScope(scopeId: string | number): void;
-/**
- * Clears all active debounce timers across all scopes
- */
+export declare function createDebounce(scopeId: ScopeId): DebounceController;
+export declare function clearDebounceScope(scopeId: ScopeId): void;
 export declare function clearAllDebounces(): void;
+export {};

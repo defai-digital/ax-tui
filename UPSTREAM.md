@@ -54,3 +54,8 @@ Code and Grok Build are read-only design influences with no code extraction.
 JSR native assets come from AX TUI's matching GitHub release, are verified
 against the manifest, and are immutable. Signed downstream bundles verify
 native inputs before signing changes the bytes. See `MAINTENANCE.md`.
+
+The maintained native interface is now ABI 2: checked buffer resize reports
+allocation failure and preserves existing storage. All supported binaries are
+rebuilt from the corresponding local source and recorded in the manifest.
+This unreleased interface does not change the immutable v1.0.0 release assets.

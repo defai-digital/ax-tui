@@ -1,7 +1,7 @@
 /// AX TUI owns this native interface independently of its source origin.
 /// Increment when incompatible FFI layouts or calling conventions change.
 pub export fn axTuiAbiVersion() u32 {
-    return 1;
+    return 2;
 }
 
 const std = @import("std");
@@ -569,7 +569,7 @@ export fn setPendingSplitFooterTransition(
 ) void {
     const object_ptr = acquireRenderer(renderer_handle) orelse return;
     object_ptr.setPendingSplitFooterTransition(
-        @enumFromInt(mode),
+        std.meta.intToEnum(renderer.SplitFooterTransitionMode, mode) catch return,
         sourceTopLine,
         sourceHeight,
         targetTopLine,
@@ -1067,14 +1067,14 @@ export fn bufferColorMatrix(buffer_handle: NativeHandle, matrixPtr: [*]const f32
     const matrix = matrixPtr[0..16];
     const len = @as(usize, cellMaskCount) * 3;
     const cellMask = cellMaskPtr[0..len];
-    const targetEnum: buffer_effects.ColorTarget = @enumFromInt(target);
+    const targetEnum = std.meta.intToEnum(buffer_effects.ColorTarget, target) catch return;
     buffer_effects.colorMatrix(object_ptr, matrix, cellMask, strength, targetEnum);
 }
 
 export fn bufferColorMatrixUniform(buffer_handle: NativeHandle, matrixPtr: [*]const f32, strength: f32, target: u8) void {
     const object_ptr = acquireBuffer(buffer_handle) orelse return;
     const matrix = matrixPtr[0..16];
-    const targetEnum: buffer_effects.ColorTarget = @enumFromInt(target);
+    const targetEnum = std.meta.intToEnum(buffer_effects.ColorTarget, target) catch return;
     buffer_effects.colorMatrixUniform(object_ptr, matrix, strength, targetEnum);
 }
 
@@ -1254,9 +1254,10 @@ export fn bufferDrawBox(
     ) catch {};
 }
 
-export fn bufferResize(buffer_handle: NativeHandle, width: u32, height: u32) void {
-    const object_ptr = acquireBuffer(buffer_handle) orelse return;
-    object_ptr.resize(width, height) catch {};
+export fn bufferResize(buffer_handle: NativeHandle, width: u32, height: u32) bool {
+    const object_ptr = acquireBuffer(buffer_handle) orelse return false;
+    object_ptr.resize(width, height) catch return false;
+    return true;
 }
 
 export fn resizeRenderer(renderer_handle: NativeHandle, width: u32, height: u32) void {

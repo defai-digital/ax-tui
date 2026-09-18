@@ -5,17 +5,55 @@ import { mkdir as mkdir3 } from "fs/promises";
 import * as path2 from "path";
 
 // src/lib/tree-sitter/download-utils.ts
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "fs/promises";
+import { createHash, randomUUID } from "node:crypto";
 import * as path from "path";
+var MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024;
+async function fetchContent(source) {
+  const response = await fetch(source, { signal: AbortSignal.timeout(3e4) });
+  if (!response.ok || !response.body) {
+    await response.body?.cancel();
+    throw new Error(`Failed to fetch from ${source}: ${response.statusText}`);
+  }
+  const advertisedSize = response.headers.get("content-length");
+  if (advertisedSize !== null && (!/^\d+$/.test(advertisedSize) || Number(advertisedSize) > MAX_DOWNLOAD_BYTES)) {
+    await response.body.cancel();
+    throw new Error("Parser download exceeds size limit");
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  let complete = false;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        complete = true;
+        break;
+      }
+      size += value.byteLength;
+      if (size > MAX_DOWNLOAD_BYTES) throw new Error("Parser download exceeds size limit");
+      chunks.push(Buffer.from(value));
+    }
+    if (size === 0) throw new Error("Parser download is empty");
+    return Buffer.concat(chunks, size);
+  } finally {
+    if (!complete) await reader.cancel();
+    reader.releaseLock();
+  }
+}
+async function writeAtomic(target, content) {
+  const temporary = `${target}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, content, { flag: "wx" });
+    await rename(temporary, target);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
 var DownloadUtils = class {
   static hashUrl(url) {
-    let hash = 0;
-    for (let i = 0; i < url.length; i++) {
-      const char = url.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
+    return createHash("sha256").update(url).digest("hex");
   }
   /**
    * Download a file from URL or load from local path, with caching support
@@ -26,12 +64,16 @@ var DownloadUtils = class {
       let cacheFileName;
       if (useHashForCache) {
         const hash = this.hashUrl(source);
-        cacheFileName = filetype ? `${filetype}-${hash}${fileExtension}` : `${hash}${fileExtension}`;
+        cacheFileName = filetype ? `${encodeURIComponent(filetype)}-${hash}${fileExtension}` : `${hash}${fileExtension}`;
       } else {
-        cacheFileName = path.basename(source);
+        cacheFileName = path.basename(new URL(source).pathname);
       }
       const cacheFile = path.join(cacheDir, cacheSubdir, cacheFileName);
-      await mkdir(path.dirname(cacheFile), { recursive: true });
+      try {
+        await mkdir(path.dirname(cacheFile), { recursive: true });
+      } catch (error) {
+        return { error: `Cannot create parser cache: ${error}` };
+      }
       try {
         const cachedContent = await readFile(cacheFile);
         if (cachedContent.byteLength > 0) {
@@ -42,16 +84,13 @@ var DownloadUtils = class {
       }
       try {
         console.log(`Downloading from URL: ${source}`);
-        const response = await fetch(source);
-        if (!response.ok) {
-          return { error: `Failed to fetch from ${source}: ${response.statusText}` };
-        }
-        const content = Buffer.from(await response.arrayBuffer());
+        const content = await fetchContent(source);
         try {
-          await writeFile(cacheFile, Buffer.from(content));
+          await writeAtomic(cacheFile, content);
           console.log(`Cached: ${source}`);
         } catch (cacheError) {
           console.warn(`Failed to cache: ${cacheError}`);
+          return { content };
         }
         return { content, filePath: cacheFile };
       } catch (error) {
@@ -72,16 +111,16 @@ var DownloadUtils = class {
    */
   static async downloadToPath(source, targetPath) {
     const isUrl = source.startsWith("http://") || source.startsWith("https://");
-    await mkdir(path.dirname(targetPath), { recursive: true });
+    try {
+      await mkdir(path.dirname(targetPath), { recursive: true });
+    } catch (error) {
+      return { error: `Cannot create download directory: ${error}` };
+    }
     if (isUrl) {
       try {
         console.log(`Downloading from URL: ${source}`);
-        const response = await fetch(source);
-        if (!response.ok) {
-          return { error: `Failed to fetch from ${source}: ${response.statusText}` };
-        }
-        const content = Buffer.from(await response.arrayBuffer());
-        await writeFile(targetPath, Buffer.from(content));
+        const content = await fetchContent(source);
+        await writeAtomic(targetPath, content);
         console.log(`Downloaded: ${source} -> ${targetPath}`);
         return { content, filePath: targetPath };
       } catch (error) {
@@ -91,7 +130,7 @@ var DownloadUtils = class {
       try {
         console.log(`Copying from local path: ${source}`);
         const content = await readFile(source);
-        await writeFile(targetPath, Buffer.from(content));
+        await writeAtomic(targetPath, content);
         return { content, filePath: targetPath };
       } catch (error) {
         return { error: `Error copying from local path ${source}: ${error}` };
@@ -583,17 +622,17 @@ var ParserWorker = class {
     if (!this.initialized || !this.tsDataPath) {
       return void 0;
     }
-    const result = await DownloadUtils.downloadOrLoad(languageSource, this.tsDataPath, "languages", ".wasm", false);
+    const result = await DownloadUtils.downloadOrLoad(languageSource, this.tsDataPath, "languages", ".wasm", true);
     if (result.error) {
       console.error(`Error loading language ${languageSource}:`, result.error);
       return void 0;
     }
-    if (!result.filePath) {
+    if (!result.filePath && !result.content) {
       return void 0;
     }
-    const normalizedPath = result.filePath.replaceAll("\\", "/");
+    const normalizedPath = result.filePath?.replaceAll("\\", "/");
     try {
-      const language = await Language.load(normalizedPath);
+      const language = await Language.load(result.content ?? normalizedPath);
       return language;
     } catch (error) {
       console.error(`Error loading language from ${normalizedPath}:`, error);
@@ -1107,10 +1146,10 @@ var ParserWorker = class {
     if (!this.dataPath || !this.tsDataPath) {
       throw new Error("No data path configured");
     }
-    const { rm } = await import("fs/promises");
+    const { rm: rm2 } = await import("fs/promises");
     try {
       const treeSitterPath = path2.join(this.dataPath, "tree-sitter");
-      await rm(treeSitterPath, { recursive: true, force: true });
+      await rm2(treeSitterPath, { recursive: true, force: true });
       await mkdir3(path2.join(treeSitterPath, "languages"), { recursive: true });
       await mkdir3(path2.join(treeSitterPath, "queries"), { recursive: true });
       this.filetypeParsers.clear();

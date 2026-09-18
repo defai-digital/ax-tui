@@ -23,7 +23,13 @@ env:
   AX_TUI_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
+  verify:
+    uses: ./.github/workflows/quality.yml
+    with:
+      ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
   native-assets:
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: write

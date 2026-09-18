@@ -211,22 +211,22 @@ class ParserWorker {
       return undefined
     }
 
-    const result = await DownloadUtils.downloadOrLoad(languageSource, this.tsDataPath, "languages", ".wasm", false)
+    const result = await DownloadUtils.downloadOrLoad(languageSource, this.tsDataPath, "languages", ".wasm", true)
 
     if (result.error) {
       console.error(`Error loading language ${languageSource}:`, result.error)
       return undefined
     }
 
-    if (!result.filePath) {
+    if (!result.filePath && !result.content) {
       return undefined
     }
 
     // Normalize path for Windows compatibility - tree-sitter expects forward slashes
-    const normalizedPath = result.filePath.replaceAll("\\", "/")
+    const normalizedPath = result.filePath?.replaceAll("\\", "/")
 
     try {
-      const language = await Language.load(normalizedPath)
+      const language = await Language.load(result.content ?? normalizedPath!)
       return language
     } catch (error) {
       console.error(`Error loading language from ${normalizedPath}:`, error)
