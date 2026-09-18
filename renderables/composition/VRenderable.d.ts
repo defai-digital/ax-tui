@@ -1,14 +1,8 @@
-import { Renderable, type RenderableOptions } from "../../Renderable.js"
-import type { OptimizedBuffer } from "../../buffer.js"
-import type { RenderContext } from "../../types.js"
-/** VRenderable options. */
+import { Renderable, type RenderableOptions } from "../../Renderable.js";
+import type { OptimizedBuffer } from "../../buffer.js";
+import type { RenderContext } from "../../types.js";
 export interface VRenderableOptions extends RenderableOptions<VRenderable> {
-  render?: (
-    this: VRenderable | VRenderableOptions,
-    buffer: OptimizedBuffer,
-    deltaTime: number,
-    renderable: VRenderable,
-  ) => void
+    render?: (this: VRenderable | VRenderableOptions, buffer: OptimizedBuffer, deltaTime: number, renderable: VRenderable) => void;
 }
 /**
  * A generic renderable that accepts a custom render function as a prop.
@@ -16,7 +10,7 @@ export interface VRenderableOptions extends RenderableOptions<VRenderable> {
  * without needing to subclass Renderable.
  */
 export declare class VRenderable extends Renderable {
-  private options
-  constructor(ctx: RenderContext, options: VRenderableOptions)
-  protected renderSelf(buffer: OptimizedBuffer, deltaTime: number): void
+    private options;
+    constructor(ctx: RenderContext, options: VRenderableOptions);
+    protected renderSelf(buffer: OptimizedBuffer, deltaTime: number): void;
 }

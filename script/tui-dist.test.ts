@@ -18,6 +18,16 @@ describe("script.tui-dist", () => {
     expect(shouldCopyTuiDistPath(join(root, "tests/yoga-upstream/utils.d.ts"), root)).toBe(false)
     expect(shouldCopyTuiDistPath(join(root, "assets/zig/tree-sitter-zig.wasm"), root)).toBe(false)
     expect(shouldCopyTuiDistPath(join(root, "patches/ffi-pointer-pin.md"), root)).toBe(false)
+    for (const source of [
+      "src/renderer.ts",
+      "solid/source/index.ts",
+      "native/source/index.ts",
+      "native/renderer/lib.zig",
+      "script/build-native.ts",
+      "renderer-artifacts.json",
+    ]) {
+      expect(shouldCopyTuiDistPath(join(root, source), root)).toBe(false)
+    }
     expect(shouldCopyTuiDistPath(join(root, "MAINTENANCE.md"), root)).toBe(false)
     expect(shouldCopyTuiDistPath(join(root, "index.d.ts"), root)).toBe(false)
     expect(shouldCopyTuiDistPath(join(root, "lib/tree-sitter/update-assets.js"), root)).toBe(false)

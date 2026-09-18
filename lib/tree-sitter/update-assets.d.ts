@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 /**
- * Downloads and regenerates tree-sitter parser assets for ax-tui.
+ * Build-time syntax parser asset maintenance.
  *
  * @module
  */
-export { runUpdateAssetsCli, updateAssets } from "./assets/update.js"
-export type { UpdateOptions } from "./assets/update.js"
+export {};
+export { runUpdateAssetsCli, updateAssets } from "./assets/update.js";
+export type { UpdateOptions } from "./assets/update.js";

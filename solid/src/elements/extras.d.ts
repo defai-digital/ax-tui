@@ -1,6 +1,6 @@
-import { type DomNode } from "../reconciler.js"
-import type { JSX } from "../../jsx-runtime.js"
-import type { ValidComponent, ComponentProps } from "solid-js"
+import { type DomNode } from "../reconciler.js";
+import type { JSX } from "../../jsx-runtime.js";
+import type { ValidComponent, ComponentProps } from "solid-js";
 /**
  * Renders components somewhere else in the DOM
  *
@@ -8,13 +8,16 @@ import type { ValidComponent, ComponentProps } from "solid-js"
  *
  * @description https://docs.solidjs.com/reference/components/portal
  */
-export declare function Portal(props: { mount?: DomNode; ref?: (el: {}) => void; children: JSX.Element }): JSX.Element
-/** Dynamic props. */
+export declare function Portal(props: {
+    mount?: DomNode;
+    ref?: (el: {}) => void;
+    children: JSX.Element;
+}): JSX.Element;
 export type DynamicProps<T extends ValidComponent, P = ComponentProps<T>> = {
-  [K in keyof P]: P[K]
+    [K in keyof P]: P[K];
 } & {
-  component: T | undefined
-}
+    component: T | undefined;
+};
 /**
  * Renders an arbitrary component or element with the given props
  *
@@ -27,10 +30,7 @@ export type DynamicProps<T extends ValidComponent, P = ComponentProps<T>> = {
  * ```
  * @description https://docs.solidjs.com/reference/components/dynamic
  */
-export declare function createDynamic<T extends ValidComponent>(
-  component: () => T | undefined,
-  props: ComponentProps<T>,
-): JSX.Element
+export declare function createDynamic<T extends ValidComponent>(component: () => T | undefined, props: ComponentProps<T>): JSX.Element;
 /**
  * Renders an arbitrary custom or native component and passes the other props
  * ```typescript
@@ -38,4 +38,4 @@ export declare function createDynamic<T extends ValidComponent>(
  * ```
  * @description https://docs.solidjs.com/reference/components/dynamic
  */
-export declare function Dynamic<T extends ValidComponent>(props: DynamicProps<T>): JSX.Element
+export declare function Dynamic<T extends ValidComponent>(props: DynamicProps<T>): JSX.Element;

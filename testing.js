@@ -1,26 +1,35 @@
 // @ts-self-types="./testing.d.ts"
-import { ANSI, CliRenderer } from "./index-07zpr2dg.js"
-import { SystemClock, TreeSitterClient } from "./index-pcvh9d34.js"
+import {
+  ANSI,
+  CliRenderer
+} from "./index-CHWXX3V2.js";
+import {
+  SystemClock,
+  TreeSitterClient
+} from "./index-AGVZRKG3.js";
 
 // src/testing/mock-keys.ts
-import { Buffer as Buffer2 } from "node:buffer"
+import { Buffer as Buffer2 } from "node:buffer";
 function pasteBytes(text) {
-  return Uint8Array.from(Buffer2.from(text))
+  return Uint8Array.from(Buffer2.from(text));
 }
 var KeyCodes = {
+  // Control keys
   RETURN: "\r",
-  LINEFEED: `
-`,
-  TAB: "\t",
+  LINEFEED: "\n",
+  TAB: "	",
   BACKSPACE: "\b",
+  // NOTE: This may depend on the platform and terminals
   DELETE: "\x1B[3~",
   HOME: "\x1B[H",
   END: "\x1B[F",
   ESCAPE: "\x1B",
+  // Arrow keys
   ARROW_UP: "\x1B[A",
   ARROW_DOWN: "\x1B[B",
   ARROW_RIGHT: "\x1B[C",
   ARROW_LEFT: "\x1B[D",
+  // Function keys
   F1: "\x1BOP",
   F2: "\x1BOQ",
   F3: "\x1BOR",
@@ -32,8 +41,8 @@ var KeyCodes = {
   F9: "\x1B[20~",
   F10: "\x1B[21~",
   F11: "\x1B[23~",
-  F12: "\x1B[24~",
-}
+  F12: "\x1B[24~"
+};
 var kittyKeyCodeMap = {
   escape: 27,
   tab: 9,
@@ -60,74 +69,74 @@ var kittyKeyCodeMap = {
   f9: 57372,
   f10: 57373,
   f11: 57374,
-  f12: 57375,
-}
+  f12: 57375
+};
 function encodeKittySequence(codepoint, modifiers) {
-  let modMask = 0
-  if (modifiers?.shift) modMask |= 1
-  if (modifiers?.meta) modMask |= 2
-  if (modifiers?.ctrl) modMask |= 4
-  if (modifiers?.super) modMask |= 8
-  if (modifiers?.hyper) modMask |= 16
+  let modMask = 0;
+  if (modifiers?.shift) modMask |= 1;
+  if (modifiers?.meta) modMask |= 2;
+  if (modifiers?.ctrl) modMask |= 4;
+  if (modifiers?.super) modMask |= 8;
+  if (modifiers?.hyper) modMask |= 16;
   if (modMask === 0) {
-    return `\x1B[${codepoint}u`
+    return `\x1B[${codepoint}u`;
   } else {
-    return `\x1B[${codepoint};${modMask + 1}u`
+    return `\x1B[${codepoint};${modMask + 1}u`;
   }
 }
 function encodeModifyOtherKeysSequence(charCode, modifiers) {
-  let modMask = 0
-  if (modifiers?.shift) modMask |= 1
-  if (modifiers?.meta) modMask |= 2
-  if (modifiers?.ctrl) modMask |= 4
-  if (modifiers?.super) modMask |= 8
-  if (modifiers?.hyper) modMask |= 16
+  let modMask = 0;
+  if (modifiers?.shift) modMask |= 1;
+  if (modifiers?.meta) modMask |= 2;
+  if (modifiers?.ctrl) modMask |= 4;
+  if (modifiers?.super) modMask |= 8;
+  if (modifiers?.hyper) modMask |= 16;
   if (modMask === 0) {
-    return String.fromCharCode(charCode)
+    return String.fromCharCode(charCode);
   }
-  return `\x1B[27;${modMask + 1};${charCode}~`
+  return `\x1B[27;${modMask + 1};${charCode}~`;
 }
 function resolveKeyInput(key) {
-  let keyValue
-  let keyName
+  let keyValue;
+  let keyName;
   if (typeof key === "string") {
     if (key in KeyCodes) {
-      keyValue = KeyCodes[key]
-      keyName = key.toLowerCase()
+      keyValue = KeyCodes[key];
+      keyName = key.toLowerCase();
     } else {
-      keyValue = key
-      keyName = undefined
+      keyValue = key;
+      keyName = void 0;
     }
   } else {
-    keyValue = KeyCodes[key]
+    keyValue = KeyCodes[key];
     if (!keyValue) {
-      throw new Error(`Unknown key: ${key}`)
+      throw new Error(`Unknown key: ${key}`);
     }
-    keyName = String(key).toLowerCase()
+    keyName = String(key).toLowerCase();
   }
-  return { keyValue, keyName }
+  return { keyValue, keyName };
 }
 function createMockKeys(renderer, options) {
-  const useKittyKeyboard = options?.kittyKeyboard ?? false
-  const useOtherModifiersMode = options?.otherModifiersMode ?? false
-  const effectiveOtherModifiersMode = useOtherModifiersMode && !useKittyKeyboard
+  const useKittyKeyboard = options?.kittyKeyboard ?? false;
+  const useOtherModifiersMode = options?.otherModifiersMode ?? false;
+  const effectiveOtherModifiersMode = useOtherModifiersMode && !useKittyKeyboard;
   const pressKeys = async (keys, delayMs = 0) => {
     for (const key of keys) {
-      const { keyValue: keyCode } = resolveKeyInput(key)
-      renderer.stdin.emit("data", Buffer2.from(keyCode))
+      const { keyValue: keyCode } = resolveKeyInput(key);
+      renderer.stdin.emit("data", Buffer2.from(keyCode));
       if (delayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs))
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
-  }
+  };
   const pressKey = (key, modifiers) => {
     if (useKittyKeyboard) {
-      let { keyValue, keyName } = resolveKeyInput(key)
+      let { keyValue, keyName } = resolveKeyInput(key);
       const valueToKeyNameMap = {
         "\b": "backspace",
         "\r": "return",
         "\n": "return",
-        "\t": "tab",
+        "	": "tab",
         "\x1B": "escape",
         "\x1B[A": "up",
         "\x1B[B": "down",
@@ -135,160 +144,167 @@ function createMockKeys(renderer, options) {
         "\x1B[D": "left",
         "\x1B[H": "home",
         "\x1B[F": "end",
-        "\x1B[3~": "delete",
-      }
+        "\x1B[3~": "delete"
+      };
       if (keyValue && valueToKeyNameMap[keyValue]) {
-        keyName = valueToKeyNameMap[keyValue]
+        keyName = valueToKeyNameMap[keyValue];
       }
       if (keyName && keyName.startsWith("arrow_")) {
-        keyName = keyName.substring(6)
+        keyName = keyName.substring(6);
       }
       if (keyName && kittyKeyCodeMap[keyName]) {
-        const kittyCode = kittyKeyCodeMap[keyName]
-        const sequence = encodeKittySequence(kittyCode, modifiers)
-        renderer.stdin.emit("data", Buffer2.from(sequence))
-        return
+        const kittyCode = kittyKeyCodeMap[keyName];
+        const sequence = encodeKittySequence(kittyCode, modifiers);
+        renderer.stdin.emit("data", Buffer2.from(sequence));
+        return;
       }
       if (keyValue && keyValue.length === 1 && !keyValue.startsWith("\x1B")) {
-        const codepoint = keyValue.codePointAt(0)
+        const codepoint = keyValue.codePointAt(0);
         if (codepoint) {
-          const sequence = encodeKittySequence(codepoint, modifiers)
-          renderer.stdin.emit("data", Buffer2.from(sequence))
-          return
+          const sequence = encodeKittySequence(codepoint, modifiers);
+          renderer.stdin.emit("data", Buffer2.from(sequence));
+          return;
         }
       }
     }
     if (effectiveOtherModifiersMode && modifiers) {
-      let { keyValue, keyName } = resolveKeyInput(key)
+      let { keyValue, keyName } = resolveKeyInput(key);
       const valueToCharCodeMap = {
         "\b": 127,
+        // backspace (or 8, but 127 is more common)
         "\r": 13,
+        // return
         "\n": 13,
-        "\t": 9,
+        // linefeed -> return
+        "	": 9,
+        // tab
         "\x1B": 27,
-        " ": 32,
-      }
-      let charCode
-      if (keyValue && valueToCharCodeMap[keyValue] !== undefined) {
-        charCode = valueToCharCodeMap[keyValue]
+        // escape
+        " ": 32
+        // space
+      };
+      let charCode;
+      if (keyValue && valueToCharCodeMap[keyValue] !== void 0) {
+        charCode = valueToCharCodeMap[keyValue];
       } else if (keyValue && keyValue.length === 1 && !keyValue.startsWith("\x1B")) {
-        charCode = keyValue.charCodeAt(0)
+        charCode = keyValue.charCodeAt(0);
       }
-      if (charCode !== undefined) {
-        const sequence = encodeModifyOtherKeysSequence(charCode, modifiers)
-        renderer.stdin.emit("data", Buffer2.from(sequence))
-        return
+      if (charCode !== void 0) {
+        const sequence = encodeModifyOtherKeysSequence(charCode, modifiers);
+        renderer.stdin.emit("data", Buffer2.from(sequence));
+        return;
       }
     }
-    let keyCode = resolveKeyInput(key).keyValue
+    let keyCode = resolveKeyInput(key).keyValue;
     if (modifiers) {
       if (keyCode.startsWith("\x1B[") && keyCode.length > 2) {
-        const modifier =
-          1 +
-          (modifiers.shift ? 1 : 0) +
-          (modifiers.meta ? 2 : 0) +
-          (modifiers.ctrl ? 4 : 0) +
-          (modifiers.super ? 8 : 0) +
-          (modifiers.hyper ? 16 : 0)
+        const modifier = 1 + (modifiers.shift ? 1 : 0) + (modifiers.meta ? 2 : 0) + (modifiers.ctrl ? 4 : 0) + (modifiers.super ? 8 : 0) + (modifiers.hyper ? 16 : 0);
         if (modifier > 1) {
-          const tildeMatch = keyCode.match(/^\x1b\[(\d+)~$/)
+          const tildeMatch = keyCode.match(/^\x1b\[(\d+)~$/);
           if (tildeMatch) {
-            keyCode = `\x1B[${tildeMatch[1]};${modifier}~`
+            keyCode = `\x1B[${tildeMatch[1]};${modifier}~`;
           } else {
-            const ending = keyCode.slice(-1)
-            keyCode = `\x1B[1;${modifier}${ending}`
+            const ending = keyCode.slice(-1);
+            keyCode = `\x1B[1;${modifier}${ending}`;
           }
         }
       } else if (keyCode.length === 1) {
-        let char = keyCode
-        if (char === "\t" && modifiers.shift) {
-          keyCode = modifiers.meta ? "\x1B\x1B[Z" : "\x1B[Z"
-          renderer.stdin.emit("data", Buffer2.from(keyCode))
-          return
+        let char = keyCode;
+        if (char === "	" && modifiers.shift) {
+          keyCode = modifiers.meta ? "\x1B\x1B[Z" : "\x1B[Z";
+          renderer.stdin.emit("data", Buffer2.from(keyCode));
+          return;
         }
         if (char === "\b" && (modifiers.ctrl || modifiers.super || modifiers.hyper)) {
-          const modifier =
-            1 +
-            (modifiers.shift ? 1 : 0) +
-            (modifiers.meta ? 2 : 0) +
-            (modifiers.ctrl ? 4 : 0) +
-            (modifiers.super ? 8 : 0) +
-            (modifiers.hyper ? 16 : 0)
-          keyCode = `\x1B[27;${modifier};127~`
+          const modifier = 1 + (modifiers.shift ? 1 : 0) + (modifiers.meta ? 2 : 0) + (modifiers.ctrl ? 4 : 0) + (modifiers.super ? 8 : 0) + (modifiers.hyper ? 16 : 0);
+          keyCode = `\x1B[27;${modifier};127~`;
         } else if (modifiers.ctrl) {
           if (char >= "a" && char <= "z") {
-            keyCode = String.fromCharCode(char.charCodeAt(0) - 96)
+            keyCode = String.fromCharCode(char.charCodeAt(0) - 96);
           } else if (char >= "A" && char <= "Z") {
-            keyCode = String.fromCharCode(char.charCodeAt(0) - 64)
+            keyCode = String.fromCharCode(char.charCodeAt(0) - 64);
           } else {
             const specialCtrlMap = {
               "[": "\x1B",
-              "\\": "\x1C",
-              "]": "\x1D",
-              "^": "\x1E",
-              _: "\x1F",
-              "?": "",
-              "/": "\x1F",
-              "-": "\x1F",
-              ".": "\x1E",
-              ",": "\x1C",
-              "@": "\x00",
-              " ": "\x00",
-            }
+              // Ctrl+[ = ESC (ASCII 27)
+              "\\": "",
+              // Ctrl+\ = FS (ASCII 28)
+              "]": "",
+              // Ctrl+] = GS (ASCII 29)
+              "^": "",
+              // Ctrl+^ = RS (ASCII 30)
+              _: "",
+              // Ctrl+_ = US (ASCII 31)
+              "?": "\x7F",
+              // Ctrl+? = DEL (ASCII 127)
+              // Common aliases
+              "/": "",
+              // Ctrl+/ = US (ASCII 31, same as Ctrl+_)
+              "-": "",
+              // Ctrl+- = US (ASCII 31, same as Ctrl+_)
+              ".": "",
+              // Ctrl+. = RS (ASCII 30, same as Ctrl+^)
+              ",": "",
+              // Ctrl+, = FS (ASCII 28, same as Ctrl+\)
+              "@": "\0",
+              // Ctrl+@ = NUL (ASCII 0)
+              " ": "\0"
+              // Ctrl+Space = NUL (ASCII 0)
+            };
             if (char in specialCtrlMap) {
-              keyCode = specialCtrlMap[char]
+              keyCode = specialCtrlMap[char];
             }
           }
           if (modifiers.meta) {
-            keyCode = `\x1B${keyCode}`
+            keyCode = `\x1B${keyCode}`;
           }
         } else {
           if (modifiers.shift && char >= "a" && char <= "z") {
-            char = char.toUpperCase()
+            char = char.toUpperCase();
           }
           if (modifiers.meta) {
-            keyCode = `\x1B${char}`
+            keyCode = `\x1B${char}`;
           } else {
-            keyCode = char
+            keyCode = char;
           }
         }
       } else if (modifiers.meta && !keyCode.startsWith("\x1B")) {
-        keyCode = `\x1B${keyCode}`
+        keyCode = `\x1B${keyCode}`;
       }
     }
-    renderer.stdin.emit("data", Buffer2.from(keyCode))
-  }
+    renderer.stdin.emit("data", Buffer2.from(keyCode));
+  };
   const typeText = async (text, delayMs = 0) => {
-    const keys = text.split("")
-    await pressKeys(keys, delayMs)
-  }
+    const keys = text.split("");
+    await pressKeys(keys, delayMs);
+  };
   const pressReturn = (modifiers) => {
-    pressKey(KeyCodes.RETURN, modifiers)
-  }
+    pressKey(KeyCodes.RETURN, modifiers);
+  };
   const pressEscape = (modifiers) => {
-    pressKey(KeyCodes.ESCAPE, modifiers)
-  }
+    pressKey(KeyCodes.ESCAPE, modifiers);
+  };
   const pressTab = (modifiers) => {
-    pressKey(KeyCodes.TAB, modifiers)
-  }
+    pressKey(KeyCodes.TAB, modifiers);
+  };
   const pressBackspace = (modifiers) => {
-    pressKey(KeyCodes.BACKSPACE, modifiers)
-  }
+    pressKey(KeyCodes.BACKSPACE, modifiers);
+  };
   const pressArrow = (direction, modifiers) => {
     const keyMap = {
       up: KeyCodes.ARROW_UP,
       down: KeyCodes.ARROW_DOWN,
       left: KeyCodes.ARROW_LEFT,
-      right: KeyCodes.ARROW_RIGHT,
-    }
-    pressKey(keyMap[direction], modifiers)
-  }
+      right: KeyCodes.ARROW_RIGHT
+    };
+    pressKey(keyMap[direction], modifiers);
+  };
   const pressCtrlC = () => {
-    pressKey("c", { ctrl: true })
-  }
+    pressKey("c", { ctrl: true });
+  };
   const pasteBracketedText = (text) => {
-    return pressKeys([ANSI.bracketedPasteStart, text, ANSI.bracketedPasteEnd])
-  }
+    return pressKeys([ANSI.bracketedPasteStart, text, ANSI.bracketedPasteEnd]);
+  };
   return {
     pressKeys,
     pressKey,
@@ -299,8 +315,8 @@ function createMockKeys(renderer, options) {
     pressBackspace,
     pressArrow,
     pressCtrlC,
-    pasteBracketedText,
-  }
+    pasteBracketedText
+  };
 }
 
 // src/testing/mock-mouse.ts
@@ -309,124 +325,129 @@ var MouseButtons = {
   MIDDLE: 1,
   RIGHT: 2,
   WHEEL_UP: 64,
+  // 64 = scroll flag + 0
   WHEEL_DOWN: 65,
+  // 64 + 1
   WHEEL_LEFT: 66,
-  WHEEL_RIGHT: 67,
-}
+  // 64 + 2
+  WHEEL_RIGHT: 67
+  // 64 + 3
+};
 function createMockMouse(renderer) {
-  let currentPosition = { x: 0, y: 0 }
-  let buttonsPressed = new Set()
+  let currentPosition = { x: 0, y: 0 };
+  let buttonsPressed = /* @__PURE__ */ new Set();
   const generateMouseEvent = (type, x, y, button = MouseButtons.LEFT, modifiers = {}) => {
-    let buttonCode = button
-    if (modifiers.shift) buttonCode |= 4
-    if (modifiers.alt) buttonCode |= 8
-    if (modifiers.ctrl) buttonCode |= 16
+    let buttonCode = button;
+    if (modifiers.shift) buttonCode |= 4;
+    if (modifiers.alt) buttonCode |= 8;
+    if (modifiers.ctrl) buttonCode |= 16;
     switch (type) {
       case "move":
-        buttonCode = 32 | 3
-        if (modifiers.shift) buttonCode |= 4
-        if (modifiers.alt) buttonCode |= 8
-        if (modifiers.ctrl) buttonCode |= 16
-        break
+        buttonCode = 32 | 3;
+        if (modifiers.shift) buttonCode |= 4;
+        if (modifiers.alt) buttonCode |= 8;
+        if (modifiers.ctrl) buttonCode |= 16;
+        break;
       case "drag":
-        buttonCode = (buttonsPressed.size > 0 ? Array.from(buttonsPressed)[0] : button) | 32
-        if (modifiers.shift) buttonCode |= 4
-        if (modifiers.alt) buttonCode |= 8
-        if (modifiers.ctrl) buttonCode |= 16
-        break
+        buttonCode = (buttonsPressed.size > 0 ? Array.from(buttonsPressed)[0] : button) | 32;
+        if (modifiers.shift) buttonCode |= 4;
+        if (modifiers.alt) buttonCode |= 8;
+        if (modifiers.ctrl) buttonCode |= 16;
+        break;
       case "scroll":
-        break
+        break;
     }
-    const ansiX = x + 1
-    const ansiY = y + 1
-    let pressRelease = "M"
+    const ansiX = x + 1;
+    const ansiY = y + 1;
+    let pressRelease = "M";
     if (type === "up" || type === "move" || type === "drag") {
-      pressRelease = "m"
+      pressRelease = "m";
     }
-    return `\x1B[<${buttonCode};${ansiX};${ansiY}${pressRelease}`
-  }
+    return `\x1B[<${buttonCode};${ansiX};${ansiY}${pressRelease}`;
+  };
   const emitMouseEvent = async (type, x, y, button = MouseButtons.LEFT, options = {}) => {
-    const { modifiers = {}, delayMs = 0 } = options
-    const eventSequence = generateMouseEvent(type, x, y, button, modifiers)
-    renderer.stdin.emit("data", Buffer.from(eventSequence))
-    currentPosition = { x, y }
+    const { modifiers = {}, delayMs = 0 } = options;
+    const eventSequence = generateMouseEvent(type, x, y, button, modifiers);
+    renderer.stdin.emit("data", Buffer.from(eventSequence));
+    currentPosition = { x, y };
     if (type === "down" && button < 64) {
-      buttonsPressed.add(button)
+      buttonsPressed.add(button);
     } else if (type === "up") {
-      buttonsPressed.delete(button)
+      buttonsPressed.delete(button);
     }
     if (delayMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs))
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
-  }
+  };
   const moveTo = async (x, y, options = {}) => {
-    const { button = MouseButtons.LEFT, delayMs = 0, modifiers = {} } = options
+    const { button = MouseButtons.LEFT, delayMs = 0, modifiers = {} } = options;
     if (buttonsPressed.size > 0) {
-      await emitMouseEvent("drag", x, y, Array.from(buttonsPressed)[0], { modifiers, delayMs })
+      await emitMouseEvent("drag", x, y, Array.from(buttonsPressed)[0], { modifiers, delayMs });
     } else {
-      await emitMouseEvent("move", x, y, button, { modifiers, delayMs })
+      await emitMouseEvent("move", x, y, button, { modifiers, delayMs });
     }
-    currentPosition = { x, y }
-  }
+    currentPosition = { x, y };
+  };
   const click = async (x, y, button = MouseButtons.LEFT, options = {}) => {
-    const { delayMs = 10, modifiers = {} } = options
-    await emitMouseEvent("down", x, y, button, { modifiers, delayMs })
-    await new Promise((resolve) => setTimeout(resolve, delayMs))
-    await emitMouseEvent("up", x, y, button, { modifiers, delayMs })
-  }
+    const { delayMs = 10, modifiers = {} } = options;
+    await emitMouseEvent("down", x, y, button, { modifiers, delayMs });
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await emitMouseEvent("up", x, y, button, { modifiers, delayMs });
+  };
   const doubleClick = async (x, y, button = MouseButtons.LEFT, options = {}) => {
-    const { delayMs = 10, modifiers = {} } = options
-    await click(x, y, button, { modifiers, delayMs })
-    await new Promise((resolve) => setTimeout(resolve, delayMs))
-    await click(x, y, button, { modifiers, delayMs })
-  }
+    const { delayMs = 10, modifiers = {} } = options;
+    await click(x, y, button, { modifiers, delayMs });
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await click(x, y, button, { modifiers, delayMs });
+  };
   const pressDown = async (x, y, button = MouseButtons.LEFT, options = {}) => {
-    const { modifiers = {}, delayMs = 0 } = options
-    await emitMouseEvent("down", x, y, button, { modifiers, delayMs })
-  }
+    const { modifiers = {}, delayMs = 0 } = options;
+    await emitMouseEvent("down", x, y, button, { modifiers, delayMs });
+  };
   const release = async (x, y, button = MouseButtons.LEFT, options = {}) => {
-    const { modifiers = {}, delayMs = 0 } = options
-    await emitMouseEvent("up", x, y, button, { modifiers, delayMs })
-  }
+    const { modifiers = {}, delayMs = 0 } = options;
+    await emitMouseEvent("up", x, y, button, { modifiers, delayMs });
+  };
   const drag = async (startX, startY, endX, endY, button = MouseButtons.LEFT, options = {}) => {
-    const { delayMs = 10, modifiers = {} } = options
-    await pressDown(startX, startY, button, { modifiers })
-    const steps = 5
-    const dx = (endX - startX) / steps
-    const dy = (endY - startY) / steps
+    const { delayMs = 10, modifiers = {} } = options;
+    await pressDown(startX, startY, button, { modifiers });
+    const steps = 5;
+    const dx = (endX - startX) / steps;
+    const dy = (endY - startY) / steps;
     for (let i = 1; i <= steps; i++) {
-      const currentX = Math.round(startX + dx * i)
-      const currentY = Math.round(startY + dy * i)
-      await emitMouseEvent("drag", currentX, currentY, button, { modifiers, delayMs })
+      const currentX = Math.round(startX + dx * i);
+      const currentY = Math.round(startY + dy * i);
+      await emitMouseEvent("drag", currentX, currentY, button, { modifiers, delayMs });
     }
-    await release(endX, endY, button, { modifiers })
-  }
+    await release(endX, endY, button, { modifiers });
+  };
   const scroll = async (x, y, direction, options = {}) => {
-    const { modifiers = {}, delayMs = 0 } = options
-    let button
+    const { modifiers = {}, delayMs = 0 } = options;
+    let button;
     switch (direction) {
       case "up":
-        button = MouseButtons.WHEEL_UP
-        break
+        button = MouseButtons.WHEEL_UP;
+        break;
       case "down":
-        button = MouseButtons.WHEEL_DOWN
-        break
+        button = MouseButtons.WHEEL_DOWN;
+        break;
       case "left":
-        button = MouseButtons.WHEEL_LEFT
-        break
+        button = MouseButtons.WHEEL_LEFT;
+        break;
       case "right":
-        button = MouseButtons.WHEEL_RIGHT
-        break
+        button = MouseButtons.WHEEL_RIGHT;
+        break;
     }
-    await emitMouseEvent("scroll", x, y, button, { modifiers, delayMs })
-  }
+    await emitMouseEvent("scroll", x, y, button, { modifiers, delayMs });
+  };
   const getCurrentPosition = () => {
-    return { ...currentPosition }
-  }
+    return { ...currentPosition };
+  };
   const getPressedButtons = () => {
-    return Array.from(buttonsPressed)
-  }
+    return Array.from(buttonsPressed);
+  };
   return {
+    // Core interaction methods
     moveTo,
     click,
     doubleClick,
@@ -434,57 +455,59 @@ function createMockMouse(renderer) {
     release,
     drag,
     scroll,
+    // State getters
     getCurrentPosition,
     getPressedButtons,
-    emitMouseEvent,
-  }
+    // Low-level event emission (for advanced use cases)
+    emitMouseEvent
+  };
 }
 
 // src/testing/test-streams.ts
-import { Readable, Writable } from "stream"
-
-class TestWriteStream extends Writable {
-  isTTY = true
-  columns
-  rows
+import { Readable, Writable } from "stream";
+var TestWriteStream = class extends Writable {
+  isTTY = true;
+  columns;
+  rows;
   constructor(columns = 80, rows = 24) {
-    super()
-    this.columns = columns
-    this.rows = rows
+    super();
+    this.columns = columns;
+    this.rows = rows;
   }
   _write(_chunk, _encoding, callback) {
-    callback()
+    callback();
   }
   getColorDepth() {
-    return 24
+    return 24;
   }
-}
+};
 function createTestStdin() {
-  return new Readable({ read() {} })
+  return new Readable({ read() {
+  } });
 }
 function createTestStdout(columns = 80, rows = 24) {
-  return new TestWriteStream(columns, rows)
+  return new TestWriteStream(columns, rows);
 }
 
 // src/testing/test-renderer.ts
-var decoder = new TextDecoder()
-var DEFAULT_MAX_PASSES = 20
-var DEFAULT_MAX_VISUAL_IDLE_FRAMES = 20
-var DEFAULT_QUIET_FRAMES = 1
+var decoder = new TextDecoder();
+var DEFAULT_MAX_PASSES = 20;
+var DEFAULT_MAX_VISUAL_IDLE_FRAMES = 20;
+var DEFAULT_QUIET_FRAMES = 1;
 async function drainImmediateWork() {
-  await Promise.resolve()
-  await new Promise((resolve) => process.nextTick(resolve))
-  await Promise.resolve()
+  await Promise.resolve();
+  await new Promise((resolve) => process.nextTick(resolve));
+  await Promise.resolve();
 }
 function normalizePositiveInteger(value, fallback) {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return fallback
+    return fallback;
   }
-  return Math.floor(value)
+  return Math.floor(value);
 }
 function createWaitError(renderer, message, frame) {
-  const stats = renderer.getStats()
-  const scheduler = renderer.getSchedulerState()
+  const stats = renderer.getStats();
+  const scheduler = renderer.getSchedulerState();
   const details = [
     message,
     `frameId: ${renderer.frameId}`,
@@ -492,185 +515,180 @@ function createWaitError(renderer, message, frame) {
     `cellsUpdated: ${stats.cellsUpdated}`,
     `isRunning: ${scheduler.isRunning}`,
     `isRendering: ${scheduler.isRendering}`,
-    `hasScheduledRender: ${scheduler.hasScheduledRender}`,
-  ]
-  if (frame !== undefined) {
+    `hasScheduledRender: ${scheduler.hasScheduledRender}`
+  ];
+  if (frame !== void 0) {
     details.push(`lastFrame:
-${frame}`)
+${frame}`);
   }
-  return new Error(
-    details.join(`
-`),
-  )
+  return new Error(details.join("\n"));
 }
-
-class TestExternalOutputRecorder {
-  commits = []
+var TestExternalOutputRecorder = class {
+  commits = [];
   constructor(renderer) {
-    renderer.on("external_output" /* EXTERNAL_OUTPUT */, this.record)
+    renderer.on("external_output" /* EXTERNAL_OUTPUT */, this.record);
     renderer.once("destroy" /* DESTROY */, () => {
-      renderer.off("external_output" /* EXTERNAL_OUTPUT */, this.record)
-    })
+      renderer.off("external_output" /* EXTERNAL_OUTPUT */, this.record);
+    });
   }
   record = (event) => {
-    const raw = decoder.decode(event.snapshot.getRealCharBytes(false))
-    const rows = Array.from({ length: event.snapshot.height }, (_, index) =>
-      raw.slice(index * event.snapshot.width, (index + 1) * event.snapshot.width).trimEnd(),
-    )
+    const raw = decoder.decode(event.snapshot.getRealCharBytes(false));
+    const rows = Array.from(
+      { length: event.snapshot.height },
+      (_, index) => raw.slice(index * event.snapshot.width, (index + 1) * event.snapshot.width).trimEnd()
+    );
     this.commits.push({
-      text: rows.join(`
-`),
+      text: rows.join("\n"),
       rows,
       width: event.snapshot.width,
       height: event.snapshot.height,
       rowColumns: event.rowColumns,
       startOnNewLine: event.startOnNewLine,
-      trailingNewline: event.trailingNewline,
-    })
-  }
+      trailingNewline: event.trailingNewline
+    });
+  };
   take() {
-    const commits = this.commits
-    this.commits = []
-    return commits
+    const commits = this.commits;
+    this.commits = [];
+    return commits;
   }
   takeText() {
-    return this.take().flatMap((commit) => commit.rows).join(`
-`)
+    return this.take().flatMap((commit) => commit.rows).join("\n");
   }
   clear() {
-    this.commits = []
+    this.commits = [];
   }
-}
+};
 function waitForNextFrameOrIdle(renderer) {
-  const scheduler = renderer.getSchedulerState()
+  const scheduler = renderer.getSchedulerState();
   if (!scheduler.isRunning && !scheduler.isRendering && !scheduler.hasScheduledRender) {
-    return Promise.resolve(null)
+    return Promise.resolve(null);
   }
   return new Promise((resolve) => {
-    let settled = false
+    let settled = false;
     const cleanup = () => {
-      renderer.off("frame" /* FRAME */, onFrame)
-      renderer.off("destroy" /* DESTROY */, onDestroy)
-    }
+      renderer.off("frame" /* FRAME */, onFrame);
+      renderer.off("destroy" /* DESTROY */, onDestroy);
+    };
     const finish = (event) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(event)
-    }
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(event);
+    };
     const onFrame = (event) => {
-      finish(event)
-    }
+      finish(event);
+    };
     const onDestroy = () => {
-      finish(null)
-    }
-    renderer.on("frame" /* FRAME */, onFrame)
-    renderer.once("destroy" /* DESTROY */, onDestroy)
+      finish(null);
+    };
+    renderer.on("frame" /* FRAME */, onFrame);
+    renderer.once("destroy" /* DESTROY */, onDestroy);
     if (!scheduler.isRunning) {
-      renderer.idle().then(() => finish(null))
+      renderer.idle().then(() => finish(null));
     }
-  })
+  });
 }
 async function createTestRenderer(options) {
-  const useKittyKeyboard = options.kittyKeyboard ? { events: true } : options.useKittyKeyboard
+  const useKittyKeyboard = options.kittyKeyboard ? { events: true } : options.useKittyKeyboard;
   const renderer = await setupTestRenderer({
     ...options,
     useKittyKeyboard,
     screenMode: options.screenMode ?? "main-screen",
     footerHeight: options.footerHeight ?? 12,
     consoleMode: options.consoleMode ?? "disabled",
-    externalOutputMode: options.externalOutputMode ?? "passthrough",
-  })
-  const externalOutput = new TestExternalOutputRecorder(renderer)
+    externalOutputMode: options.externalOutputMode ?? "passthrough"
+  });
+  const externalOutput = new TestExternalOutputRecorder(renderer);
   const mockInput = createMockKeys(renderer, {
     kittyKeyboard: options.kittyKeyboard,
-    otherModifiersMode: options.otherModifiersMode,
-  })
-  const mockMouse = createMockMouse(renderer)
+    otherModifiersMode: options.otherModifiersMode
+  });
+  const mockMouse = createMockMouse(renderer);
   const renderOnce = async () => {
-    const feed = renderer._feed
+    const feed = renderer._feed;
     if (feed?.isBackpressured()) {
-      await feed.idle()
+      await feed.idle();
     }
-    await renderer.loop()
-  }
+    await renderer.loop();
+  };
   const captureCharFrame = () => {
-    const currentBuffer = renderer.currentRenderBuffer
-    const frameBytes = currentBuffer.getRealCharBytes(true)
-    return decoder.decode(frameBytes)
-  }
+    const currentBuffer = renderer.currentRenderBuffer;
+    const frameBytes = currentBuffer.getRealCharBytes(true);
+    return decoder.decode(frameBytes);
+  };
   const waitForVisualIdle = async (waitOptions = {}) => {
-    const maxFrames = normalizePositiveInteger(waitOptions.maxFrames, DEFAULT_MAX_VISUAL_IDLE_FRAMES)
-    const quietFrames = normalizePositiveInteger(waitOptions.quietFrames, DEFAULT_QUIET_FRAMES)
-    let consecutiveQuietFrames = 0
+    const maxFrames = normalizePositiveInteger(waitOptions.maxFrames, DEFAULT_MAX_VISUAL_IDLE_FRAMES);
+    const quietFrames = normalizePositiveInteger(waitOptions.quietFrames, DEFAULT_QUIET_FRAMES);
+    let consecutiveQuietFrames = 0;
     for (let frame = 0; frame < maxFrames; frame++) {
-      await drainImmediateWork()
-      const scheduler2 = renderer.getSchedulerState()
+      await drainImmediateWork();
+      const scheduler2 = renderer.getSchedulerState();
       if (!scheduler2.isRunning && !scheduler2.isRendering && !scheduler2.hasScheduledRender) {
-        return
+        return;
       }
-      const event = await waitForNextFrameOrIdle(renderer)
+      const event = await waitForNextFrameOrIdle(renderer);
       if (!event) {
-        return
+        return;
       }
       if (renderer.getNativeStats().cellsUpdated === 0) {
-        consecutiveQuietFrames++
+        consecutiveQuietFrames++;
         if (consecutiveQuietFrames >= quietFrames) {
-          return
+          return;
         }
       } else {
-        consecutiveQuietFrames = 0
+        consecutiveQuietFrames = 0;
       }
     }
-    await drainImmediateWork()
-    const scheduler = renderer.getSchedulerState()
+    await drainImmediateWork();
+    const scheduler = renderer.getSchedulerState();
     if (!scheduler.isRunning && !scheduler.isRendering && !scheduler.hasScheduledRender) {
-      return
+      return;
     }
-    throw createWaitError(renderer, `Timed out waiting for visual idle after ${maxFrames} frames`)
-  }
+    throw createWaitError(renderer, `Timed out waiting for visual idle after ${maxFrames} frames`);
+  };
   const flush = async (flushOptions = {}) => {
-    await waitForVisualIdle({ maxFrames: normalizePositiveInteger(flushOptions.maxPasses, DEFAULT_MAX_PASSES) })
-  }
+    await waitForVisualIdle({ maxFrames: normalizePositiveInteger(flushOptions.maxPasses, DEFAULT_MAX_PASSES) });
+  };
   const waitFor = async (predicate, waitOptions = {}) => {
-    const maxPasses = normalizePositiveInteger(waitOptions.maxPasses, DEFAULT_MAX_PASSES)
+    const maxPasses = normalizePositiveInteger(waitOptions.maxPasses, DEFAULT_MAX_PASSES);
     for (let pass = 0; pass <= maxPasses; pass++) {
-      await drainImmediateWork()
+      await drainImmediateWork();
       if (await predicate()) {
-        return
+        return;
       }
       if (pass === maxPasses) {
-        break
+        break;
       }
-      const scheduler = renderer.getSchedulerState()
+      const scheduler = renderer.getSchedulerState();
       if (!scheduler.isRunning && !scheduler.isRendering && !scheduler.hasScheduledRender) {
-        break
+        break;
       }
-      await waitForNextFrameOrIdle(renderer)
+      await waitForNextFrameOrIdle(renderer);
     }
-    throw createWaitError(renderer, `Timed out waiting for predicate after ${maxPasses} passes`)
-  }
+    throw createWaitError(renderer, `Timed out waiting for predicate after ${maxPasses} passes`);
+  };
   const waitForFrame = async (predicate, waitOptions = {}) => {
-    const maxPasses = normalizePositiveInteger(waitOptions.maxPasses, DEFAULT_MAX_PASSES)
-    let frame = captureCharFrame()
+    const maxPasses = normalizePositiveInteger(waitOptions.maxPasses, DEFAULT_MAX_PASSES);
+    let frame = captureCharFrame();
     for (let pass = 0; pass <= maxPasses; pass++) {
-      await drainImmediateWork()
-      frame = captureCharFrame()
+      await drainImmediateWork();
+      frame = captureCharFrame();
       if (await predicate(frame)) {
-        return frame
+        return frame;
       }
       if (pass === maxPasses) {
-        break
+        break;
       }
-      const scheduler = renderer.getSchedulerState()
+      const scheduler = renderer.getSchedulerState();
       if (!scheduler.isRunning && !scheduler.isRendering && !scheduler.hasScheduledRender) {
-        break
+        break;
       }
-      await waitForNextFrameOrIdle(renderer)
+      await waitForNextFrameOrIdle(renderer);
     }
-    frame = captureCharFrame()
-    throw createWaitError(renderer, `Timed out waiting for frame predicate after ${maxPasses} passes`, frame)
-  }
+    frame = captureCharFrame();
+    throw createWaitError(renderer, `Timed out waiting for frame predicate after ${maxPasses} passes`, frame);
+  };
   return {
     renderer,
     mockInput,
@@ -684,87 +702,89 @@ async function createTestRenderer(options) {
     getNativeStats: () => renderer.getNativeStats(),
     captureCharFrame,
     captureSpans: () => {
-      const currentBuffer = renderer.currentRenderBuffer
-      const lines = currentBuffer.getSpanLines()
-      const cursorState = renderer.getCursorState()
+      const currentBuffer = renderer.currentRenderBuffer;
+      const lines = currentBuffer.getSpanLines();
+      const cursorState = renderer.getCursorState();
       return {
         cols: currentBuffer.width,
         rows: currentBuffer.height,
         cursor: [cursorState.x, cursorState.y],
-        lines,
-      }
+        lines
+      };
     },
     resize: (width, height) => {
-      renderer.processResize(width, height)
-    },
-  }
+      renderer.processResize(width, height);
+    }
+  };
 }
 async function setupTestRenderer(config) {
-  const stdin = config.stdin || createTestStdin()
-  const width = config.width || config.stdout?.columns || process.stdout.columns || 80
-  const height = config.height || config.stdout?.rows || process.stdout.rows || 24
-  const stdout = config.stdout || createTestStdout(width, height)
+  const stdin = config.stdin || createTestStdin();
+  const width = config.width || config.stdout?.columns || process.stdout.columns || 80;
+  const height = config.height || config.stdout?.rows || process.stdout.rows || 24;
+  const stdout = config.stdout || createTestStdout(width, height);
   return new CliRenderer(stdin, stdout, width, height, {
     ...config,
-    bufferedOutput: config.bufferedOutput ?? "memory",
-  })
+    bufferedOutput: config.bufferedOutput ?? "memory"
+  });
 }
+
 // src/testing/mock-tree-sitter-client.ts
-class MockTreeSitterClient extends TreeSitterClient {
-  _highlightPromises = []
-  _mockResult = { highlights: [] }
-  _autoResolveTimeout
-  _clock
+var MockTreeSitterClient = class extends TreeSitterClient {
+  _highlightPromises = [];
+  _mockResult = { highlights: [] };
+  _autoResolveTimeout;
+  _clock;
   constructor(options) {
-    super({ dataPath: "/tmp/mock" }, { autoStartWorker: false })
-    this._autoResolveTimeout = options?.autoResolveTimeout
-    this._clock = options?.clock ?? new SystemClock()
+    super({ dataPath: "/tmp/mock" }, { autoStartWorker: false });
+    this._autoResolveTimeout = options?.autoResolveTimeout;
+    this._clock = options?.clock ?? new SystemClock();
   }
   async destroy() {
-    this.resolveAllHighlightOnce()
-    await super.destroy()
+    this.resolveAllHighlightOnce();
+    await super.destroy();
   }
   async highlightOnce(content, filetype) {
-    const { promise, resolve } = Promise.withResolvers()
-    let timeout
-    if (this._autoResolveTimeout !== undefined) {
+    const { promise, resolve } = Promise.withResolvers();
+    let timeout;
+    if (this._autoResolveTimeout !== void 0) {
       timeout = this._clock.setTimeout(() => {
-        const index = this._highlightPromises.findIndex((p) => p.promise === promise)
+        const index = this._highlightPromises.findIndex((p) => p.promise === promise);
         if (index !== -1) {
-          resolve(this._mockResult)
-          this._highlightPromises.splice(index, 1)
+          resolve(this._mockResult);
+          this._highlightPromises.splice(index, 1);
         }
-      }, this._autoResolveTimeout)
+      }, this._autoResolveTimeout);
     }
-    this._highlightPromises.push({ promise, resolve, timeout })
-    return promise
+    this._highlightPromises.push({ promise, resolve, timeout });
+    return promise;
   }
   setMockResult(result) {
-    this._mockResult = result
+    this._mockResult = result;
   }
   resolveHighlightOnce(index = 0) {
     if (index >= 0 && index < this._highlightPromises.length) {
-      const item = this._highlightPromises[index]
+      const item = this._highlightPromises[index];
       if (item.timeout) {
-        this._clock.clearTimeout(item.timeout)
+        this._clock.clearTimeout(item.timeout);
       }
-      item.resolve(this._mockResult)
-      this._highlightPromises.splice(index, 1)
+      item.resolve(this._mockResult);
+      this._highlightPromises.splice(index, 1);
     }
   }
   resolveAllHighlightOnce() {
     for (const { resolve, timeout } of this._highlightPromises) {
       if (timeout) {
-        this._clock.clearTimeout(timeout)
+        this._clock.clearTimeout(timeout);
       }
-      resolve(this._mockResult)
+      resolve(this._mockResult);
     }
-    this._highlightPromises = []
+    this._highlightPromises = [];
   }
   isHighlighting() {
-    return this._highlightPromises.length > 0
+    return this._highlightPromises.length > 0;
   }
-}
+};
+
 // src/testing/terminal-capabilities.ts
 function createTerminalCapabilities(overrides = {}) {
   return {
@@ -792,201 +812,219 @@ function createTerminalCapabilities(overrides = {}) {
       name: "",
       version: "",
       from_xtversion: false,
-      ...overrides.terminal,
-    },
-  }
+      ...overrides.terminal
+    }
+  };
 }
 function setRendererCapabilities(renderer, overrides = {}) {
-  const capabilities = createTerminalCapabilities(overrides)
-  renderer._capabilities = capabilities
-  return capabilities
+  const capabilities = createTerminalCapabilities(overrides);
+  renderer._capabilities = capabilities;
+  return capabilities;
 }
+
 // src/testing/spy.ts
 function createSpy() {
-  const calls = []
+  const calls = [];
   const spy = (...args) => {
-    calls.push(args)
-  }
-  spy.calls = calls
-  spy.callCount = () => calls.length
+    calls.push(args);
+  };
+  spy.calls = calls;
+  spy.callCount = () => calls.length;
   spy.calledWith = (...expected) => {
-    return calls.some((call) => JSON.stringify(call) === JSON.stringify(expected))
-  }
-  spy.reset = () => (calls.length = 0)
-  return spy
+    return calls.some((call) => JSON.stringify(call) === JSON.stringify(expected));
+  };
+  spy.reset = () => calls.length = 0;
+  return spy;
 }
+
 // src/testing/manual-clock.ts
 function compareTimers(left, right) {
   if (left.fireAt !== right.fireAt) {
-    return left.fireAt - right.fireAt
+    return left.fireAt - right.fireAt;
   }
-  return left.order - right.order
+  return left.order - right.order;
 }
-
-class ManualClock {
-  time = 0
-  nextId = 1
-  nextOrder = 0
-  timers = new Map()
+var ManualClock = class {
+  time = 0;
+  nextId = 1;
+  nextOrder = 0;
+  timers = /* @__PURE__ */ new Map();
   now() {
-    return this.time
+    return this.time;
   }
   setTime(time) {
-    const targetTime = Math.floor(time)
+    const targetTime = Math.floor(time);
     if (targetTime >= this.time) {
-      this.advance(targetTime - this.time)
-      return
+      this.advance(targetTime - this.time);
+      return;
     }
-    this.time = targetTime
+    this.time = targetTime;
   }
   setTimeout(fn, delayMs) {
-    return this.schedule(fn, delayMs, false)
+    return this.schedule(fn, delayMs, false);
   }
   clearTimeout(handle) {
-    this.timers.delete(Number(handle))
+    this.timers.delete(Number(handle));
   }
   setInterval(fn, delayMs) {
-    return this.schedule(fn, delayMs, true)
+    return this.schedule(fn, delayMs, true);
   }
   clearInterval(handle) {
-    this.clearTimeout(handle)
+    this.clearTimeout(handle);
   }
   advance(delayMs) {
-    const targetTime = this.time + Math.max(0, Math.floor(delayMs))
+    const targetTime = this.time + Math.max(0, Math.floor(delayMs));
     while (true) {
-      const nextTimer = this.peekNextTimer()
+      const nextTimer = this.peekNextTimer();
       if (!nextTimer || nextTimer.fireAt > targetTime) {
-        break
+        break;
       }
-      this.timers.delete(nextTimer.id)
-      this.time = nextTimer.fireAt
-      nextTimer.fn()
+      this.timers.delete(nextTimer.id);
+      this.time = nextTimer.fireAt;
+      nextTimer.fn();
       if (nextTimer.repeat && !this.timers.has(nextTimer.id)) {
         this.timers.set(nextTimer.id, {
           ...nextTimer,
           fireAt: this.time + nextTimer.delayMs,
-          order: this.nextOrder++,
-        })
+          order: this.nextOrder++
+        });
       }
     }
-    this.time = targetTime
+    this.time = targetTime;
   }
   runAll() {
     while (true) {
-      const nextTimer = this.peekNextTimer()
+      const nextTimer = this.peekNextTimer();
       if (!nextTimer) {
-        return
+        return;
       }
-      this.advance(nextTimer.fireAt - this.time)
+      this.advance(nextTimer.fireAt - this.time);
     }
   }
   schedule(fn, delayMs, repeat) {
-    const id = this.nextId++
-    const normalizedDelay = Math.max(0, Math.floor(delayMs))
+    const id = this.nextId++;
+    const normalizedDelay = Math.max(0, Math.floor(delayMs));
     this.timers.set(id, {
       id,
       fireAt: this.time + normalizedDelay,
       order: this.nextOrder++,
       delayMs: normalizedDelay,
       repeat,
-      fn,
-    })
-    return id
+      fn
+    });
+    return id;
   }
   peekNextTimer() {
-    let nextTimer = null
+    let nextTimer = null;
     for (const timer of this.timers.values()) {
       if (!nextTimer || compareTimers(timer, nextTimer) < 0) {
-        nextTimer = timer
+        nextTimer = timer;
       }
     }
-    return nextTimer
+    return nextTimer;
   }
-}
+};
+
 // src/testing/test-recorder.ts
-class TestRecorder {
-  renderer
-  frames = []
-  recording = false
-  frameNumber = 0
-  startTime = 0
-  decoder = new TextDecoder()
-  recordBuffers
-  now
+var TestRecorder = class {
+  renderer;
+  frames = [];
+  recording = false;
+  frameNumber = 0;
+  startTime = 0;
+  decoder = new TextDecoder();
+  recordBuffers;
+  now;
   onFrame = () => {
-    if (!this.recording) return
-    this.captureFrame()
-  }
+    if (!this.recording) return;
+    this.captureFrame();
+  };
   constructor(renderer, options) {
-    this.renderer = renderer
-    this.recordBuffers = options?.recordBuffers || {}
-    this.now = options?.now ?? (() => performance.now())
+    this.renderer = renderer;
+    this.recordBuffers = options?.recordBuffers || {};
+    this.now = options?.now ?? (() => performance.now());
   }
+  /**
+   * Start recording frames.
+   */
   rec() {
     if (this.recording) {
-      return
+      return;
     }
-    this.recording = true
-    this.frames = []
-    this.frameNumber = 0
-    this.startTime = this.now()
-    this.renderer.on("frame" /* FRAME */, this.onFrame)
+    this.recording = true;
+    this.frames = [];
+    this.frameNumber = 0;
+    this.startTime = this.now();
+    this.renderer.on("frame" /* FRAME */, this.onFrame);
   }
+  /**
+   * Stop recording frames.
+   */
   stop() {
     if (!this.recording) {
-      return
+      return;
     }
-    this.recording = false
-    this.renderer.off("frame" /* FRAME */, this.onFrame)
+    this.recording = false;
+    this.renderer.off("frame" /* FRAME */, this.onFrame);
   }
+  /**
+   * Get the recorded frames.
+   */
   get recordedFrames() {
-    return [...this.frames]
+    return [...this.frames];
   }
+  /**
+   * Clear all recorded frames.
+   */
   clear() {
-    this.frames = []
-    this.frameNumber = 0
+    this.frames = [];
+    this.frameNumber = 0;
   }
+  /**
+   * Check if currently recording.
+   */
   get isRecording() {
-    return this.recording
+    return this.recording;
   }
+  /**
+   * Capture the current frame from the renderer's buffer.
+   */
   captureFrame() {
-    const currentBuffer = this.renderer.currentRenderBuffer
-    const frameBytes = currentBuffer.getRealCharBytes(true)
-    const frame = this.decoder.decode(frameBytes)
+    const currentBuffer = this.renderer.currentRenderBuffer;
+    const frameBytes = currentBuffer.getRealCharBytes(true);
+    const frame = this.decoder.decode(frameBytes);
     const recordedFrame = {
       frame,
       timestamp: this.now() - this.startTime,
-      frameNumber: this.frameNumber++,
-    }
+      frameNumber: this.frameNumber++
+    };
     if (this.recordBuffers.fg || this.recordBuffers.bg || this.recordBuffers.attributes) {
-      const buffers = currentBuffer.buffers
-      recordedFrame.buffers = {}
+      const buffers = currentBuffer.buffers;
+      recordedFrame.buffers = {};
       if (this.recordBuffers.fg) {
-        recordedFrame.buffers.fg = new Uint16Array(buffers.fg)
+        recordedFrame.buffers.fg = new Uint16Array(buffers.fg);
       }
       if (this.recordBuffers.bg) {
-        recordedFrame.buffers.bg = new Uint16Array(buffers.bg)
+        recordedFrame.buffers.bg = new Uint16Array(buffers.bg);
       }
       if (this.recordBuffers.attributes) {
-        recordedFrame.buffers.attributes = new Uint8Array(buffers.attributes)
+        recordedFrame.buffers.attributes = new Uint8Array(buffers.attributes);
       }
     }
-    this.frames.push(recordedFrame)
+    this.frames.push(recordedFrame);
   }
-}
+};
 export {
-  setRendererCapabilities,
-  pasteBytes,
-  createTestRenderer,
-  createTerminalCapabilities,
-  createSpy,
-  createMockMouse,
-  createMockKeys,
-  TestRecorder,
-  MouseButtons,
-  MockTreeSitterClient,
-  ManualClock,
   KeyCodes,
-}
-
-//# debugId=884B8CD1F6ACF7CC64756E2164756E21
+  ManualClock,
+  MockTreeSitterClient,
+  MouseButtons,
+  TestRecorder,
+  createMockKeys,
+  createMockMouse,
+  createSpy,
+  createTerminalCapabilities,
+  createTestRenderer,
+  pasteBytes,
+  setRendererCapabilities
+};

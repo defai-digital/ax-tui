@@ -15,8 +15,18 @@ test.skipIf(!supportsFfi)(
     try {
       const packageRoot = path.join(fixture, "package")
       await mkdir(path.join(packageRoot, "vendor"), { recursive: true })
+      await mkdir(path.join(packageRoot, "native"))
       const files = (await readdir(root)).filter((file) => /^index(?:-.*)?\.js$/.test(file))
-      for (const file of [...files, "testing.js", "native", "assets", "package.json", "vendor/manifest.json"]) {
+      for (const file of [
+        ...files,
+        "testing.js",
+        "native/index.js",
+        "native/resolve.js",
+        "native/types.js",
+        "assets",
+        "package.json",
+        "vendor/manifest.json",
+      ]) {
         await cp(path.join(root, file), path.join(packageRoot, file), { recursive: true })
       }
       await symlink(path.join(root, "node_modules"), path.join(packageRoot, "node_modules"), "junction")

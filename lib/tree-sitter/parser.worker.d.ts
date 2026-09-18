@@ -1,6 +1,6 @@
 /**
- * Tree-sitter parser worker entrypoint for ax-tui.
+ * Syntax parser worker entrypoint.
  *
  * @module
  */
-export {}
+export {};

@@ -1,19 +1,14 @@
-import { PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "ax-tui"
-/** Renderer context. */
-export declare const RendererContext: import("solid-js").Context<CliRenderer | undefined>
-/** Access the current {@link CliRenderer} from SolidJS context. */
-export declare const useRenderer: () => CliRenderer
-/** On resize. */
-export declare const onResize: (callback: (width: number, height: number) => void) => void
-/** Use terminal dimensions. */
+import { PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "ax-tui";
+export declare const RendererContext: import("solid-js").Context<CliRenderer | undefined>;
+export declare const useRenderer: () => CliRenderer;
+export declare const onResize: (callback: (width: number, height: number) => void) => void;
 export declare const useTerminalDimensions: () => import("solid-js").Accessor<{
-  width: number
-  height: number
-}>
-/** Use keyboard options. */
+    width: number;
+    height: number;
+}>;
 export interface UseKeyboardOptions {
-  /** Include release events - callback receives events with eventType: "release" */
-  release?: boolean
+    /** Include release events - callback receives events with eventType: "release" */
+    release?: boolean;
 }
 /**
  * Subscribe to keyboard events.
@@ -31,18 +26,13 @@ export interface UseKeyboardOptions {
  *   else keys.add(e.name)
  * }, { release: true })
  */
-export declare const useKeyboard: (callback: (key: KeyEvent) => void, options?: UseKeyboardOptions) => void
-/** Use paste. */
-export declare const usePaste: (callback: (event: PasteEvent) => void) => void
+export declare const useKeyboard: (callback: (key: KeyEvent) => void, options?: UseKeyboardOptions) => void;
+export declare const usePaste: (callback: (event: PasteEvent) => void) => void;
 /**
  * @deprecated renamed to useKeyboard
  */
-export declare const useKeyHandler: (callback: (key: KeyEvent) => void, options?: UseKeyboardOptions) => void
-/** On focus. */
-export declare const onFocus: (callback: () => void) => void
-/** On blur. */
-export declare const onBlur: (callback: () => void) => void
-/** Use selection handler. */
-export declare const useSelectionHandler: (callback: (selection: Selection) => void) => void
-/** Use timeline. */
-export declare const useTimeline: (options?: TimelineOptions) => Timeline
+export declare const useKeyHandler: typeof useKeyboard;
+export declare const onFocus: (callback: () => void) => void;
+export declare const onBlur: (callback: () => void) => void;
+export declare const useSelectionHandler: (callback: (selection: Selection) => void) => void;
+export declare const useTimeline: (options?: TimelineOptions) => Timeline;

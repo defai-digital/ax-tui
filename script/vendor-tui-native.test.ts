@@ -1,10 +1,9 @@
 import { describe, expect, test } from "vitest"
-import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { assertBinaryFormat, checkVendorTree, listTarballNames } from "./vendor-tui-native"
+import { assertBinaryFormat, checkVendorTree } from "./vendor-tui-native"
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 const VENDOR = join(ROOT, "vendor")
@@ -14,33 +13,38 @@ describe("script.vendor-tui-native", () => {
     expect(checkVendorTree()).toEqual([])
   })
 
-  test("manifest records provenance for all 8 upstream targets", () => {
+  test("manifest records provenance for all 8 local build targets", () => {
     const manifest = JSON.parse(readFileSync(join(VENDOR, "manifest.json"), "utf8"))
-    expect(manifest.upstream).toMatchObject({ version: expect.any(String), license: "MIT" })
+    expect(manifest.origin).toMatchObject({ version: expect.any(String), license: "MIT" })
     for (const [key, entry] of Object.entries<any>(manifest.targets)) {
-      expect(entry.package, key).toBe(`@opentui/core-${key}`)
-      expect(entry.tarballIntegrity, key).toMatch(/^sha512-/)
+      expect(entry.build.sourceSha256, key).toMatch(/^[0-9a-f]{64}$/)
+      expect(entry.build.zigVersion, key).toBe("0.15.2")
+      expect(entry.package, key).toBeUndefined()
+      expect(entry.tarball, key).toBeUndefined()
       expect(entry.lib.sha256, key).toMatch(/^[0-9a-f]{64}$/)
       expect(entry.lib.size, key).toBeGreaterThan(1_000_000)
       expect(entry.licenseSha256, key).toMatch(/^[0-9a-f]{64}$/)
+      const license = readFileSync(join(VENDOR, key, "LICENSE"), "utf8")
+      expect(license).toContain("Copyright (c) 2025 opentui")
+      expect(license).toContain("Copyright (c) 2026 DEFAI Digital")
+      expect(license).toContain("Facebook, Inc.")
+      expect(license).toContain("Jacob Sandlund")
+      expect(license).toContain("Unicode")
     }
   })
 
-  test("tar listing preserves full entry names, including paths with spaces", () => {
-    const fixture = mkdtempSync(join(tmpdir(), "ax-tui-tar-listing-"))
+  test("rejects stale source builds and unsafe library paths before reading them", () => {
+    const fixture = mkdtempSync(join(tmpdir(), "ax-tui-manifest-"))
     try {
-      mkdirSync(join(fixture, "package"), { recursive: true })
-      writeFileSync(join(fixture, "package", "my file.txt"), "x")
-      writeFileSync(join(fixture, "package", "plain.txt"), "x")
-      const tgz = join(fixture, "pkg.tgz")
-      const res = spawnSync("tar", ["-czf", tgz, "-C", fixture, "package"], { encoding: "utf8" })
-      expect(res.status, res.stderr).toBe(0)
-
-      const names = listTarballNames(tgz)
-      // A whitespace-split verbose listing would truncate this to "file.txt",
-      // defeating the traversal and duplicate-entry checks.
-      expect(names).toContain("package/my file.txt")
-      expect(names).toContain("package/plain.txt")
+      const manifest = JSON.parse(readFileSync(join(VENDOR, "manifest.json"), "utf8"))
+      manifest.targets["darwin-arm64"].build.sourceSha256 = "0".repeat(64)
+      manifest.targets["linux-x64"].lib.file = "../../package.json"
+      const file = join(fixture, "manifest.json")
+      writeFileSync(file, JSON.stringify(manifest))
+      expect(checkVendorTree(VENDOR, file)).toEqual([
+        "darwin-arm64: native source has changed; rebuild",
+        "linux-x64: invalid library filename",
+      ])
     } finally {
       rmSync(fixture, { recursive: true, force: true })
     }

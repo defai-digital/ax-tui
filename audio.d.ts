@@ -1,124 +1,89 @@
-import { EventEmitter } from "events"
-import type { AudioStats } from "./zig-structs.js"
-/** Audio setup options. */
+import { EventEmitter } from "events";
+import type { AudioStats } from "./zig-structs.js";
 export interface AudioSetupOptions {
-  autoStart?: boolean
-  sampleRate?: number
-  playbackChannels?: number
-  startOptions?: AudioStartOptions
+    autoStart?: boolean;
+    sampleRate?: number;
+    playbackChannels?: number;
+    startOptions?: AudioStartOptions;
 }
-/** Audio start options. */
 export interface AudioStartOptions {
-  periodSizeInFrames?: number
-  periodSizeInMilliseconds?: number
-  periods?: number
-  performanceProfile?: number
-  shareMode?: number
-  noPreSilencedOutputBuffer?: boolean
-  noClip?: boolean
-  noDisableDenormals?: boolean
-  noFixedSizedCallback?: boolean
-  wasapiNoAutoConvertSrc?: boolean
-  wasapiNoDefaultQualitySrc?: boolean
-  alsaNoMMap?: boolean
-  alsaNoAutoFormat?: boolean
-  alsaNoAutoChannels?: boolean
-  alsaNoAutoResample?: boolean
+    periodSizeInFrames?: number;
+    periodSizeInMilliseconds?: number;
+    periods?: number;
+    performanceProfile?: number;
+    shareMode?: number;
+    noPreSilencedOutputBuffer?: boolean;
+    noClip?: boolean;
+    noDisableDenormals?: boolean;
+    noFixedSizedCallback?: boolean;
+    wasapiNoAutoConvertSrc?: boolean;
+    wasapiNoDefaultQualitySrc?: boolean;
+    alsaNoMMap?: boolean;
+    alsaNoAutoFormat?: boolean;
+    alsaNoAutoChannels?: boolean;
+    alsaNoAutoResample?: boolean;
 }
-/** Audio play options. */
 export interface AudioPlayOptions {
-  volume?: number
-  pan?: number
-  loop?: boolean
-  groupId?: number
+    volume?: number;
+    pan?: number;
+    loop?: boolean;
+    groupId?: number;
 }
-/** Audio group. */
-export type AudioGroup = number
-/** Audio voice. */
-export type AudioVoice = number
-/** Audio sound. */
-export type AudioSound = number
-/** Audio playback device. */
+export type AudioGroup = number;
+export type AudioVoice = number;
+export type AudioSound = number;
 export interface AudioPlaybackDevice {
-  index: number
-  name: string
-  isDefault: boolean
+    index: number;
+    name: string;
+    isDefault: boolean;
 }
-/** Audio action. */
-export type AudioAction =
-  | "createAudioEngine"
-  | "start"
-  | "startMixer"
-  | "stop"
-  | "loadSound"
-  | "loadSoundFile"
-  | "unloadSound"
-  | "group"
-  | "play"
-  | "stopVoice"
-  | "setVoiceGroup"
-  | "setGroupVolume"
-  | "setMasterVolume"
-  | "mixFrames"
-  | "enableTap"
-  | "readTapFrames"
-  | "listPlaybackDevices"
-  | "selectPlaybackDevice"
-  | "clearPlaybackDeviceSelection"
-  | "getStats"
-/** Audio error context. */
+export type AudioAction = "createAudioEngine" | "start" | "startMixer" | "stop" | "loadSound" | "loadSoundFile" | "unloadSound" | "group" | "play" | "stopVoice" | "setVoiceGroup" | "setGroupVolume" | "setMasterVolume" | "mixFrames" | "enableTap" | "readTapFrames" | "listPlaybackDevices" | "selectPlaybackDevice" | "clearPlaybackDeviceSelection" | "getStats";
 export interface AudioErrorContext {
-  action: AudioAction
-  status?: number
+    action: AudioAction;
+    status?: number;
 }
-/** Audio events. */
 export interface AudioEvents {
-  error: [error: Error, context: AudioErrorContext]
-  started: []
-  mixerStarted: []
-  stopped: []
-  disposed: []
+    error: [error: Error, context: AudioErrorContext];
+    started: [];
+    mixerStarted: [];
+    stopped: [];
+    disposed: [];
 }
-/** Native audio engine wrapper. */
 export declare class Audio extends EventEmitter<AudioEvents> {
-  static create(options?: AudioSetupOptions): Audio
-  private readonly lib
-  private readonly defaultStartOptions
-  private engine
-  private readonly groups
-  private playbackStarted
-  private mixerStarted
-  private constructor()
-  private emitError
-  start(options?: AudioStartOptions): boolean
-  startMixer(): boolean
-  stop(): boolean
-  isStarted(): boolean
-  isMixerStarted(): boolean
-  loadSound(data: Uint8Array | ArrayBuffer): AudioSound | null
-  loadSoundFile(filePath: string): Promise<AudioSound | null>
-  unloadSound(sound: AudioSound): boolean
-  group(name: string): AudioGroup | null
-  play(sound: AudioSound, options?: AudioPlayOptions): AudioVoice | null
-  stopVoice(voice: AudioVoice): boolean
-  setVoiceGroup(voice: AudioVoice, group: AudioGroup): boolean
-  setGroupVolume(group: AudioGroup, volume: number): boolean
-  setMasterVolume(volume: number): boolean
-  mixFrames(frameCount: number, channels?: number): Float32Array | null
-  enableTap(capacityFrames?: number): boolean
-  disableTap(): boolean
-  readTapFrames(
-    frameCount: number,
-    channels?: number,
-  ): {
-    frames: Float32Array
-    framesRead: number
-  } | null
-  listPlaybackDevices(): AudioPlaybackDevice[] | null
-  selectPlaybackDevice(index: number): boolean
-  clearPlaybackDeviceSelection(): void
-  getStats(): AudioStats | null
-  dispose(): void
+    static create(options?: AudioSetupOptions): Audio;
+    private readonly lib;
+    private readonly defaultStartOptions;
+    private engine;
+    private readonly groups;
+    private playbackStarted;
+    private mixerStarted;
+    private constructor();
+    private emitError;
+    start(options?: AudioStartOptions): boolean;
+    startMixer(): boolean;
+    stop(): boolean;
+    isStarted(): boolean;
+    isMixerStarted(): boolean;
+    loadSound(data: Uint8Array | ArrayBuffer): AudioSound | null;
+    loadSoundFile(filePath: string): Promise<AudioSound | null>;
+    unloadSound(sound: AudioSound): boolean;
+    group(name: string): AudioGroup | null;
+    play(sound: AudioSound, options?: AudioPlayOptions): AudioVoice | null;
+    stopVoice(voice: AudioVoice): boolean;
+    setVoiceGroup(voice: AudioVoice, group: AudioGroup): boolean;
+    setGroupVolume(group: AudioGroup, volume: number): boolean;
+    setMasterVolume(volume: number): boolean;
+    mixFrames(frameCount: number, channels?: number): Float32Array | null;
+    enableTap(capacityFrames?: number): boolean;
+    disableTap(): boolean;
+    readTapFrames(frameCount: number, channels?: number): {
+        frames: Float32Array;
+        framesRead: number;
+    } | null;
+    listPlaybackDevices(): AudioPlaybackDevice[] | null;
+    selectPlaybackDevice(index: number): boolean;
+    clearPlaybackDeviceSelection(): void;
+    getStats(): AudioStats | null;
+    dispose(): void;
 }
-/** Setup audio. */
-export declare function setupAudio(options?: AudioSetupOptions): Audio
+export declare function setupAudio(options?: AudioSetupOptions): Audio;

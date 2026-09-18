@@ -1,6 +1,8 @@
 /**
- * Development JSX runtime re-export for ax-tui/solid.
+ * Development JSX runtime and terminal intrinsic types.
  *
  * @module
  */
-export { Fragment, jsxDEV, type JSX } from "./jsx-runtime.js"
+export {};
+export { Fragment, jsxDEV } from "./jsx-runtime.js";
+export type { JSX } from "./jsx-runtime.js";

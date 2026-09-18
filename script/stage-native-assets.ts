@@ -2,12 +2,18 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createHash } from "node:crypto"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { nativeAssetNames, nativeMetadata, verifyNativeArtifacts } from "../native/resolve.js"
+import { isNativeTarget, nativeAssetNames, nativeMetadata, verifyNativeArtifacts } from "../native/resolve.js"
 
 export async function stageNativeAssets(packageRoot: string, outputDir: string) {
   const manifest = JSON.parse(await readFile(path.join(packageRoot, "vendor/manifest.json"), "utf8"))
   const artifacts: Array<{ name: string; bytes: Buffer }> = []
-  for (const target of Object.keys(manifest.targets ?? {}).sort()) {
+  const targets = Object.keys(manifest.targets ?? {})
+    .sort()
+    .map((target) => {
+      if (!isNativeTarget(target)) throw new Error(`Unsupported ax-tui native target: ${target}`)
+      return target
+    })
+  for (const target of targets) {
     const entry = nativeMetadata(packageRoot, target)
     const paths = verifyNativeArtifacts(path.join(packageRoot, "vendor", target), entry)
     const names = nativeAssetNames(target, entry)
@@ -17,7 +23,7 @@ export async function stageNativeAssets(packageRoot: string, outputDir: string) 
   if (!artifacts.length) throw new Error("No ax-tui native assets found in the manifest")
   // Verify the captured bytes too: the source may change between its first
   // validation and read. The upload must describe the exact staged content.
-  for (const target of Object.keys(manifest.targets).sort()) {
+  for (const target of targets) {
     const entry = nativeMetadata(packageRoot, target)
     const names = nativeAssetNames(target, entry)
     for (const [name, expected] of [

@@ -12,4 +12,4 @@ enabled the protocol and could alter terminal state despite the opt-out.
 2. `null` reaches `buildKittyKeyboardFlags` and the stdin parser unchanged, so
    native flags are zero and Kitty parsing is disabled.
 
-Regression: `script/tui-patches.test.ts` and `pnpm check:tui-patches`.
+Regression: `script/tui-patches.test.ts` and `pnpm run check:patches`.

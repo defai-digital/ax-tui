@@ -13,9 +13,9 @@ general-purpose package. It combines:
 - a spinner component (`ax-tui/spinner`, `ax-tui/spinner/solid`);
 - ratatui-style chart widgets (`ax-tui/chart`, `ax-tui/chart/solid`).
 
-The renderer and native libraries are derived from the
-[OpenTUI](https://github.com/sst/opentui) project (pinned to the 0.4.1 native
-baseline), published under the MIT license with attribution preserved. See
+AX TUI owns its TypeScript renderer, SolidJS reconciler, and Zig/C native source.
+It began as a source fork of [OpenTUI](https://github.com/anomalyco/opentui) 0.4.1
+and is maintained and built independently, with MIT attribution preserved. See
 [UPSTREAM.md](./UPSTREAM.md), [DIVERGENCES.md](./DIVERGENCES.md),
 [MAINTENANCE.md](./MAINTENANCE.md), and [LICENSE](./LICENSE).
 
@@ -81,32 +81,38 @@ import "ax-tui/chart/solid"
 
 ### Subpath exports
 
-| Export                        | Contents                                                    |
-| ----------------------------- | ----------------------------------------------------------- |
-| `ax-tui`                      | Native renderer, renderables, RGBA, Yoga helpers            |
-| `ax-tui/solid`                | SolidJS reconciler, `render`, `testRender`, JSX runtime     |
-| `ax-tui/solid/jsx-runtime`    | JSX runtime for `"jsxImportSource": "ax-tui/solid"`         |
-| `ax-tui/solid/transform`      | Build-time JSX/Solid transform (Babel)                      |
-| `ax-tui/spinner`              | `SpinnerRenderable` and presets                             |
-| `ax-tui/spinner/solid`        | Solid `<spinner>` intrinsic registration                    |
-| `ax-tui/chart`                | Ratatui-style charts: `ChartRenderable`, `SparklineRenderable`, `BarChartRenderable`, `GaugeRenderable`, braille grid |
-| `ax-tui/chart/solid`          | Solid `<chart>`, `<sparkline>`, `<barchart>`, `<gauge>` intrinsic registration |
-| `ax-tui/testing`              | Headless test renderer, mock input, frame capture           |
-| `ax-tui/yoga`                 | Direct Yoga layout bindings                                 |
-| `ax-tui/runtime-plugin`       | Runtime plugin glue (Bun/Node)                              |
+| Export                     | Contents                                                                                                              |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `ax-tui`                   | Native renderer, renderables, RGBA, Yoga helpers                                                                      |
+| `ax-tui/solid`             | SolidJS reconciler, `render`, `testRender`, JSX runtime                                                               |
+| `ax-tui/solid/jsx-runtime` | JSX runtime for `"jsxImportSource": "ax-tui/solid"`                                                                   |
+| `ax-tui/solid/transform`   | Build-time JSX/Solid transform (Babel)                                                                                |
+| `ax-tui/spinner`           | `SpinnerRenderable` and presets                                                                                       |
+| `ax-tui/spinner/solid`     | Solid `<spinner>` intrinsic registration                                                                              |
+| `ax-tui/chart`             | Ratatui-style charts: `ChartRenderable`, `SparklineRenderable`, `BarChartRenderable`, `GaugeRenderable`, braille grid |
+| `ax-tui/chart/solid`       | Solid `<chart>`, `<sparkline>`, `<barchart>`, `<gauge>` intrinsic registration                                        |
+| `ax-tui/testing`           | Headless test renderer, mock input, frame capture                                                                     |
+| `ax-tui/yoga`              | Direct Yoga layout bindings                                                                                           |
+| `ax-tui/runtime-plugin`    | Runtime plugin glue (Bun/Node)                                                                                        |
 
 ## Provenance and maintenance
 
-The renderer is a pinned, pre-bundled upstream snapshot plus a set of named,
-idempotent local patches (Node FFI pointer pinning, FFI geometry guards,
-vendored native resolution, Kitty keyboard opt-out, a reduced Solid intrinsic
-catalogue, and AX runtime identity). The full ledger is in
-[DIVERGENCES.md](./DIVERGENCES.md); the refresh workflow and verification
-commands are in [MAINTENANCE.md](./MAINTENANCE.md); the pinned native baseline
-and its hashes are recorded in [`vendor/manifest.json`](./vendor/manifest.json).
+Edit `src/`, `solid/source/`, and `native/source/` for TypeScript changes.
+TypeScript 7 checks these modules and generates the committed JavaScript and
+declarations. Edit `native/renderer/` for Zig/C changes; Zig 0.15.2 builds all
+eight supported native targets. No OpenTUI package is needed for these builds.
+
+The behavior ledger is in [DIVERGENCES.md](./DIVERGENCES.md), the build and
+release workflow is in [MAINTENANCE.md](./MAINTENANCE.md), and source/binary
+hashes are recorded in [`vendor/manifest.json`](./vendor/manifest.json).
 
 ```sh
-pnpm run check   # vendor integrity + patch contracts + spinner/chart dist freshness
+pnpm run build
+pnpm run typecheck
+pnpm run check
+pnpm test
+pnpm run test:native        # requires Zig 0.15.2
+pnpm run build:native --all # macOS targets also require an Apple SDK
 ```
 
 ## Design influences

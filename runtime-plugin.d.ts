@@ -1,29 +1,22 @@
 /**
- * Bun runtime-plugin factory for ax-tui virtual modules.
+ * Runtime module support for Bun bundles.
  *
  * @module
  */
-import { type BunPlugin } from "bun"
-/** Runtime module exports. */
-export type RuntimeModuleExports = Record<string, unknown>
-/** Runtime module loader. */
-export type RuntimeModuleLoader = () => RuntimeModuleExports | Promise<RuntimeModuleExports>
-/** Runtime module entry. */
-export type RuntimeModuleEntry = RuntimeModuleExports | RuntimeModuleLoader
-/** Runtime plugin rewrite options. */
+export {};
+import { type BunPlugin } from "bun";
+export type RuntimeModuleExports = Record<string, unknown>;
+export type RuntimeModuleLoader = () => RuntimeModuleExports | Promise<RuntimeModuleExports>;
+export type RuntimeModuleEntry = RuntimeModuleExports | RuntimeModuleLoader;
 export interface RuntimePluginRewriteOptions {
-  nodeModulesRuntimeSpecifiers?: boolean
-  nodeModulesBareSpecifiers?: boolean
+    nodeModulesRuntimeSpecifiers?: boolean;
+    nodeModulesBareSpecifiers?: boolean;
 }
-/** Create runtime plugin options. */
 export interface CreateRuntimePluginOptions {
-  core?: RuntimeModuleEntry
-  additional?: Record<string, RuntimeModuleEntry>
-  rewrite?: RuntimePluginRewriteOptions
+    core?: RuntimeModuleEntry;
+    additional?: Record<string, RuntimeModuleEntry>;
+    rewrite?: RuntimePluginRewriteOptions;
 }
-/** Is core runtime module specifier. */
-export declare const isCoreRuntimeModuleSpecifier: (specifier: string) => boolean
-/** Runtime module id for specifier. */
-export declare const runtimeModuleIdForSpecifier: (specifier: string) => string
-/** Create the Bun plugin that virtualizes ax-tui runtime modules. */
-export declare function createRuntimePlugin(input?: CreateRuntimePluginOptions): BunPlugin
+export declare const isCoreRuntimeModuleSpecifier: (specifier: string) => boolean;
+export declare const runtimeModuleIdForSpecifier: (specifier: string) => string;
+export declare function createRuntimePlugin(input?: CreateRuntimePluginOptions): BunPlugin;

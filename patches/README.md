@@ -1,20 +1,23 @@
-# AX Code TUI patch contracts
+# AX TUI behavior contracts
 
-These are the required AX-owned fixes applied to the pinned renderer snapshot.
-They are reviewable documents plus an idempotent applier:
+These documents describe inherited AX fixes now maintained in TypeScript.
+Edit `src/`, `solid/source/`, or `native/source/`, then regenerate artifacts:
 
 ```sh
-pnpm apply:tui-patches   # no-op when already applied
-pnpm check:tui-patches   # fail if a sync dropped a fix
+pnpm run build:renderer
+pnpm run check:patches
 ```
 
-Do not re-implement these by hand-editing hashed `index-*.js` chunks during a
-sync. Drop in the upstream JS, then run the applier.
+`script/tui-patches.ts` verifies source contracts. It does not rewrite bundles.
+Do not hand-edit hashed `index-*.js` files or replace them with upstream output.
+See `DIVERGENCES.md` for the full ledger and regression coverage.
 
-| Id                         | File                                                         | What it protects                                         |
-| -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-| `ffi-pointer-pin`          | [ffi-pointer-pin.md](./ffi-pointer-pin.md)                   | V8 GC use-after-free under `node:ffi`                    |
-| `ffi-geometry-guard`       | [ffi-geometry-guard.md](./ffi-geometry-guard.md)             | `u32` crash on off-screen draw geometry                  |
-| `vendored-native-resolver` | [vendored-native-resolver.md](./vendored-native-resolver.md) | Load `vendor/<target>/` instead of npm platform packages |
-| `kitty-keyboard-opt-out`   | [kitty-keyboard-opt-out.md](./kitty-keyboard-opt-out.md)     | Preserve the documented `null` protocol opt-out          |
-| `drop-zig-parser`          | [drop-zig-parser.md](./drop-zig-parser.md)                   | Stop shipping / loading the unused Zig highlight grammar |
+| Contract                   | Protects                                                 |
+| -------------------------- | -------------------------------------------------------- |
+| `ffi-pointer-pin`          | Pointer owner liveness across synchronous Node FFI calls |
+| `ffi-geometry-guard`       | Safe integer geometry at native draw boundaries          |
+| `vendored-native-resolver` | Bundled native resolution with verified cache fallback   |
+| `kitty-keyboard-opt-out`   | Explicit null disables Kitty protocol                    |
+| `stdin-parser-timeout`     | Split terminal replies remain buffered for 100ms         |
+| `drop-zig-parser`          | The unused Zig highlight grammar is not loaded           |
+| `slim-catalogue`           | Supported Solid intrinsic registrations remain bounded   |

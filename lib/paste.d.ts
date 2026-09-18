@@ -1,11 +1,7 @@
-/** Paste kind. */
-export type PasteKind = "text" | "binary" | "unknown"
-/** Paste metadata. */
+export type PasteKind = "text" | "binary" | "unknown";
 export interface PasteMetadata {
-  mimeType?: string
-  kind?: PasteKind
+    mimeType?: string;
+    kind?: PasteKind;
 }
-/** Decode paste bytes. */
-export declare function decodePasteBytes(bytes: Uint8Array): string
-/** Strip ansi sequences. */
-export declare function stripAnsiSequences(text: string): string
+export declare function decodePasteBytes(bytes: Uint8Array): string;
+export declare function stripAnsiSequences(text: string): string;

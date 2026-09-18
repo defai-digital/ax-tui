@@ -29,20 +29,14 @@
  * ```
  */
 export interface EnvVarConfig {
-  name: string
-  description: string
-  default?: string | boolean | number
-  type?: "string" | "boolean" | "number"
+    name: string;
+    description: string;
+    default?: string | boolean | number;
+    type?: "string" | "boolean" | "number";
 }
-/** Env registry. */
-export declare const envRegistry: Record<string, EnvVarConfig>
-/** Register env var. */
-export declare function registerEnvVar(config: EnvVarConfig): void
-/** Clear env cache. */
-export declare function clearEnvCache(): void
-/** Generate env markdown. */
-export declare function generateEnvMarkdown(): string
-/** Generate env colored. */
-export declare function generateEnvColored(): string
-/** Env. */
-export declare const env: Record<string, any>
+export declare const envRegistry: Record<string, EnvVarConfig>;
+export declare function registerEnvVar(config: EnvVarConfig): void;
+export declare function clearEnvCache(): void;
+export declare function generateEnvMarkdown(): string;
+export declare function generateEnvColored(): string;
+export declare const env: Record<string, any>;

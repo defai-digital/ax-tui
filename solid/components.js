@@ -1,5 +1,5 @@
 // @ts-self-types="./components.d.ts"
-// src/elements/catalogue.ts
+// solid/source/src/elements/catalogue.ts
 import {
   BoxRenderable,
   CodeRenderable,
@@ -11,67 +11,60 @@ import {
   TextareaRenderable,
   TextAttributes,
   TextNodeRenderable,
-  TextRenderable,
-} from "ax-tui"
-
-class SpanRenderable extends TextNodeRenderable {
-  _ctx
+  TextRenderable
+} from "ax-tui";
+var SpanRenderable = class extends TextNodeRenderable {
   constructor(_ctx, options) {
-    super(options)
-    this._ctx = _ctx
+    super(options);
+    this._ctx = _ctx;
   }
-}
-class TextModifierRenderable extends SpanRenderable {
+  _ctx;
+};
+var TextModifierRenderable = class extends SpanRenderable {
   constructor(options, modifier) {
-    super(null, options)
+    super(null, options);
     if (modifier === "b" || modifier === "strong") {
-      this.attributes = (this.attributes || 0) | TextAttributes.BOLD
+      this.attributes = (this.attributes || 0) | TextAttributes.BOLD;
     } else if (modifier === "i" || modifier === "em") {
-      this.attributes = (this.attributes || 0) | TextAttributes.ITALIC
+      this.attributes = (this.attributes || 0) | TextAttributes.ITALIC;
     } else if (modifier === "u") {
-      this.attributes = (this.attributes || 0) | TextAttributes.UNDERLINE
+      this.attributes = (this.attributes || 0) | TextAttributes.UNDERLINE;
     }
   }
-}
-
-class BoldSpanRenderable extends TextModifierRenderable {
+};
+var BoldSpanRenderable = class extends TextModifierRenderable {
   constructor(options) {
-    super(options, "b")
+    super(options, "b");
   }
-}
-
-class ItalicSpanRenderable extends TextModifierRenderable {
+};
+var ItalicSpanRenderable = class extends TextModifierRenderable {
   constructor(options) {
-    super(options, "i")
+    super(options, "i");
   }
-}
-
-class UnderlineSpanRenderable extends TextModifierRenderable {
+};
+var UnderlineSpanRenderable = class extends TextModifierRenderable {
   constructor(options) {
-    super(options, "u")
+    super(options, "u");
   }
-}
-
-class LineBreakRenderable extends SpanRenderable {
+};
+var LineBreakRenderable = class extends SpanRenderable {
   constructor(_ctx, options) {
-    super(null, options)
-    this.add()
+    super(null, options);
+    this.add();
   }
   add() {
-    return super.add(`
-`)
+    return super.add("\n");
   }
-}
-
-class LinkRenderable extends SpanRenderable {
+};
+var LinkRenderable = class extends SpanRenderable {
   constructor(_ctx, options) {
     const linkOptions = {
       ...options,
-      link: { url: options.href },
-    }
-    super(null, linkOptions)
+      link: { url: options.href }
+    };
+    super(null, linkOptions);
   }
-}
+};
 var baseComponents = {
   box: BoxRenderable,
   text: TextRenderable,
@@ -89,15 +82,16 @@ var baseComponents = {
   i: ItalicSpanRenderable,
   u: UnderlineSpanRenderable,
   br: LineBreakRenderable,
-  a: LinkRenderable,
-}
-var componentCatalogue = { ...baseComponents }
+  a: LinkRenderable
+};
+var componentCatalogue = { ...baseComponents };
 function extend(objects) {
-  Object.assign(componentCatalogue, objects)
+  Object.assign(componentCatalogue, objects);
 }
 function getComponentCatalogue() {
-  return componentCatalogue
+  return componentCatalogue;
 }
-export { getComponentCatalogue, extend }
-
-//# debugId=4D3EF7806518248664756E2164756E21
+export {
+  extend,
+  getComponentCatalogue
+};

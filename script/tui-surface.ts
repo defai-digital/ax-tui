@@ -1,7 +1,7 @@
 /**
  * AX Code TUI's supported intrinsic surface.
  *
- * The vendored core is still a pre-bundled JS dump, so unused renderable
+ * The vendored core is still a generated JS dump, so unused renderable
  * *classes* stay in the native/JS chunks. The Solid catalogue and JSX
  * intrinsics must not statically register widgets the TUI never mounts.
  */

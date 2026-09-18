@@ -10,6 +10,12 @@ import { relative } from "node:path"
 
 const DENY_PREFIXES = [
   "tests",
+  "test",
+  "script",
+  "src",
+  "solid/source",
+  "native/source",
+  "native/renderer",
   "patches",
   "assets/zig",
   "lib/tree-sitter/assets",
@@ -108,6 +114,10 @@ export function toTuiDistPackageJson(
 }
 
 const DENY_BASENAMES = new Set([
+  "renderer-artifacts.json",
+  "tsconfig.json",
+  "tsconfig.build.json",
+  "AGENTS.md",
   "MAINTENANCE.md",
   "README.md",
   "UPSTREAM.md",

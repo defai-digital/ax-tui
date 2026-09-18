@@ -6,6 +6,31 @@ software; breaking changes are called out explicitly when they occur.
 
 ## [Unreleased]
 
+### Changed
+
+- Absorb the OpenTUI 0.4.1 renderer, Solid reconciler, and Zig/C source into an
+  independently maintained AX TUI source fork, preserving MIT attribution.
+  TypeScript 7 now checks and builds every JavaScript runtime entry from owned
+  TypeScript/TSX. Generated artifacts remain committed for package consumers.
+- Build all eight native targets from local source with Zig 0.15.2, recording
+  source hashes and compiler configuration instead of downloading OpenTUI
+  npm platform packages. Native ABI names remain compatible.
+- Default configuration and data paths now use the `ax-tui` namespace instead
+  of `opentui`. Applications can retain an explicit custom name; existing
+  default-path files are not moved automatically.
+
+### Fixed
+
+- Prevent chart rasterization from hanging or overflowing when finite axis
+  bounds approach JavaScript's numeric limits; reject invalid pixel endpoints.
+- Apply individual X/Y axis colors to their corresponding chart lines.
+- Include `stdinParserTimeoutMs` in the generated renderer configuration type.
+
+### Validation
+
+- Add FFI and terminal-input regressions, local native build verification,
+  and end-to-end Solid reactivity, disposal, highlighting, and cache checks.
+
 ## [0.1.6] - 2026-09-17
 
 ### Fixed

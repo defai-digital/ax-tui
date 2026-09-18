@@ -1,77 +1,54 @@
-import {
-  BoxRenderable,
-  CodeRenderable,
-  DiffRenderable,
-  InputRenderable,
-  LineNumberRenderable,
-  MarkdownRenderable,
-  ScrollBoxRenderable,
-  TextareaRenderable,
-  TextNodeRenderable,
-  TextRenderable,
-  type RenderContext,
-  type TextNodeOptions,
-} from "ax-tui"
-import type { RenderableConstructor } from "../types/elements.js"
+import { BoxRenderable, CodeRenderable, DiffRenderable, InputRenderable, LineNumberRenderable, MarkdownRenderable, ScrollBoxRenderable, TextareaRenderable, TextNodeRenderable, TextRenderable, type RenderContext, type TextNodeOptions } from "ax-tui";
+import type { RenderableConstructor } from "../types/elements.js";
 declare class SpanRenderable extends TextNodeRenderable {
-  private readonly _ctx
-  constructor(_ctx: RenderContext | null, options: TextNodeOptions)
+    private readonly _ctx;
+    constructor(_ctx: RenderContext | null, options: TextNodeOptions);
 }
-/** Text node keys. */
-export declare const textNodeKeys: readonly ["span", "b", "strong", "i", "em", "u", "a"]
-/** Text node key. */
-export type TextNodeKey = (typeof textNodeKeys)[number]
+export declare const textNodeKeys: readonly ["span", "b", "strong", "i", "em", "u", "a"];
+export type TextNodeKey = (typeof textNodeKeys)[number];
 declare class TextModifierRenderable extends SpanRenderable {
-  constructor(options: any, modifier?: TextNodeKey)
+    constructor(options: any, modifier?: TextNodeKey);
 }
-/** Bold span renderable class. */
 export declare class BoldSpanRenderable extends TextModifierRenderable {
-  constructor(options: any)
+    constructor(options: any);
 }
-/** Italic span renderable class. */
 export declare class ItalicSpanRenderable extends TextModifierRenderable {
-  constructor(options: any)
+    constructor(options: any);
 }
-/** Underline span renderable class. */
 export declare class UnderlineSpanRenderable extends TextModifierRenderable {
-  constructor(options: any)
+    constructor(options: any);
 }
-/** Line break renderable class. */
 export declare class LineBreakRenderable extends SpanRenderable {
-  constructor(_ctx: RenderContext | null, options: TextNodeOptions)
-  add(): number
+    constructor(_ctx: RenderContext | null, options: TextNodeOptions);
+    add(): number;
 }
-/** Link options. */
 export interface LinkOptions extends TextNodeOptions {
-  href: string
+    href: string;
 }
-/** Link renderable class. */
 export declare class LinkRenderable extends SpanRenderable {
-  constructor(_ctx: RenderContext | null, options: LinkOptions)
+    constructor(_ctx: RenderContext | null, options: LinkOptions);
 }
-/** Base components. */
 export declare const baseComponents: {
-  box: typeof BoxRenderable
-  text: typeof TextRenderable
-  input: typeof InputRenderable
-  textarea: typeof TextareaRenderable
-  scrollbox: typeof ScrollBoxRenderable
-  code: typeof CodeRenderable
-  diff: typeof DiffRenderable
-  line_number: typeof LineNumberRenderable
-  markdown: typeof MarkdownRenderable
-  span: typeof SpanRenderable
-  strong: typeof BoldSpanRenderable
-  b: typeof BoldSpanRenderable
-  em: typeof ItalicSpanRenderable
-  i: typeof ItalicSpanRenderable
-  u: typeof UnderlineSpanRenderable
-  br: typeof LineBreakRenderable
-  a: typeof LinkRenderable
-}
-type ComponentCatalogue = Record<string, RenderableConstructor>
-/** Component catalogue. */
-export declare const componentCatalogue: ComponentCatalogue
+    box: typeof BoxRenderable;
+    text: typeof TextRenderable;
+    input: typeof InputRenderable;
+    textarea: typeof TextareaRenderable;
+    scrollbox: typeof ScrollBoxRenderable;
+    code: typeof CodeRenderable;
+    diff: typeof DiffRenderable;
+    line_number: typeof LineNumberRenderable;
+    markdown: typeof MarkdownRenderable;
+    span: typeof SpanRenderable;
+    strong: typeof BoldSpanRenderable;
+    b: typeof BoldSpanRenderable;
+    em: typeof ItalicSpanRenderable;
+    i: typeof ItalicSpanRenderable;
+    u: typeof UnderlineSpanRenderable;
+    br: typeof LineBreakRenderable;
+    a: typeof LinkRenderable;
+};
+type ComponentCatalogue = Record<string, RenderableConstructor>;
+export declare const componentCatalogue: ComponentCatalogue;
 /**
  * Extend the component catalogue with new renderable components
  *
@@ -84,7 +61,6 @@ export declare const componentCatalogue: ComponentCatalogue
  * })
  * ```
  */
-export declare function extend<T extends ComponentCatalogue>(objects: T): void
-/** Return the current SolidJS renderable catalogue. */
-export declare function getComponentCatalogue(): ComponentCatalogue
-export type { ExtendedComponentProps, ExtendedIntrinsicElements, RenderableConstructor } from "../types/elements.js"
+export declare function extend<T extends ComponentCatalogue>(objects: T): void;
+export declare function getComponentCatalogue(): ComponentCatalogue;
+export type { ExtendedComponentProps, ExtendedIntrinsicElements, RenderableConstructor } from "../types/elements.js";

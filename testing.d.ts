@@ -1,13 +1,14 @@
 /**
- * Headless test renderer, mock input, and frame capture for ax-tui.
+ * Headless renderer, input simulation, and frame capture for AX TUI.
  *
  * @module
  */
-export * from "./testing/test-renderer.js"
-export * from "./testing/mock-keys.js"
-export * from "./testing/mock-mouse.js"
-export * from "./testing/mock-tree-sitter-client.js"
-export * from "./testing/terminal-capabilities.js"
-export * from "./testing/spy.js"
-export { ManualClock } from "./testing/manual-clock.js"
-export { TestRecorder, type RecordedFrame } from "./testing/test-recorder.js"
+export {};
+export * from "./testing/test-renderer.js";
+export * from "./testing/mock-keys.js";
+export * from "./testing/mock-mouse.js";
+export * from "./testing/mock-tree-sitter-client.js";
+export * from "./testing/terminal-capabilities.js";
+export * from "./testing/spy.js";
+export { ManualClock } from "./testing/manual-clock.js";
+export { TestRecorder, type RecordedFrame } from "./testing/test-recorder.js";

@@ -1,6 +1,5 @@
 // @ts-self-types="./index.d.ts"
 import {
-  BaseRenderable,
   BoxRenderable,
   CliRenderEvents,
   CliRenderer,
@@ -10,16 +9,11 @@ import {
   EditBufferRenderable,
   EditBufferRenderableEvents,
   EditorView,
-  LayoutEvents,
   MouseButton,
   MouseEvent,
   NativeSpanFeed,
-  Renderable,
-  RenderableEvents,
   RendererControlState,
-  RootRenderable,
   RootTextNodeRenderable,
-  SyntaxStyle,
   TerminalConsole,
   TextBufferRenderable,
   TextBufferView,
@@ -28,27 +22,20 @@ import {
   buildKeyBindingsMap,
   buildKittyKeyboardFlags,
   capture,
-  convertThemeToStyles,
   createCliRenderer,
   defaultKeyAliases,
-  delegate,
   getKeyBindingAction,
   getObjectsInViewport,
-  h,
-  instantiate,
   isEditBufferRenderable,
-  isRenderable,
   isTextNodeRenderable,
-  isVNode,
-  maybeMakeRenderable,
   mergeKeyAliases,
-  mergeKeyBindings,
-  wrapWithDelegates
-} from "./index-07zpr2dg.js";
+  mergeKeyBindings
+} from "./index-CHWXX3V2.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
   ATTRIBUTE_BASE_MASK,
+  BaseRenderable,
   BorderCharArrays,
   BorderChars,
   DEFAULT_BACKGROUND_RGB,
@@ -59,6 +46,7 @@ import {
   InternalKeyHandler,
   KeyEvent,
   KeyHandler,
+  LayoutEvents,
   LinearScrollAccel,
   LogLevel,
   MacOSScrollAccel,
@@ -66,9 +54,13 @@ import {
   OptimizedBuffer,
   PasteEvent,
   RGBA,
+  Renderable,
+  RenderableEvents,
+  RootRenderable,
   Selection,
   StdinParser,
   StyledText,
+  SyntaxStyle,
   SystemClock,
   TargetChannel,
   TerminalPalette,
@@ -104,18 +96,19 @@ import {
   buildTerminalPaletteSignature,
   clearEnvCache,
   convertGlobalToLocalSelection,
+  convertThemeToStyles,
   coordinateToCharacterIndex,
   createExtmarksController,
   createTerminalPalette,
   createTextAttributes,
   cyan,
   decodePasteBytes,
+  delegate,
   destroyTreeSitterClient,
   detectLinks,
   dim,
   env,
   envRegistry,
-  exports_yoga,
   extToFiletype,
   extensionToFiletype,
   fg,
@@ -130,15 +123,20 @@ import {
   getLinkId,
   getTreeSitterClient,
   green,
+  h,
   hastToStyledText,
   hexToRgb,
   hsvToRgb,
   infoStringToFiletype,
+  instantiate,
+  isRenderable,
   isStyledText,
+  isVNode,
   isValidBorderStyle,
   italic,
   link,
   magenta,
+  maybeMakeRenderable,
   measureText,
   nonAlphanumericKeys,
   normalizeColorValue,
@@ -182,8 +180,11 @@ import {
   underline,
   visualizeRenderableTree,
   white,
-  yellow
-} from "./index-pcvh9d34.js";
+  wrapWithDelegates,
+  yellow,
+  yoga_exports
+} from "./index-AGVZRKG3.js";
+
 // src/post/effects.ts
 function toU8(value) {
   return Math.round(Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0)) * 255);
@@ -198,8 +199,8 @@ function setRgb(buffer, base, r, g, b) {
   buffer[base + 2] = toU8(b);
   buffer[base + 3] = a;
 }
-
-class DistortionEffect {
+var DistortionEffect = class {
+  // --- Configurable Parameters ---
   glitchChancePerSecond = 0.5;
   maxGlitchLines = 3;
   minGlitchDuration = 0.05;
@@ -207,6 +208,7 @@ class DistortionEffect {
   maxShiftAmount = 10;
   shiftFlipRatio = 0.6;
   colorGlitchChance = 0.2;
+  // --- Internal State ---
   lastGlitchTime = 0;
   glitchDuration = 0;
   activeGlitches = [];
@@ -215,6 +217,9 @@ class DistortionEffect {
       Object.assign(this, options);
     }
   }
+  /**
+   * Applies the animated distortion/glitch effect to the buffer.
+   */
   apply(buffer, deltaTime) {
     const width = buffer.width;
     const height = buffer.height;
@@ -228,7 +233,7 @@ class DistortionEffect {
       this.lastGlitchTime = 0;
       this.glitchDuration = this.minGlitchDuration + Math.random() * (this.maxGlitchDuration - this.minGlitchDuration);
       const numGlitches = 1 + Math.floor(Math.random() * this.maxGlitchLines);
-      for (let i = 0;i < numGlitches; i++) {
+      for (let i = 0; i < numGlitches; i++) {
         const y = Math.floor(Math.random() * height);
         let type;
         let amount = 0;
@@ -256,8 +261,7 @@ class DistortionEffect {
       let tempAttr = null;
       for (const glitch of this.activeGlitches) {
         const y = glitch.y;
-        if (y < 0 || y >= height)
-          continue;
+        if (y < 0 || y >= height) continue;
         const baseIndex = y * width;
         if (glitch.type === "shift" || glitch.type === "flip") {
           if (!tempChar) {
@@ -277,7 +281,7 @@ class DistortionEffect {
           }
           if (glitch.type === "shift") {
             const shift = glitch.amount;
-            for (let x = 0;x < width; x++) {
+            for (let x = 0; x < width; x++) {
               const srcX = (x - shift + width) % width;
               const destIndex = baseIndex + x;
               const srcTempIndex = srcX;
@@ -289,7 +293,7 @@ class DistortionEffect {
               buf.bg.set(tempBg.subarray(srcTempColorIndex, srcTempColorIndex + 4), destColorIndex);
             }
           } else {
-            for (let x = 0;x < width; x++) {
+            for (let x = 0; x < width; x++) {
               const srcX = width - 1 - x;
               const destIndex = baseIndex + x;
               const srcTempIndex = srcX;
@@ -309,9 +313,8 @@ class DistortionEffect {
             glitchLength = Math.floor(Math.random() * (width / 4)) + 1;
           }
           glitchLength = Math.min(glitchLength, maxPossibleLength);
-          for (let x = glitchStart;x < glitchStart + glitchLength; x++) {
-            if (x >= width)
-              break;
+          for (let x = glitchStart; x < glitchStart + glitchLength; x++) {
+            if (x >= width) break;
             const destIndex = baseIndex + x;
             const destColorIndex = destIndex * 4;
             let rFg, gFg, bFg, rBg, gBg, bBg;
@@ -377,13 +380,14 @@ class DistortionEffect {
       }
     }
   }
-}
-
-class VignetteEffect {
+};
+var VignetteEffect = class _VignetteEffect {
   _strength;
+  // Stores packed cell masks [x, y, attenuation] per pixel
   precomputedAttenuationCellMask = null;
   cachedWidth = -1;
   cachedHeight = -1;
+  // Zero matrix for attenuation (maps everything toward black based on strength)
   static zeroMatrix = new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   constructor(strength = 0.5) {
     this._strength = strength;
@@ -405,10 +409,10 @@ class VignetteEffect {
     const safeMaxDistSq = maxDistSq === 0 ? 1 : maxDistSq;
     const strength = this._strength;
     let i = 0;
-    for (let y = 0;y < height; y++) {
+    for (let y = 0; y < height; y++) {
       const dy = y - centerY;
       const dySq = dy * dy;
-      for (let x = 0;x < width; x++) {
+      for (let x = 0; x < width; x++) {
         const dx = x - centerX;
         const distSq = dx * dx + dySq;
         const baseAttenuation = Math.min(1, distSq / safeMaxDistSq);
@@ -421,17 +425,21 @@ class VignetteEffect {
     this.cachedWidth = width;
     this.cachedHeight = height;
   }
+  /**
+   * Applies the vignette effect using native colorMatrix with a zero matrix.
+   * The zero matrix maps all colors to black, and the attenuation cell masks
+   * control how much of the effect is applied (strength-based blending).
+   */
   apply(buffer) {
     const width = buffer.width;
     const height = buffer.height;
     if (width !== this.cachedWidth || height !== this.cachedHeight || !this.precomputedAttenuationCellMask) {
       this._computeFactors(width, height);
     }
-    buffer.colorMatrix(VignetteEffect.zeroMatrix, this.precomputedAttenuationCellMask, 1, 3);
+    buffer.colorMatrix(_VignetteEffect.zeroMatrix, this.precomputedAttenuationCellMask, 1, 3);
   }
-}
-
-class PerlinNoise {
+};
+var PerlinNoise = class {
   perm;
   grad3 = [
     [1, 1, 0],
@@ -450,14 +458,14 @@ class PerlinNoise {
   constructor() {
     this.perm = new Uint8Array(512);
     const p = new Uint8Array(256);
-    for (let i = 0;i < 256; i++) {
+    for (let i = 0; i < 256; i++) {
       p[i] = i;
     }
-    for (let i = 255;i > 0; i--) {
+    for (let i = 255; i > 0; i--) {
       const r = Math.floor(Math.random() * (i + 1));
       [p[i], p[r]] = [p[r], p[i]];
     }
-    for (let i = 0;i < 512; i++) {
+    for (let i = 0; i < 512; i++) {
       this.perm[i] = p[i & 255];
     }
   }
@@ -470,6 +478,10 @@ class PerlinNoise {
   fade(t2) {
     return t2 * t2 * t2 * (t2 * (t2 * 6 - 15) + 10);
   }
+  /**
+   * 3D Perlin noise at coordinates (x, y, z)
+   * Returns value in range [-1, 1]
+   */
   noise3d(x, y, z) {
     const X = Math.floor(x) & 255;
     const Y = Math.floor(y) & 255;
@@ -486,12 +498,39 @@ class PerlinNoise {
     const B = this.perm[X + 1] + Y;
     const BA = this.perm[B] + Z;
     const BB = this.perm[B + 1] + Z;
-    let res = this.mix(this.mix(this.mix(this.dot(this.grad3[this.perm[AA] % 12], xf, yf, zf), this.dot(this.grad3[this.perm[BA] % 12], xf - 1, yf, zf), u), this.mix(this.dot(this.grad3[this.perm[AB] % 12], xf, yf - 1, zf), this.dot(this.grad3[this.perm[BB] % 12], xf - 1, yf - 1, zf), u), v), this.mix(this.mix(this.dot(this.grad3[this.perm[AA + 1] % 12], xf, yf, zf - 1), this.dot(this.grad3[this.perm[BA + 1] % 12], xf - 1, yf, zf - 1), u), this.mix(this.dot(this.grad3[this.perm[AB + 1] % 12], xf, yf - 1, zf - 1), this.dot(this.grad3[this.perm[BB + 1] % 12], xf - 1, yf - 1, zf - 1), u), v), w);
+    let res = this.mix(
+      this.mix(
+        this.mix(
+          this.dot(this.grad3[this.perm[AA] % 12], xf, yf, zf),
+          this.dot(this.grad3[this.perm[BA] % 12], xf - 1, yf, zf),
+          u
+        ),
+        this.mix(
+          this.dot(this.grad3[this.perm[AB] % 12], xf, yf - 1, zf),
+          this.dot(this.grad3[this.perm[BB] % 12], xf - 1, yf - 1, zf),
+          u
+        ),
+        v
+      ),
+      this.mix(
+        this.mix(
+          this.dot(this.grad3[this.perm[AA + 1] % 12], xf, yf, zf - 1),
+          this.dot(this.grad3[this.perm[BA + 1] % 12], xf - 1, yf, zf - 1),
+          u
+        ),
+        this.mix(
+          this.dot(this.grad3[this.perm[AB + 1] % 12], xf, yf - 1, zf - 1),
+          this.dot(this.grad3[this.perm[BB + 1] % 12], xf - 1, yf - 1, zf - 1),
+          u
+        ),
+        v
+      ),
+      w
+    );
     return res;
   }
-}
-
-class CloudsEffect {
+};
+var CloudsEffect = class {
   noise;
   _scale;
   _speed;
@@ -499,14 +538,14 @@ class CloudsEffect {
   _darkness;
   time = 0;
   constructor(scale = 0.02, speed = 0.5, density = 0.6, darkness = 0.7) {
-    this.noise = new PerlinNoise;
+    this.noise = new PerlinNoise();
     this._scale = scale;
     this._speed = speed;
     this._density = density;
     this._darkness = darkness;
   }
   set scale(newScale) {
-    this._scale = Math.max(0.001, newScale);
+    this._scale = Math.max(1e-3, newScale);
   }
   get scale() {
     return this._scale;
@@ -529,6 +568,10 @@ class CloudsEffect {
   get darkness() {
     return this._darkness;
   }
+  /**
+   * Applies cloud shadow effect using Perlin noise mask with native colorMatrix.
+   * Uses FBM (Fractal Brownian Motion) for detailed clouds, offloaded to native code.
+   */
   apply(buffer, deltaTime) {
     const width = buffer.width;
     const height = buffer.height;
@@ -537,13 +580,13 @@ class CloudsEffect {
     const timeOffset = this.time;
     const cellMask = new Float32Array(width * height * 3);
     let maskIdx = 0;
-    for (let y = 0;y < height; y++) {
-      for (let x = 0;x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         let noiseValue = 0;
         let amplitude = 1;
         let frequency = 1;
         let maxValue = 0;
-        for (let i = 0;i < 4; i++) {
+        for (let i = 0; i < 4; i++) {
           const nx = (x * scale * frequency + timeOffset) * 0.5;
           const ny = y * scale * frequency * 0.5;
           const nz = timeOffset * 0.3;
@@ -563,22 +606,21 @@ class CloudsEffect {
     const zeroMatrix = new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     buffer.colorMatrix(zeroMatrix, cellMask, 1, 2);
   }
-}
-
-class FlamesEffect {
+};
+var FlamesEffect = class {
   noise;
   _scale;
   _speed;
   _intensity;
   time = 0;
   constructor(scale = 0.03, speed = 0.02, intensity = 0.8) {
-    this.noise = new PerlinNoise;
+    this.noise = new PerlinNoise();
     this._scale = scale;
     this._speed = speed;
     this._intensity = intensity;
   }
   set scale(newScale) {
-    this._scale = Math.max(0.001, newScale);
+    this._scale = Math.max(1e-3, newScale);
   }
   get scale() {
     return this._scale;
@@ -595,6 +637,10 @@ class FlamesEffect {
   get intensity() {
     return this._intensity;
   }
+  /**
+   * Applies flame effect rising from bottom using Perlin noise.
+   * Flames get cooler (redder) and fade as they rise.
+   */
   apply(buffer, deltaTime) {
     const width = buffer.width;
     const height = buffer.height;
@@ -602,14 +648,14 @@ class FlamesEffect {
     this.time += deltaTime * this._speed;
     const scale = this._scale;
     const timeOffset = this.time;
-    for (let y = 0;y < height; y++) {
+    for (let y = 0; y < height; y++) {
       const heightFactor = 1 - y / height;
-      for (let x = 0;x < width; x++) {
+      for (let x = 0; x < width; x++) {
         let noiseValue = 0;
         let amplitude = 1;
         let frequency = 1;
         let maxValue = 0;
-        for (let i = 0;i < 3; i++) {
+        for (let i = 0; i < 3; i++) {
           const nx = (x * scale * frequency + timeOffset) * 0.5;
           const ny = (height - y) * scale * frequency * 2 * 0.5;
           const nz = timeOffset * 2;
@@ -636,14 +682,19 @@ class FlamesEffect {
             g = flameIntensity * 0.5;
             b = 0;
           }
-          setRgb(bg2, colorIndex, Math.max(channel(bg2, colorIndex), r * flameIntensity), Math.max(channel(bg2, colorIndex + 1), g * flameIntensity), Math.max(channel(bg2, colorIndex + 2), b * flameIntensity));
+          setRgb(
+            bg2,
+            colorIndex,
+            Math.max(channel(bg2, colorIndex), r * flameIntensity),
+            Math.max(channel(bg2, colorIndex + 1), g * flameIntensity),
+            Math.max(channel(bg2, colorIndex + 2), b * flameIntensity)
+          );
         }
       }
     }
   }
-}
-
-class CRTRollingBarEffect {
+};
+var CRTRollingBarEffect = class {
   _speed;
   _height;
   _intensity;
@@ -679,38 +730,54 @@ class CRTRollingBarEffect {
   get fadeDistance() {
     return this._fadeDistance;
   }
+  /**
+   * Applies the rolling bar effect to the buffer.
+   * Creates a smooth horizontal bar that scans down the screen with a bell-curve gradient.
+   * The bar has a bright center that smoothly fades to the edges.
+   */
   apply(buffer, deltaTime) {
     const width = buffer.width;
     const height = buffer.height;
     const fg2 = buffer.buffers.fg;
     const bg2 = buffer.buffers.bg;
-    this.position += deltaTime / 1000 * this._speed;
+    this.position += deltaTime / 1e3 * this._speed;
     const cycleHeight = height + this._height * height * 2;
     this.position = this.position % cycleHeight;
     const barPixelHeight = this._height * height;
     const fadePixelDistance = this._fadeDistance * barPixelHeight;
     const totalEffectHeight = barPixelHeight + fadePixelDistance * 2;
     const effectCenter = this.position - totalEffectHeight / 2 + barPixelHeight / 2;
-    for (let y = 0;y < height; y++) {
+    for (let y = 0; y < height; y++) {
       const distFromCenter = Math.abs(y - effectCenter);
       let barFactor = 0;
       if (distFromCenter <= totalEffectHeight / 2) {
         const normalizedDist = distFromCenter / (totalEffectHeight / 2);
         barFactor = Math.cos(normalizedDist * Math.PI / 2);
       }
-      if (barFactor > 0.001) {
+      if (barFactor > 1e-3) {
         const rowMultiplier = 1 + this._intensity * barFactor;
-        for (let x = 0;x < width; x++) {
+        for (let x = 0; x < width; x++) {
           const colorIndex = (y * width + x) * 4;
-          setRgb(fg2, colorIndex, Math.min(1, channel(fg2, colorIndex) * rowMultiplier), Math.min(1, channel(fg2, colorIndex + 1) * rowMultiplier), Math.min(1, channel(fg2, colorIndex + 2) * rowMultiplier));
-          setRgb(bg2, colorIndex, Math.min(1, channel(bg2, colorIndex) * rowMultiplier), Math.min(1, channel(bg2, colorIndex + 1) * rowMultiplier), Math.min(1, channel(bg2, colorIndex + 2) * rowMultiplier));
+          setRgb(
+            fg2,
+            colorIndex,
+            Math.min(1, channel(fg2, colorIndex) * rowMultiplier),
+            Math.min(1, channel(fg2, colorIndex + 1) * rowMultiplier),
+            Math.min(1, channel(fg2, colorIndex + 2) * rowMultiplier)
+          );
+          setRgb(
+            bg2,
+            colorIndex,
+            Math.min(1, channel(bg2, colorIndex) * rowMultiplier),
+            Math.min(1, channel(bg2, colorIndex + 1) * rowMultiplier),
+            Math.min(1, channel(bg2, colorIndex + 2) * rowMultiplier)
+          );
         }
       }
     }
   }
-}
-
-class RainbowTextEffect {
+};
+var RainbowTextEffect = class {
   _speed;
   _saturation;
   _value;
@@ -746,6 +813,13 @@ class RainbowTextEffect {
   get repeats() {
     return this._repeats;
   }
+  /**
+   * Converts HSV color to RGB
+   * @param h - Hue [0, 1]
+   * @param s - Saturation [0, 1]
+   * @param v - Value [0, 1]
+   * @returns [r, g, b] each in [0, 1]
+   */
   hsvToRgb(h2, s, v) {
     let r = 0, g = 0, b = 0;
     const i = Math.floor(h2 * 6);
@@ -787,6 +861,10 @@ class RainbowTextEffect {
     }
     return [r, g, b];
   }
+  /**
+   * Applies rainbow colors to cells with white foreground.
+   * White is defined as R, G, B all >= 0.9
+   */
   apply(buffer, deltaTime) {
     const width = buffer.width;
     const height = buffer.height;
@@ -799,8 +877,8 @@ class RainbowTextEffect {
     const cosAngle = Math.cos(angleRad);
     const sinAngle = Math.sin(angleRad);
     const whiteThreshold = 0.9;
-    for (let y = 0;y < height; y++) {
-      for (let x = 0;x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         const colorIndex = (y * width + x) * 4;
         const r = channel(fg2, colorIndex);
         const g = channel(fg2, colorIndex + 1);
@@ -815,7 +893,8 @@ class RainbowTextEffect {
       }
     }
   }
-}
+};
+
 // src/post/filters.ts
 function toU82(value) {
   return Math.round(Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0)) * 255);
@@ -831,16 +910,15 @@ function setRgb2(buffer, base, r, g, b) {
   buffer[base + 3] = a;
 }
 function applyScanlines(buffer, strength = 0.8, step = 2) {
-  if (strength === 1 || step < 1)
-    return;
+  if (strength === 1 || step < 1) return;
   const width = buffer.width;
   const height = buffer.height;
   const affectedRows = Math.ceil(height / step);
   const cellCount = width * affectedRows;
   const cellMask = new Float32Array(cellCount * 3);
   let maskIdx = 0;
-  for (let y = 0;y < height; y += step) {
-    for (let x = 0;x < width; x++) {
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x++) {
       cellMask[maskIdx++] = x;
       cellMask[maskIdx++] = y;
       cellMask[maskIdx++] = 1;
@@ -852,41 +930,48 @@ function applyScanlines(buffer, strength = 0.8, step = 2) {
     0,
     0,
     0,
+    // Row 0: Red output
     0,
     s,
     0,
     0,
+    // Row 1: Green output
     0,
     0,
     s,
     0,
+    // Row 2: Blue output
     0,
     0,
     0,
     1
+    // Row 3: Alpha output (identity)
   ]);
   buffer.colorMatrix(matrix, cellMask, 1, 2);
 }
 function applyInvert(buffer, strength = 1) {
-  if (strength === 0)
-    return;
+  if (strength === 0) return;
   const matrix = new Float32Array([
     -1,
     0,
     0,
     1,
+    // Row 0: Red output = -1*R + 0*G + 0*B + 1*A = 1 - R
     0,
     -1,
     0,
     1,
+    // Row 1: Green output = 1 - G
     0,
     0,
     -1,
     1,
+    // Row 2: Blue output = 1 - B
     0,
     0,
     0,
     1
+    // Row 3: Alpha output = A
   ]);
   buffer.colorMatrixUniform(matrix, strength, 3);
 }
@@ -894,12 +979,11 @@ function applyNoise(buffer, strength = 0.1) {
   const width = buffer.width;
   const height = buffer.height;
   const size = width * height;
-  if (strength === 0)
-    return;
+  if (strength === 0) return;
   const cellMask = new Float32Array(size * 3);
   let cellMaskIndex = 0;
-  for (let y = 0;y < height; y++) {
-    for (let x = 0;x < width; x++) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       cellMask[cellMaskIndex++] = x;
       cellMask[cellMaskIndex++] = y;
       cellMask[cellMaskIndex++] = (Math.random() - 0.5) * 2;
@@ -911,18 +995,22 @@ function applyNoise(buffer, strength = 0.1) {
     0,
     0,
     0,
+    // Row 0 (Red output)
     0,
     b,
     0,
     0,
+    // Row 1 (Green output)
     0,
     0,
     b,
     0,
+    // Row 2 (Blue output)
     0,
     0,
     0,
     1
+    // Row 3 (Alpha output - identity)
   ]);
   buffer.colorMatrix(matrix, cellMask, 1, 3);
 }
@@ -933,8 +1021,8 @@ function applyChromaticAberration(buffer, strength = 1) {
   const destFg = buffer.buffers.fg;
   const centerX = width / 2;
   const centerY = height / 2;
-  for (let y = 0;y < height; y++) {
-    for (let x = 0;x < width; x++) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const dx = x - centerX;
       const dy = y - centerY;
       const offset = Math.round(Math.sqrt(dx * dx + dy * dy) / Math.max(centerX, centerY) * strength);
@@ -954,8 +1042,8 @@ function applyAsciiArt(buffer, ramp = ' .\'`^"",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuv
   const chars = buffer.buffers.char;
   const bg2 = buffer.buffers.bg;
   const rampLength = ramp.length;
-  for (let y = 0;y < height; y++) {
-    for (let x = 0;x < width; x++) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const index = y * width + x;
       const colorIndex = index * 4;
       const bgR = channel2(bg2, colorIndex);
@@ -971,61 +1059,72 @@ function applyAsciiArt(buffer, ramp = ' .\'`^"",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuv
     0,
     0,
     fgColor.r,
+    // Red output
     0,
     0,
     0,
     fgColor.g,
+    // Green output
     0,
     0,
     0,
     fgColor.b,
+    // Blue output
     0,
     0,
     0,
     1
+    // Alpha output (identity)
   ]);
   const bgMatrix = new Float32Array([
     0,
     0,
     0,
     bgColor.r,
+    // Red output
     0,
     0,
     0,
     bgColor.g,
+    // Green output
     0,
     0,
     0,
     bgColor.b,
+    // Blue output
     0,
     0,
     0,
     1
+    // Alpha output (identity)
   ]);
   buffer.colorMatrixUniform(fgMatrix, 1, 1);
   buffer.colorMatrixUniform(bgMatrix, 1, 2);
 }
 function applyBrightness(buffer, brightness = 0, cellMask) {
-  if (brightness === 0)
-    return;
+  if (brightness === 0) return;
   const b = brightness;
   const matrix = new Float32Array([
     1,
     0,
     0,
     b,
+    // Row 0 (Red output = R + brightness*A)
     0,
     1,
     0,
     b,
+    // Row 1 (Green output = G + brightness*A)
     0,
     0,
     1,
     b,
+    // Row 2 (Blue output = B + brightness*A)
     0,
     0,
     0,
     1
+    // Row 3 (Alpha output = A)
   ]);
   if (!cellMask || cellMask.length === 0) {
     buffer.colorMatrixUniform(matrix, 1, 3);
@@ -1034,26 +1133,29 @@ function applyBrightness(buffer, brightness = 0, cellMask) {
   }
 }
 function applyGain(buffer, gain = 1, cellMask) {
-  if (gain === 1)
-    return;
+  if (gain === 1) return;
   const g = Math.max(0, gain);
   const matrix = new Float32Array([
     g,
     0,
     0,
     0,
+    // Row 0 (Red output)
     0,
     g,
     0,
     0,
+    // Row 1 (Green output)
     0,
     0,
     g,
     0,
+    // Row 2 (Blue output)
     0,
     0,
     0,
     1
+    // Row 3 (Alpha output - identity)
   ]);
   if (!cellMask || cellMask.length === 0) {
     buffer.colorMatrixUniform(matrix, 1, 3);
@@ -1080,18 +1182,22 @@ function createSaturationMatrix(saturation) {
     m01,
     m02,
     0,
+    // Red output row
     m10,
     m11,
     m12,
     0,
+    // Green output row
     m20,
     m21,
     m22,
     0,
+    // Blue output row
     0,
     0,
     0,
     1
+    // Alpha output row (identity)
   ]);
 }
 function applySaturation(buffer, cellMask, strength = 1) {
@@ -1105,8 +1211,7 @@ function applySaturation(buffer, cellMask, strength = 1) {
     buffer.colorMatrix(matrix, cellMask, 1, 3);
   }
 }
-
-class BloomEffect {
+var BloomEffect = class {
   _threshold;
   _strength;
   _radius;
@@ -1137,8 +1242,7 @@ class BloomEffect {
     const threshold = this._threshold;
     const strength = this._strength;
     const radius = this._radius;
-    if (strength <= 0 || radius <= 0)
-      return;
+    if (strength <= 0 || radius <= 0) return;
     const width = buffer.width;
     const height = buffer.height;
     const srcFg = Uint16Array.from(buffer.buffers.fg);
@@ -1146,27 +1250,25 @@ class BloomEffect {
     const destFg = buffer.buffers.fg;
     const destBg = buffer.buffers.bg;
     const brightPixels = [];
-    for (let y = 0;y < height; y++) {
-      for (let x = 0;x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         const index = (y * width + x) * 4;
         const fgLum = 0.299 * channel2(srcFg, index) + 0.587 * channel2(srcFg, index + 1) + 0.114 * channel2(srcFg, index + 2);
         const bgLum = 0.299 * channel2(srcBg, index) + 0.587 * channel2(srcBg, index + 1) + 0.114 * channel2(srcBg, index + 2);
         const lum = Math.max(fgLum, bgLum);
         if (lum > threshold) {
-          const intensity = (lum - threshold) / (1 - threshold + 0.000001);
+          const intensity = (lum - threshold) / (1 - threshold + 1e-6);
           brightPixels.push({ x, y, intensity: Math.max(0, intensity) });
         }
       }
     }
-    if (brightPixels.length === 0)
-      return;
+    if (brightPixels.length === 0) return;
     destFg.set(srcFg);
     destBg.set(srcBg);
     for (const bright of brightPixels) {
-      for (let ky = -radius;ky <= radius; ky++) {
-        for (let kx = -radius;kx <= radius; kx++) {
-          if (kx === 0 && ky === 0)
-            continue;
+      for (let ky = -radius; ky <= radius; ky++) {
+        for (let kx = -radius; kx <= radius; kx++) {
+          if (kx === 0 && ky === 0) continue;
           const sampleX = bright.x + kx;
           const sampleY = bright.y + ky;
           if (sampleX >= 0 && sampleX < width && sampleY >= 0 && sampleY < height) {
@@ -1176,268 +1278,338 @@ class BloomEffect {
               const falloff = 1 - distSq / radiusSq;
               const bloomAmount = bright.intensity * strength * falloff;
               const destIndex = (sampleY * width + sampleX) * 4;
-              setRgb2(destFg, destIndex, Math.min(1, channel2(destFg, destIndex) + bloomAmount), Math.min(1, channel2(destFg, destIndex + 1) + bloomAmount), Math.min(1, channel2(destFg, destIndex + 2) + bloomAmount));
-              setRgb2(destBg, destIndex, Math.min(1, channel2(destBg, destIndex) + bloomAmount), Math.min(1, channel2(destBg, destIndex + 1) + bloomAmount), Math.min(1, channel2(destBg, destIndex + 2) + bloomAmount));
+              setRgb2(
+                destFg,
+                destIndex,
+                Math.min(1, channel2(destFg, destIndex) + bloomAmount),
+                Math.min(1, channel2(destFg, destIndex + 1) + bloomAmount),
+                Math.min(1, channel2(destFg, destIndex + 2) + bloomAmount)
+              );
+              setRgb2(
+                destBg,
+                destIndex,
+                Math.min(1, channel2(destBg, destIndex) + bloomAmount),
+                Math.min(1, channel2(destBg, destIndex + 1) + bloomAmount),
+                Math.min(1, channel2(destBg, destIndex + 2) + bloomAmount)
+              );
             }
           }
         }
       }
     }
   }
-}
+};
+
 // src/post/matrices.ts
 var SEPIA_MATRIX = new Float32Array([
   0.393,
   0.769,
   0.189,
   0,
+  // Red output (r->r, g->r, b->r, a->r)
   0.349,
   0.686,
   0.168,
   0,
+  // Green output (r->g, g->g, b->g, a->g)
   0.272,
   0.534,
   0.131,
   0,
+  // Blue output (r->b, g->b, b->b, a->b)
   0,
   0,
   0,
   1
+  // Alpha output (r->a, g->a, b->a, a->a) - identity
 ]);
 var PROTANOPIA_SIM_MATRIX = new Float32Array([
   0.567,
   0.433,
   0,
   0,
+  // Red output
   0.558,
   0.442,
   0,
   0,
+  // Green output
   0,
   0.242,
   0.758,
   0,
+  // Blue output
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var DEUTERANOPIA_SIM_MATRIX = new Float32Array([
   0.625,
   0.375,
   0,
   0,
+  // Red output
   0.7,
   0.3,
   0,
   0,
+  // Green output
   0,
   0.3,
   0.7,
   0,
+  // Blue output
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var TRITANOPIA_SIM_MATRIX = new Float32Array([
   0.95,
   0.05,
   0,
   0,
+  // Red output
   0,
   0.433,
   0.567,
   0,
+  // Green output
   0,
   0.475,
   0.525,
   0,
+  // Blue output
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var ACHROMATOPSIA_MATRIX = new Float32Array([
   0.299,
   0.587,
   0.114,
   0,
+  // Red output (luminance)
   0.299,
   0.587,
   0.114,
   0,
+  // Green output (luminance)
   0.299,
   0.587,
   0.114,
   0,
+  // Blue output (luminance)
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var PROTANOPIA_COMP_MATRIX = new Float32Array([
   1,
   0.2,
   0,
   0,
+  // Boost red channel
   0,
   0.9,
   0.1,
   0,
+  // Adjust green
   0,
   0.1,
   0.9,
   0,
+  // Enhance blue
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var DEUTERANOPIA_COMP_MATRIX = new Float32Array([
   0.9,
   0.1,
   0,
   0,
+  // Adjust red
   0.2,
   0.8,
   0,
   0,
+  // Boost green channel
   0,
   0,
   1,
   0,
+  // Keep blue
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var TRITANOPIA_COMP_MATRIX = new Float32Array([
   1,
   0,
   0,
   0,
+  // Keep red
   0,
   0.9,
   0.1,
   0,
+  // Adjust green
   0.1,
   0,
   0.9,
   0,
+  // Boost blue channel
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var TECHNICOLOR_MATRIX = new Float32Array([
   1.5,
   -0.2,
   -0.3,
   0,
+  // Red output - boosted with reduced green/blue influence
   -0.3,
   1.4,
   -0.1,
   0,
+  // Green output - boosted with reduced red/blue influence
   -0.2,
   -0.2,
   1.4,
   0,
+  // Blue output - slightly boosted
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var SOLARIZATION_MATRIX = new Float32Array([
   -0.5,
   0.5,
   0.5,
   0,
+  // Red output - partial negative
   0.5,
   -0.5,
   0.5,
   0,
+  // Green output - partial negative
   0.5,
   0.5,
   -0.5,
   0,
+  // Blue output - partial negative
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var SYNTHWAVE_MATRIX = new Float32Array([
   1,
   0,
   0.25,
   0,
+  // Red output - full red + some blue = magenta when bright
   0.1,
   0.1,
   0.1,
   0,
+  // Green output - heavily suppressed, minimal contribution
   0.25,
   0,
   1,
   0,
+  // Blue output - full blue + some red = enhances magenta tones
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var GREENSCALE_MATRIX = new Float32Array([
   0,
   0,
   0,
   0,
+  // Red output - zeroed out
   0.299,
   0.587,
   0.114,
   0,
+  // Green output - full luminance from all channels
   0,
   0,
   0,
   0,
+  // Blue output - zeroed out
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var GRAYSCALE_MATRIX = new Float32Array([
   0.299,
   0.587,
   0.114,
   0,
+  // Red output - luminance from all channels
   0.299,
   0.587,
   0.114,
   0,
+  // Green output - luminance from all channels
   0.299,
   0.587,
   0.114,
   0,
+  // Blue output - luminance from all channels
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
 var INVERT_MATRIX = new Float32Array([
   -1,
   0,
   0,
   1,
+  // Red output = 1 - R
   0,
   -1,
   0,
   1,
+  // Green output = 1 - G
   0,
   0,
   -1,
   1,
+  // Blue output = 1 - B
   0,
   0,
   0,
   1
+  // Alpha output - identity
 ]);
+
 // src/animation/Timeline.ts
 var easingFunctions = {
   linear: (t2) => t2,
@@ -1468,25 +1640,22 @@ var easingFunctions = {
   inCirc: (t2) => 1 - Math.sqrt(1 - t2 * t2),
   outCirc: (t2) => Math.sqrt(1 - Math.pow(t2 - 1, 2)),
   inOutCirc: (t2) => {
-    if ((t2 *= 2) < 1)
-      return -0.5 * (Math.sqrt(1 - t2 * t2) - 1);
+    if ((t2 *= 2) < 1) return -0.5 * (Math.sqrt(1 - t2 * t2) - 1);
     return 0.5 * (Math.sqrt(1 - (t2 -= 2) * t2) + 1);
   },
   inBack: (t2, s = 1.70158) => t2 * t2 * ((s + 1) * t2 - s),
   outBack: (t2, s = 1.70158) => --t2 * t2 * ((s + 1) * t2 + s) + 1,
   inOutBack: (t2, s = 1.70158) => {
     s *= 1.525;
-    if ((t2 *= 2) < 1)
-      return 0.5 * (t2 * t2 * ((s + 1) * t2 - s));
+    if ((t2 *= 2) < 1) return 0.5 * (t2 * t2 * ((s + 1) * t2 - s));
     return 0.5 * ((t2 -= 2) * t2 * ((s + 1) * t2 + s) + 2);
   }
 };
 function captureInitialValues(item) {
-  if (!item.properties)
-    return;
+  if (!item.properties) return;
   if (!item.initialValues || item.initialValues.length === 0) {
     const initialValues = [];
-    for (let i = 0;i < item.target.length; i++) {
+    for (let i = 0; i < item.target.length; i++) {
       const target = item.target[i];
       const targetInitialValues = {};
       for (const key of Object.keys(item.properties)) {
@@ -1500,16 +1669,14 @@ function captureInitialValues(item) {
   }
 }
 function applyAnimationAtProgress(item, progress, reversed, timelineTime, deltaTime = 0) {
-  if (!item.properties || !item.initialValues)
-    return;
+  if (!item.properties || !item.initialValues) return;
   const easingFn = easingFunctions[item.ease || "linear"] || easingFunctions.linear;
   const easedProgress = easingFn(Math.max(0, Math.min(1, progress)));
   const finalProgress = reversed ? 1 - easedProgress : easedProgress;
-  for (let i = 0;i < item.target.length; i++) {
+  for (let i = 0; i < item.target.length; i++) {
     const target = item.target[i];
     const targetInitialValues = item.initialValues[i];
-    if (!targetInitialValues)
-      continue;
+    if (!targetInitialValues) continue;
     for (const [key, endValue] of Object.entries(item.properties)) {
       const startValue = targetInitialValues[key];
       const newValue = startValue + (endValue - startValue) * finalProgress;
@@ -1554,7 +1721,7 @@ function evaluateAnimation(item, timelineTime, deltaTime = 0) {
   const cycleTime = duration + loopDelay;
   let currentCycle = Math.floor(animationTime / cycleTime);
   let timeInCycle = animationTime % cycleTime;
-  if (item.onLoop && item.currentLoop !== undefined && currentCycle > item.currentLoop && currentCycle < maxLoops) {
+  if (item.onLoop && item.currentLoop !== void 0 && currentCycle > item.currentLoop && currentCycle < maxLoops) {
     item.onLoop();
   }
   item.currentLoop = currentCycle;
@@ -1596,8 +1763,7 @@ function evaluateCallback(item, timelineTime) {
   }
 }
 function evaluateTimelineSync(item, timelineTime, deltaTime = 0) {
-  if (!item.timeline)
-    return;
+  if (!item.timeline) return;
   if (timelineTime < item.startTime) {
     return;
   }
@@ -1617,8 +1783,7 @@ function evaluateItem(item, timelineTime, deltaTime = 0) {
     evaluateCallback(item, timelineTime);
   }
 }
-
-class Timeline {
+var Timeline = class {
   items = [];
   subTimelines = [];
   currentTime = 0;
@@ -1632,7 +1797,7 @@ class Timeline {
   onPause;
   stateChangeListeners = [];
   constructor(options = {}) {
-    this.duration = options.duration || 1000;
+    this.duration = options.duration || 1e3;
     this.loop = options.loop === true;
     this.autoplay = options.autoplay !== false;
     this.onComplete = options.onComplete;
@@ -1653,7 +1818,9 @@ class Timeline {
     const resolvedStartTime = typeof startTime === "string" ? 0 : startTime;
     const animationProperties = {};
     for (const key in properties) {
-      if (!["duration", "ease", "onUpdate", "onComplete", "onStart", "onLoop", "loop", "loopDelay", "alternate"].includes(key)) {
+      if (!["duration", "ease", "onUpdate", "onComplete", "onStart", "onLoop", "loop", "loopDelay", "alternate"].includes(
+        key
+      )) {
         if (typeof properties[key] === "number") {
           animationProperties[key] = properties[key];
         }
@@ -1665,7 +1832,8 @@ class Timeline {
       target: Array.isArray(target) ? target : [target],
       properties: animationProperties,
       initialValues: [],
-      duration: properties.duration !== undefined ? properties.duration : 1000,
+      // Will be captured when animation starts
+      duration: properties.duration !== void 0 ? properties.duration : 1e3,
       ease: properties.ease || "linear",
       loop: properties.loop,
       loopDelay: properties.loopDelay || 0,
@@ -1682,10 +1850,14 @@ class Timeline {
     return this;
   }
   once(target, properties) {
-    this.add(target, {
-      ...properties,
-      once: true
-    }, this.currentTime);
+    this.add(
+      target,
+      {
+        ...properties,
+        once: true
+      },
+      this.currentTime
+    );
     return this;
   }
   call(callback, startTime = 0) {
@@ -1764,13 +1936,12 @@ class Timeline {
     for (const subTimeline of this.subTimelines) {
       evaluateTimelineSync(subTimeline, this.currentTime + deltaTime, deltaTime);
     }
-    if (!this.isPlaying)
-      return;
+    if (!this.isPlaying) return;
     this.currentTime += deltaTime;
     for (const item of this.items) {
       evaluateItem(item, this.currentTime, deltaTime);
     }
-    for (let i = this.items.length - 1;i >= 0; i--) {
+    for (let i = this.items.length - 1; i >= 0; i--) {
       const item = this.items[i];
       if (item.type === "animation" && item.once && item.completed) {
         this.items.splice(i, 1);
@@ -1793,10 +1964,9 @@ class Timeline {
       this.notifyStateChange();
     }
   }
-}
-
-class TimelineEngine {
-  timelines = new Set;
+};
+var TimelineEngine = class {
+  timelines = /* @__PURE__ */ new Set();
   renderer = null;
   frameCallback = null;
   isLive = false;
@@ -1825,9 +1995,10 @@ class TimelineEngine {
     this.frameCallback = null;
   }
   updateLiveState() {
-    if (!this.renderer)
-      return;
-    const hasRunningTimelines = Array.from(this.timelines).some((timeline) => !timeline.synced && timeline.isPlaying && !timeline.isComplete);
+    if (!this.renderer) return;
+    const hasRunningTimelines = Array.from(this.timelines).some(
+      (timeline) => !timeline.synced && timeline.isPlaying && !timeline.isComplete
+    );
     if (hasRunningTimelines && !this.isLive) {
       this.renderer.requestLive();
       this.isLive = true;
@@ -1867,8 +2038,8 @@ class TimelineEngine {
       }
     }
   }
-}
-var engine = new TimelineEngine;
+};
+var engine = new TimelineEngine();
 function createTimeline(options = {}) {
   const timeline = new Timeline(options);
   if (options.autoplay !== false) {
@@ -1877,8 +2048,10 @@ function createTimeline(options = {}) {
   engine.register(timeline);
   return timeline;
 }
+
 // src/plugins/registry.ts
-var noop = () => {};
+var noop = () => {
+};
 var DEFAULT_DEBUG_PLUGIN_ERRORS = false;
 var DEFAULT_MAX_PLUGIN_ERRORS = 100;
 function normalizeError(error) {
@@ -1890,12 +2063,11 @@ function normalizeError(error) {
   }
   return new Error(`Unknown plugin error: ${String(error)}`);
 }
-
-class SlotRegistry {
+var SlotRegistry = class {
   plugins = [];
   sortedPluginsCache = null;
-  listeners = new Set;
-  errorListeners = new Set;
+  listeners = /* @__PURE__ */ new Set();
+  errorListeners = /* @__PURE__ */ new Set();
   pluginErrors = [];
   registrationOrder = 0;
   batchDepth = 0;
@@ -2056,7 +2228,9 @@ class SlotRegistry {
     }
     if (this.options.debugPluginErrors) {
       const slotLabel = event.slot ? ` slot="${event.slot}"` : "";
-      console.debug(`[SlotRegistry][PluginError] plugin="${event.pluginId}" phase="${event.phase}" source="${event.source}"${slotLabel}`);
+      console.debug(
+        `[SlotRegistry][PluginError] plugin="${event.pluginId}" phase="${event.phase}" source="${event.source}"${slotLabel}`
+      );
       console.debug(event.error);
     }
     for (const listener of this.errorListeners) {
@@ -2141,14 +2315,14 @@ class SlotRegistry {
       }
     }
   }
-}
-var slotRegistriesByRenderer = new WeakMap;
+};
+var slotRegistriesByRenderer = /* @__PURE__ */ new WeakMap();
 function getSlotRegistryStore(renderer) {
   const existingStore = slotRegistriesByRenderer.get(renderer);
   if (existingStore) {
     return existingStore;
   }
-  const createdStore = new Map;
+  const createdStore = /* @__PURE__ */ new Map();
   slotRegistriesByRenderer.set(renderer, createdStore);
   renderer.once("destroy", () => {
     for (const registry of createdStore.values()) {
@@ -2168,7 +2342,9 @@ function createSlotRegistry(renderer, key, context, options = {}) {
   const existing = store.get(key);
   if (existing) {
     if (existing.context !== context) {
-      throw new Error(`createSlotRegistry called with a different context for renderer key "${key}". Reuse the original context object.`);
+      throw new Error(
+        `createSlotRegistry called with a different context for renderer key "${key}". Reuse the original context object.`
+      );
     }
     const typedExisting = existing;
     typedExisting.configure(options);
@@ -2178,6 +2354,7 @@ function createSlotRegistry(renderer, key, context, options = {}) {
   store.set(key, created);
   return created;
 }
+
 // src/plugins/core-slot.ts
 function isCoreManagedSlot(contribution) {
   return typeof contribution === "object" && contribution !== null && "render" in contribution;
@@ -2231,7 +2408,12 @@ function ensureValidNode(node, pluginId, mount) {
   }
 }
 function createCoreSlotRegistry(renderer, context, options = {}) {
-  return createSlotRegistry(renderer, "core:slot-registry", context, options);
+  return createSlotRegistry(
+    renderer,
+    "core:slot-registry",
+    context,
+    options
+  );
 }
 function registerCorePlugin(registry, plugin) {
   return registry.register(toCorePlugin(plugin));
@@ -2255,8 +2437,7 @@ function resolveCoreSlotEntries(registry, slot) {
     };
   });
 }
-
-class SlotRenderable extends Renderable {
+var SlotRenderable = class extends Renderable {
   _mode;
   _slotRegistry;
   _slotName;
@@ -2265,8 +2446,8 @@ class SlotRenderable extends Renderable {
   _pluginFailurePlaceholder;
   _disposed = false;
   _mountedNodes = [];
-  _pluginNodes = new Map;
-  _activePluginIds = new Set;
+  _pluginNodes = /* @__PURE__ */ new Map();
+  _activePluginIds = /* @__PURE__ */ new Set();
   _fallbackNodes = null;
   _unsubscribe = null;
   constructor(ctx, options) {
@@ -2390,7 +2571,7 @@ class SlotRenderable extends Renderable {
       }
     }
     this._pluginNodes.clear();
-    this._activePluginIds = new Set;
+    this._activePluginIds = /* @__PURE__ */ new Set();
     if (this._fallbackNodes) {
       for (const node of this._fallbackNodes) {
         node.destroyRecursively();
@@ -2507,7 +2688,7 @@ class SlotRenderable extends Renderable {
         }
       }
     }
-    for (let index = 0;index < desiredNodes.length; index++) {
+    for (let index = 0; index < desiredNodes.length; index++) {
       const node = desiredNodes[index];
       if (node.parent !== this) {
         this.add(node, index);
@@ -2520,7 +2701,8 @@ class SlotRenderable extends Renderable {
     }
     this._mountedNodes = [...desiredNodes];
   }
-}
+};
+
 // src/audio.ts
 import { EventEmitter } from "events";
 import { readFile } from "node:fs/promises";
@@ -2530,28 +2712,27 @@ function statusToError(action, status) {
 function toBytes(data) {
   return data instanceof Uint8Array ? data : new Uint8Array(data);
 }
-
-class Audio extends EventEmitter {
+var Audio = class _Audio extends EventEmitter {
   static create(options = {}) {
-    return new Audio(resolveRenderLib(), options);
+    return new _Audio(resolveRenderLib(), options);
   }
   lib;
   defaultStartOptions;
   engine = null;
-  groups = new Map;
+  groups = /* @__PURE__ */ new Map();
   playbackStarted = false;
   mixerStarted = false;
   constructor(lib, options) {
     super();
     this.lib = lib;
     this.defaultStartOptions = options.startOptions;
-    const createOptions = options.sampleRate == null && options.playbackChannels == null ? undefined : {
-      sampleRate: options.sampleRate == null ? undefined : Math.max(0, Math.trunc(options.sampleRate)),
-      playbackChannels: options.playbackChannels == null ? undefined : Math.max(0, Math.trunc(options.playbackChannels))
+    const createOptions = options.sampleRate == null && options.playbackChannels == null ? void 0 : {
+      sampleRate: options.sampleRate == null ? void 0 : Math.max(0, Math.trunc(options.sampleRate)),
+      playbackChannels: options.playbackChannels == null ? void 0 : Math.max(0, Math.trunc(options.playbackChannels))
     };
     this.engine = this.lib.createAudioEngine(createOptions);
     if (!this.engine) {
-      this.emitError("createAudioEngine", undefined, "Audio createAudioEngine returned null");
+      this.emitError("createAudioEngine", void 0, "Audio createAudioEngine returned null");
       return;
     }
     if (options.autoStart ?? false) {
@@ -2560,16 +2741,14 @@ class Audio extends EventEmitter {
   }
   emitError(action, status, message, cause) {
     const error = message ? new Error(message) : statusToError(action, status ?? -1);
-    if (cause)
-      error.cause = cause;
+    if (cause) error.cause = cause;
     this.emit("error", error, { action, status });
   }
   start(options) {
-    if (this.playbackStarted)
-      return true;
+    if (this.playbackStarted) return true;
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("start", undefined, "Audio engine unavailable during start");
+      this.emitError("start", void 0, "Audio engine unavailable during start");
       return false;
     }
     const startOptions = options ?? this.defaultStartOptions;
@@ -2584,11 +2763,10 @@ class Audio extends EventEmitter {
     return true;
   }
   startMixer() {
-    if (this.mixerStarted)
-      return true;
+    if (this.mixerStarted) return true;
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("startMixer", undefined, "Audio engine unavailable during startMixer");
+      this.emitError("startMixer", void 0, "Audio engine unavailable during startMixer");
       return false;
     }
     const status = this.lib.audioStartMixer(engine2);
@@ -2601,11 +2779,10 @@ class Audio extends EventEmitter {
     return true;
   }
   stop() {
-    if (!this.mixerStarted)
-      return true;
+    if (!this.mixerStarted) return true;
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("stop", undefined, "Audio engine unavailable during stop");
+      this.emitError("stop", void 0, "Audio engine unavailable during stop");
       return false;
     }
     const status = this.lib.audioStop(engine2);
@@ -2627,7 +2804,7 @@ class Audio extends EventEmitter {
   loadSound(data) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("loadSound", undefined, "Audio engine unavailable during loadSound");
+      this.emitError("loadSound", void 0, "Audio engine unavailable during loadSound");
       return null;
     }
     const result = this.lib.audioLoad(engine2, toBytes(data));
@@ -2639,17 +2816,16 @@ class Audio extends EventEmitter {
   }
   async loadSoundFile(filePath) {
     const bytes = await readFile(filePath).catch((err) => {
-      this.emitError("loadSoundFile", undefined, `Failed to read file '${filePath}': ${err.message}`, err);
+      this.emitError("loadSoundFile", void 0, `Failed to read file '${filePath}': ${err.message}`, err);
       return null;
     });
-    if (bytes == null)
-      return null;
+    if (bytes == null) return null;
     return this.loadSound(bytes);
   }
   unloadSound(sound) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("unloadSound", undefined, "Audio engine unavailable during unloadSound");
+      this.emitError("unloadSound", void 0, "Audio engine unavailable during unloadSound");
       return false;
     }
     const status = this.lib.audioUnload(engine2, sound);
@@ -2666,7 +2842,7 @@ class Audio extends EventEmitter {
     }
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("group", undefined, "Audio engine unavailable during group");
+      this.emitError("group", void 0, "Audio engine unavailable during group");
       return null;
     }
     const result = this.lib.audioCreateGroup(engine2, name);
@@ -2683,10 +2859,10 @@ class Audio extends EventEmitter {
       pan: options.pan,
       loop: options.loop,
       groupId: options.groupId ?? 0
-    } : undefined;
+    } : void 0;
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("play", undefined, "Audio engine unavailable during play");
+      this.emitError("play", void 0, "Audio engine unavailable during play");
       return null;
     }
     const result = this.lib.audioPlay(engine2, sound, rawOptions);
@@ -2699,7 +2875,7 @@ class Audio extends EventEmitter {
   stopVoice(voice) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("stopVoice", undefined, "Audio engine unavailable during stopVoice");
+      this.emitError("stopVoice", void 0, "Audio engine unavailable during stopVoice");
       return false;
     }
     const status = this.lib.audioStopVoice(engine2, voice);
@@ -2712,7 +2888,7 @@ class Audio extends EventEmitter {
   setVoiceGroup(voice, group) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("setVoiceGroup", undefined, "Audio engine unavailable during setVoiceGroup");
+      this.emitError("setVoiceGroup", void 0, "Audio engine unavailable during setVoiceGroup");
       return false;
     }
     const status = this.lib.audioSetVoiceGroup(engine2, voice, group);
@@ -2725,7 +2901,7 @@ class Audio extends EventEmitter {
   setGroupVolume(group, volume) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("setGroupVolume", undefined, "Audio engine unavailable during setGroupVolume");
+      this.emitError("setGroupVolume", void 0, "Audio engine unavailable during setGroupVolume");
       return false;
     }
     const status = this.lib.audioSetGroupVolume(engine2, group, volume);
@@ -2738,7 +2914,7 @@ class Audio extends EventEmitter {
   setMasterVolume(volume) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("setMasterVolume", undefined, "Audio engine unavailable during setMasterVolume");
+      this.emitError("setMasterVolume", void 0, "Audio engine unavailable during setMasterVolume");
       return false;
     }
     const status = this.lib.audioSetMasterVolume(engine2, volume);
@@ -2751,7 +2927,7 @@ class Audio extends EventEmitter {
   mixFrames(frameCount, channels = 2) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("mixFrames", undefined, "Audio engine unavailable during mixFrames");
+      this.emitError("mixFrames", void 0, "Audio engine unavailable during mixFrames");
       return null;
     }
     const output = new Float32Array(frameCount * channels);
@@ -2765,7 +2941,7 @@ class Audio extends EventEmitter {
   enableTap(capacityFrames = 8192) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("enableTap", undefined, "Audio engine unavailable during enableTap");
+      this.emitError("enableTap", void 0, "Audio engine unavailable during enableTap");
       return false;
     }
     const status = this.lib.audioEnableTap(engine2, true, capacityFrames);
@@ -2778,7 +2954,7 @@ class Audio extends EventEmitter {
   disableTap() {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("enableTap", undefined, "Audio engine unavailable during disableTap");
+      this.emitError("enableTap", void 0, "Audio engine unavailable during disableTap");
       return false;
     }
     const status = this.lib.audioEnableTap(engine2, false, 0);
@@ -2791,7 +2967,7 @@ class Audio extends EventEmitter {
   readTapFrames(frameCount, channels = 2) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("readTapFrames", undefined, "Audio engine unavailable during readTapFrames");
+      this.emitError("readTapFrames", void 0, "Audio engine unavailable during readTapFrames");
       return null;
     }
     const output = new Float32Array(frameCount * channels);
@@ -2805,7 +2981,7 @@ class Audio extends EventEmitter {
   listPlaybackDevices() {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("listPlaybackDevices", undefined, "Audio engine unavailable during listPlaybackDevices");
+      this.emitError("listPlaybackDevices", void 0, "Audio engine unavailable during listPlaybackDevices");
       return null;
     }
     const refreshStatus = this.lib.audioRefreshPlaybackDevices(engine2);
@@ -2815,7 +2991,7 @@ class Audio extends EventEmitter {
     }
     const count = this.lib.audioGetPlaybackDeviceCount(engine2);
     const devices = [];
-    for (let index = 0;index < count; index += 1) {
+    for (let index = 0; index < count; index += 1) {
       devices.push({
         index,
         name: this.lib.audioGetPlaybackDeviceName(engine2, index),
@@ -2827,7 +3003,7 @@ class Audio extends EventEmitter {
   selectPlaybackDevice(index) {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("selectPlaybackDevice", undefined, "Audio engine unavailable during selectPlaybackDevice");
+      this.emitError("selectPlaybackDevice", void 0, "Audio engine unavailable during selectPlaybackDevice");
       return false;
     }
     const refreshStatus = this.lib.audioRefreshPlaybackDevices(engine2);
@@ -2845,7 +3021,11 @@ class Audio extends EventEmitter {
   clearPlaybackDeviceSelection() {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("clearPlaybackDeviceSelection", undefined, "Audio engine unavailable during clearPlaybackDeviceSelection");
+      this.emitError(
+        "clearPlaybackDeviceSelection",
+        void 0,
+        "Audio engine unavailable during clearPlaybackDeviceSelection"
+      );
       return;
     }
     this.lib.audioClearPlaybackDeviceSelection(engine2);
@@ -2853,18 +3033,17 @@ class Audio extends EventEmitter {
   getStats() {
     const engine2 = this.engine;
     if (!engine2) {
-      this.emitError("getStats", undefined, "Audio engine unavailable during getStats");
+      this.emitError("getStats", void 0, "Audio engine unavailable during getStats");
       return null;
     }
     const stats = this.lib.audioGetStats(engine2);
     if (stats == null) {
-      this.emitError("getStats", undefined, "Failed to retrieve audio stats");
+      this.emitError("getStats", void 0, "Failed to retrieve audio stats");
     }
     return stats;
   }
   dispose() {
-    if (!this.engine)
-      return;
+    if (!this.engine) return;
     if (this.mixerStarted) {
       this.stop();
     }
@@ -2873,12 +3052,13 @@ class Audio extends EventEmitter {
     this.engine = null;
     this.emit("disposed");
   }
-}
+};
 function setupAudio(options = {}) {
   return Audio.create(options);
 }
+
 // src/renderables/FrameBuffer.ts
-class FrameBufferRenderable extends Renderable {
+var FrameBufferRenderable = class extends Renderable {
   frameBuffer;
   respectAlpha;
   constructor(ctx, options) {
@@ -2898,26 +3078,25 @@ class FrameBufferRenderable extends Renderable {
     this.requestRender();
   }
   renderSelf(buffer) {
-    if (!this.visible || this.isDestroyed)
-      return;
+    if (!this.visible || this.isDestroyed) return;
     buffer.drawFrameBuffer(this.x, this.y, this.frameBuffer);
   }
   destroySelf() {
     this.frameBuffer?.destroy();
     super.destroySelf();
   }
-}
+};
 
 // src/renderables/ASCIIFont.ts
-class ASCIIFontRenderable extends FrameBufferRenderable {
+var ASCIIFontRenderable = class _ASCIIFontRenderable extends FrameBufferRenderable {
   selectable = true;
   static _defaultOptions = {
     text: "",
     font: "tiny",
     color: "#FFFFFF",
     backgroundColor: "transparent",
-    selectionBg: undefined,
-    selectionFg: undefined,
+    selectionBg: void 0,
+    selectionFg: void 0,
     selectable: true
   };
   _text;
@@ -2929,7 +3108,7 @@ class ASCIIFontRenderable extends FrameBufferRenderable {
   lastLocalSelection = null;
   selectionHelper;
   constructor(ctx, options) {
-    const defaultOptions = ASCIIFontRenderable._defaultOptions;
+    const defaultOptions = _ASCIIFontRenderable._defaultOptions;
     const font = options.font || defaultOptions.font;
     const text = options.text || defaultOptions.text;
     const measurements = measureText({ text, font });
@@ -2944,10 +3123,13 @@ class ASCIIFontRenderable extends FrameBufferRenderable {
     this._font = font;
     this._color = options.color || defaultOptions.color;
     this._backgroundColor = options.backgroundColor || defaultOptions.backgroundColor;
-    this._selectionBg = options.selectionBg ? parseColor(options.selectionBg) : undefined;
-    this._selectionFg = options.selectionFg ? parseColor(options.selectionFg) : undefined;
+    this._selectionBg = options.selectionBg ? parseColor(options.selectionBg) : void 0;
+    this._selectionFg = options.selectionFg ? parseColor(options.selectionFg) : void 0;
     this.selectable = options.selectable ?? true;
-    this.selectionHelper = new ASCIIFontSelectionHelper(() => this._text, () => this._font);
+    this.selectionHelper = new ASCIIFontSelectionHelper(
+      () => this._text,
+      () => this._font
+    );
     this.renderFontToBuffer();
   }
   get text() {
@@ -3012,8 +3194,7 @@ class ASCIIFontRenderable extends FrameBufferRenderable {
   }
   getSelectedText() {
     const selection = this.selectionHelper.getSelection();
-    if (!selection)
-      return "";
+    if (!selection) return "";
     return this._text.slice(selection.start, selection.end);
   }
   hasSelection() {
@@ -3024,8 +3205,7 @@ class ASCIIFontRenderable extends FrameBufferRenderable {
     this.renderFontToBuffer();
   }
   renderFontToBuffer() {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.frameBuffer.clear(parseColor(this._backgroundColor));
     renderFontToFrameBuffer(this.frameBuffer, {
       text: this._text,
@@ -3041,11 +3221,9 @@ class ASCIIFontRenderable extends FrameBufferRenderable {
     }
   }
   renderSelectionHighlight(selection) {
-    if (!this._selectionBg && !this._selectionFg)
-      return;
+    if (!this._selectionBg && !this._selectionFg) return;
     const selectedText = this._text.slice(selection.start, selection.end);
-    if (!selectedText)
-      return;
+    if (!selectedText) return;
     const positions = getCharacterPositions(this._text, this._font);
     const startX = positions[selection.start] || 0;
     const endX = selection.end < positions.length ? positions[selection.end] : measureText({ text: this._text, font: this._font }).width;
@@ -3063,7 +3241,8 @@ class ASCIIFontRenderable extends FrameBufferRenderable {
       });
     }
   }
-}
+};
+
 // src/renderables/composition/constructs.ts
 function Generic(props, ...children) {
   return h(VRenderable, props || {}, ...children);
@@ -3108,6 +3287,7 @@ function StyledText2(props, ...children) {
   return textNode;
 }
 var vstyles = {
+  // Basic text styles
   bold: (...children) => StyledText2({ attributes: TextAttributes.BOLD }, ...children),
   italic: (...children) => StyledText2({ attributes: TextAttributes.ITALIC }, ...children),
   underline: (...children) => StyledText2({ attributes: TextAttributes.UNDERLINE }, ...children),
@@ -3116,18 +3296,22 @@ var vstyles = {
   inverse: (...children) => StyledText2({ attributes: TextAttributes.INVERSE }, ...children),
   hidden: (...children) => StyledText2({ attributes: TextAttributes.HIDDEN }, ...children),
   strikethrough: (...children) => StyledText2({ attributes: TextAttributes.STRIKETHROUGH }, ...children),
+  // Combined styles
   boldItalic: (...children) => StyledText2({ attributes: TextAttributes.BOLD | TextAttributes.ITALIC }, ...children),
   boldUnderline: (...children) => StyledText2({ attributes: TextAttributes.BOLD | TextAttributes.UNDERLINE }, ...children),
   italicUnderline: (...children) => StyledText2({ attributes: TextAttributes.ITALIC | TextAttributes.UNDERLINE }, ...children),
   boldItalicUnderline: (...children) => StyledText2({ attributes: TextAttributes.BOLD | TextAttributes.ITALIC | TextAttributes.UNDERLINE }, ...children),
+  // Color helpers
   color: (color, ...children) => StyledText2({ fg: color }, ...children),
   bgColor: (bgColor, ...children) => StyledText2({ bg: bgColor }, ...children),
   fg: (color, ...children) => StyledText2({ fg: color }, ...children),
   bg: (bgColor, ...children) => StyledText2({ bg: bgColor }, ...children),
+  // Custom styling function
   styled: (attributes = 0, ...children) => StyledText2({ attributes }, ...children)
 };
+
 // src/renderables/composition/VRenderable.ts
-class VRenderable extends Renderable {
+var VRenderable = class extends Renderable {
   options;
   constructor(ctx, options) {
     super(ctx, options);
@@ -3138,12 +3322,12 @@ class VRenderable extends Renderable {
       this.options.render.call(this.options, buffer, deltaTime, this);
     }
   }
-}
+};
+
 // src/renderables/LineNumberRenderable.ts
 var DEFAULT_GUTTER_FG = "#888888";
 var DEFAULT_GUTTER_BG = "transparent";
-
-class GutterRenderable extends Renderable {
+var GutterRenderable = class extends Renderable {
   target;
   _fg;
   _bg;
@@ -3178,7 +3362,7 @@ class GutterRenderable extends Renderable {
     this._lineSigns = options.lineSigns;
     this._lineNumberOffset = options.lineNumberOffset;
     this._hideLineNumbers = options.hideLineNumbers;
-    this._lineNumbers = options.lineNumbers ?? new Map;
+    this._lineNumbers = options.lineNumbers ?? /* @__PURE__ */ new Map();
     this._lastKnownLineCount = this.target.virtualLineCount;
     this._lastKnownScrollY = this.target.scrollY;
     this.calculateSignWidths();
@@ -3309,24 +3493,22 @@ class GutterRenderable extends Renderable {
       buffer.fillRect(startX, startY, this.width, this.height, this._bg);
     }
     const lineInfo = this.target.lineInfo;
-    if (!lineInfo || !lineInfo.lineSources)
-      return;
+    if (!lineInfo || !lineInfo.lineSources) return;
     const sources = lineInfo.lineSources;
     let lastSource = -1;
     const startLine = this.target.scrollY;
-    if (startLine >= sources.length)
-      return;
+    if (startLine >= sources.length) return;
     lastSource = startLine > 0 ? sources[startLine - 1] : -1;
-    for (let i = 0;i < this.height; i++) {
+    for (let i = 0; i < this.height; i++) {
       const visualLineIndex = startLine + i;
-      if (visualLineIndex >= sources.length)
-        break;
+      if (visualLineIndex >= sources.length) break;
       const logicalLine = sources[visualLineIndex];
       const lineBg = this._lineColorsGutter.get(logicalLine) ?? this._bg;
       if (lineBg !== this._bg) {
         buffer.fillRect(startX, startY + i, this.width, 1, lineBg);
       }
-      if (logicalLine === lastSource) {} else {
+      if (logicalLine === lastSource) {
+      } else {
         let currentX = startX;
         const sign = this._lineSigns.get(logicalLine);
         if (sign?.before) {
@@ -3341,7 +3523,7 @@ class GutterRenderable extends Renderable {
         }
         if (!this._hideLineNumbers.has(logicalLine)) {
           const customLineNum = this._lineNumbers.get(logicalLine);
-          const lineNum = customLineNum !== undefined ? customLineNum : logicalLine + 1 + this._lineNumberOffset;
+          const lineNum = customLineNum !== void 0 ? customLineNum : logicalLine + 1 + this._lineNumberOffset;
           const lineNumStr = lineNum.toString();
           const lineNumWidth = lineNumStr.length;
           const availableSpace = this.width - this._maxBeforeWidth - this._maxAfterWidth - this._paddingRight;
@@ -3359,12 +3541,11 @@ class GutterRenderable extends Renderable {
       lastSource = logicalLine;
     }
   }
-}
+};
 function darkenColor(color) {
   return RGBA.fromValues(color.r * 0.8, color.g * 0.8, color.b * 0.8, color.a);
 }
-
-class LineNumberRenderable extends Renderable {
+var LineNumberRenderable = class extends Renderable {
   gutter = null;
   target = null;
   _lineColorsGutter;
@@ -3403,6 +3584,8 @@ class LineNumberRenderable extends Renderable {
     super(ctx, {
       ...options,
       flexDirection: "row",
+      // CRITICAL:
+      // By forcing height=auto, we ensure the parent box properly accounts for our full height.
       height: "auto"
     });
     this._fg = parseColor(options.fg ?? DEFAULT_GUTTER_FG);
@@ -3410,16 +3593,16 @@ class LineNumberRenderable extends Renderable {
     this._minWidth = options.minWidth ?? 3;
     this._paddingRight = options.paddingRight ?? 1;
     this._lineNumberOffset = options.lineNumberOffset ?? 0;
-    this._hideLineNumbers = options.hideLineNumbers ?? new Set;
-    this._lineNumbers = options.lineNumbers ?? new Map;
-    this._lineColorsGutter = new Map;
-    this._lineColorsContent = new Map;
+    this._hideLineNumbers = options.hideLineNumbers ?? /* @__PURE__ */ new Set();
+    this._lineNumbers = options.lineNumbers ?? /* @__PURE__ */ new Map();
+    this._lineColorsGutter = /* @__PURE__ */ new Map();
+    this._lineColorsContent = /* @__PURE__ */ new Map();
     if (options.lineColors) {
       for (const [line, color] of options.lineColors) {
         this.parseLineColor(line, color);
       }
     }
-    this._lineSigns = new Map;
+    this._lineSigns = /* @__PURE__ */ new Map();
     if (options.lineSigns) {
       for (const [line, sign] of options.lineSigns) {
         this._lineSigns.set(line, sign);
@@ -3430,8 +3613,7 @@ class LineNumberRenderable extends Renderable {
     }
   }
   setTarget(target) {
-    if (this.target === target)
-      return;
+    if (this.target === target) return;
     if (this.target) {
       this.target.off("line-info-change", this.handleLineInfoChange);
       super.remove(this.target.id);
@@ -3453,12 +3635,13 @@ class LineNumberRenderable extends Renderable {
       lineNumberOffset: this._lineNumberOffset,
       hideLineNumbers: this._hideLineNumbers,
       lineNumbers: this._lineNumbers,
-      id: this.id ? `${this.id}-gutter` : undefined,
+      id: this.id ? `${this.id}-gutter` : void 0,
       buffered: true
     });
     super.add(this.gutter);
     super.add(this.target);
   }
+  // Override add to intercept and set as target if it's a LineInfoProvider
   add(child) {
     if (!this.target && "lineInfo" in child && "lineCount" in child && "virtualLineCount" in child && "scrollY" in child) {
       this.setTarget(child);
@@ -3466,6 +3649,7 @@ class LineNumberRenderable extends Renderable {
     }
     return -1;
   }
+  // Override remove to prevent removing gutter/target directly
   remove(id) {
     if (this._isDestroying) {
       super.remove(id);
@@ -3479,6 +3663,7 @@ class LineNumberRenderable extends Renderable {
     }
     super.remove(id);
   }
+  // Override destroyRecursively to properly clean up internal components
   destroyRecursively() {
     this._isDestroying = true;
     if (this.target) {
@@ -3500,21 +3685,17 @@ class LineNumberRenderable extends Renderable {
     }
   }
   renderSelf(buffer) {
-    if (!this.target || !this.gutter)
-      return;
+    if (!this.target || !this.gutter) return;
     const lineInfo = this.target.lineInfo;
-    if (!lineInfo || !lineInfo.lineSources)
-      return;
+    if (!lineInfo || !lineInfo.lineSources) return;
     const sources = lineInfo.lineSources;
     const startLine = this.target.scrollY;
-    if (startLine >= sources.length)
-      return;
+    if (startLine >= sources.length) return;
     const gutterWidth = this.gutter.visible ? this.gutter.width : 0;
     const contentWidth = this.width - gutterWidth;
-    for (let i = 0;i < this.height; i++) {
+    for (let i = 0; i < this.height; i++) {
       const visualLineIndex = startLine + i;
-      if (visualLineIndex >= sources.length)
-        break;
+      if (visualLineIndex >= sources.length) break;
       const logicalLine = sources[visualLineIndex];
       const lineBg = this._lineColorsContent.get(logicalLine);
       if (lineBg) {
@@ -3646,7 +3827,7 @@ class LineNumberRenderable extends Renderable {
     return this._lineNumbers;
   }
   highlightLines(startLine, endLine, color) {
-    for (let i = startLine;i <= endLine; i++) {
+    for (let i = startLine; i <= endLine; i++) {
       this.parseLineColor(i, color);
     }
     if (this.gutter) {
@@ -3654,7 +3835,7 @@ class LineNumberRenderable extends Renderable {
     }
   }
   clearHighlightLines(startLine, endLine) {
-    for (let i = startLine;i <= endLine; i++) {
+    for (let i = startLine; i <= endLine; i++) {
       this._lineColorsGutter.delete(i);
       this._lineColorsContent.delete(i);
     }
@@ -3662,345 +3843,20 @@ class LineNumberRenderable extends Renderable {
       this.gutter.setLineColors(this._lineColorsGutter, this._lineColorsContent);
     }
   }
-}
-// ../../node_modules/.bun/diff@9.0.0/node_modules/diff/libesm/patch/parse.js
-function parsePatch(uniDiff) {
-  const diffstr = uniDiff.split(/\n/), list = [];
-  let i = 0;
-  function isGitDiffHeader(line) {
-    return /^diff --git /.test(line);
-  }
-  function isDiffHeader(line) {
-    return isGitDiffHeader(line) || /^Index:\s/.test(line) || /^diff(?: -r \w+)+\s/.test(line);
-  }
-  function isFileHeader(line) {
-    return /^(---|\+\+\+)\s/.test(line);
-  }
-  function isHunkHeader(line) {
-    return /^@@\s/.test(line);
-  }
-  function parseIndex() {
-    var _a;
-    const index = {};
-    index.hunks = [];
-    list.push(index);
-    let seenDiffHeader = false;
-    while (i < diffstr.length) {
-      const line = diffstr[i];
-      if (isFileHeader(line) || isHunkHeader(line)) {
-        break;
-      }
-      if (isGitDiffHeader(line)) {
-        if (seenDiffHeader) {
-          return;
-        }
-        seenDiffHeader = true;
-        index.isGit = true;
-        const paths = parseGitDiffHeader(line);
-        if (paths) {
-          index.oldFileName = paths.oldFileName;
-          index.newFileName = paths.newFileName;
-        }
-        i++;
-        while (i < diffstr.length) {
-          const extLine = diffstr[i];
-          if (isFileHeader(extLine) || isHunkHeader(extLine) || isDiffHeader(extLine)) {
-            break;
-          }
-          const renameFromMatch = /^rename from (.*)/.exec(extLine);
-          if (renameFromMatch) {
-            index.oldFileName = "a/" + unquoteIfQuoted(renameFromMatch[1]);
-            index.isRename = true;
-          }
-          const renameToMatch = /^rename to (.*)/.exec(extLine);
-          if (renameToMatch) {
-            index.newFileName = "b/" + unquoteIfQuoted(renameToMatch[1]);
-            index.isRename = true;
-          }
-          const copyFromMatch = /^copy from (.*)/.exec(extLine);
-          if (copyFromMatch) {
-            index.oldFileName = "a/" + unquoteIfQuoted(copyFromMatch[1]);
-            index.isCopy = true;
-          }
-          const copyToMatch = /^copy to (.*)/.exec(extLine);
-          if (copyToMatch) {
-            index.newFileName = "b/" + unquoteIfQuoted(copyToMatch[1]);
-            index.isCopy = true;
-          }
-          const newFileModeMatch = /^new file mode (\d+)/.exec(extLine);
-          if (newFileModeMatch) {
-            index.isCreate = true;
-            index.newMode = newFileModeMatch[1];
-          }
-          const deletedFileModeMatch = /^deleted file mode (\d+)/.exec(extLine);
-          if (deletedFileModeMatch) {
-            index.isDelete = true;
-            index.oldMode = deletedFileModeMatch[1];
-          }
-          const oldModeMatch = /^old mode (\d+)/.exec(extLine);
-          if (oldModeMatch) {
-            index.oldMode = oldModeMatch[1];
-          }
-          const newModeMatch = /^new mode (\d+)/.exec(extLine);
-          if (newModeMatch) {
-            index.newMode = newModeMatch[1];
-          }
-          if (/^Binary files /.test(extLine)) {
-            index.isBinary = true;
-          }
-          i++;
-        }
-        continue;
-      } else if (isDiffHeader(line)) {
-        if (seenDiffHeader) {
-          return;
-        }
-        seenDiffHeader = true;
-        const headerMatch = /^(?:Index:|diff(?: -r \w+)+)\s+/.exec(line);
-        if (headerMatch) {
-          index.index = line.substring(headerMatch[0].length).trim();
-        }
-      }
-      i++;
-    }
-    parseFileHeader(index);
-    parseFileHeader(index);
-    if (index.oldFileName === undefined !== (index.newFileName === undefined)) {
-      throw new Error("Missing " + (index.oldFileName !== undefined ? '"+++ ..."' : '"--- ..."') + " file header for " + ((_a = index.oldFileName) !== null && _a !== undefined ? _a : index.newFileName));
-    }
-    while (i < diffstr.length) {
-      const line = diffstr[i];
-      if (isDiffHeader(line) || isFileHeader(line) || /^===================================================================/.test(line)) {
-        break;
-      } else if (isHunkHeader(line)) {
-        index.hunks.push(parseHunk());
-      } else {
-        i++;
-      }
-    }
-  }
-  function parseGitDiffHeader(line) {
-    const rest = line.substring("diff --git ".length);
-    if (rest.startsWith('"')) {
-      const oldPath = parseQuotedFileName(rest);
-      if (oldPath === null) {
-        return null;
-      }
-      const afterOld = rest.substring(oldPath.rawLength + 1);
-      let newFileName;
-      if (afterOld.startsWith('"')) {
-        const newPath = parseQuotedFileName(afterOld);
-        if (newPath === null) {
-          return null;
-        }
-        newFileName = newPath.fileName;
-      } else {
-        newFileName = afterOld;
-      }
-      return {
-        oldFileName: oldPath.fileName,
-        newFileName
-      };
-    }
-    const quoteIdx = rest.indexOf('"');
-    if (quoteIdx > 0) {
-      const oldFileName = rest.substring(0, quoteIdx - 1);
-      const newPath = parseQuotedFileName(rest.substring(quoteIdx));
-      if (newPath === null) {
-        return null;
-      }
-      return {
-        oldFileName,
-        newFileName: newPath.fileName
-      };
-    }
-    if (rest.startsWith("a/")) {
-      const splits = [];
-      let idx = 0;
-      while (true) {
-        idx = rest.indexOf(" b/", idx + 1);
-        if (idx === -1) {
-          break;
-        }
-        splits.push(idx);
-      }
-      if (splits.length > 0) {
-        const mid = splits[Math.floor(splits.length / 2)];
-        return {
-          oldFileName: rest.substring(0, mid),
-          newFileName: rest.substring(mid + 1)
-        };
-      }
-    }
-    return null;
-  }
-  function unquoteIfQuoted(s) {
-    if (s.startsWith('"')) {
-      const parsed = parseQuotedFileName(s);
-      if (parsed) {
-        return parsed.fileName;
-      }
-    }
-    return s;
-  }
-  function parseQuotedFileName(s) {
-    if (!s.startsWith('"')) {
-      return null;
-    }
-    let result = "";
-    let j = 1;
-    while (j < s.length) {
-      if (s[j] === '"') {
-        return { fileName: result, rawLength: j + 1 };
-      }
-      if (s[j] === "\\" && j + 1 < s.length) {
-        j++;
-        switch (s[j]) {
-          case "a":
-            result += "\x07";
-            break;
-          case "b":
-            result += "\b";
-            break;
-          case "f":
-            result += "\f";
-            break;
-          case "n":
-            result += `
-`;
-            break;
-          case "r":
-            result += "\r";
-            break;
-          case "t":
-            result += "\t";
-            break;
-          case "v":
-            result += "\v";
-            break;
-          case "\\":
-            result += "\\";
-            break;
-          case '"':
-            result += '"';
-            break;
-          case "0":
-          case "1":
-          case "2":
-          case "3":
-          case "4":
-          case "5":
-          case "6":
-          case "7": {
-            if (j + 2 >= s.length || s[j + 1] < "0" || s[j + 1] > "7" || s[j + 2] < "0" || s[j + 2] > "7") {
-              return null;
-            }
-            const bytes = [parseInt(s.substring(j, j + 3), 8)];
-            j += 3;
-            while (s[j] === "\\" && s[j + 1] >= "0" && s[j + 1] <= "7") {
-              if (j + 3 >= s.length || s[j + 2] < "0" || s[j + 2] > "7" || s[j + 3] < "0" || s[j + 3] > "7") {
-                return null;
-              }
-              bytes.push(parseInt(s.substring(j + 1, j + 4), 8));
-              j += 4;
-            }
-            result += new TextDecoder("utf-8").decode(new Uint8Array(bytes));
-            continue;
-          }
-          default:
-            return null;
-        }
-      } else {
-        result += s[j];
-      }
-      j++;
-    }
-    return null;
-  }
-  function parseFileHeader(index) {
-    const fileHeaderMatch = /^(---|\+\+\+)\s+/.exec(diffstr[i]);
-    if (fileHeaderMatch) {
-      const prefix = fileHeaderMatch[1], data = diffstr[i].substring(3).trim().split("\t", 2), header = (data[1] || "").trim();
-      let fileName = data[0];
-      if (fileName.startsWith('"')) {
-        fileName = unquoteIfQuoted(fileName);
-      } else {
-        fileName = fileName.replace(/\\\\/g, "\\");
-      }
-      if (prefix === "---") {
-        index.oldFileName = fileName;
-        index.oldHeader = header;
-      } else {
-        index.newFileName = fileName;
-        index.newHeader = header;
-      }
-      i++;
-    }
-  }
-  function parseHunk() {
-    var _a;
-    const chunkHeaderIndex = i, chunkHeaderLine = diffstr[i++], chunkHeader = chunkHeaderLine.split(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
-    const hunk = {
-      oldStart: +chunkHeader[1],
-      oldLines: typeof chunkHeader[2] === "undefined" ? 1 : +chunkHeader[2],
-      newStart: +chunkHeader[3],
-      newLines: typeof chunkHeader[4] === "undefined" ? 1 : +chunkHeader[4],
-      lines: []
-    };
-    if (hunk.oldLines === 0) {
-      hunk.oldStart += 1;
-    }
-    if (hunk.newLines === 0) {
-      hunk.newStart += 1;
-    }
-    let addCount = 0, removeCount = 0;
-    for (;i < diffstr.length && (removeCount < hunk.oldLines || addCount < hunk.newLines || ((_a = diffstr[i]) === null || _a === undefined ? undefined : _a.startsWith("\\"))); i++) {
-      const operation = diffstr[i].length == 0 && i != diffstr.length - 1 ? " " : diffstr[i][0];
-      if (operation === "+" || operation === "-" || operation === " " || operation === "\\") {
-        hunk.lines.push(diffstr[i]);
-        if (operation === "+") {
-          addCount++;
-        } else if (operation === "-") {
-          removeCount++;
-        } else if (operation === " ") {
-          addCount++;
-          removeCount++;
-        }
-      } else {
-        throw new Error(`Hunk at line ${chunkHeaderIndex + 1} contained invalid line ${diffstr[i]}`);
-      }
-    }
-    if (!addCount && hunk.newLines === 1) {
-      hunk.newLines = 0;
-    }
-    if (!removeCount && hunk.oldLines === 1) {
-      hunk.oldLines = 0;
-    }
-    if (addCount !== hunk.newLines) {
-      throw new Error("Added line count did not match for hunk at line " + (chunkHeaderIndex + 1));
-    }
-    if (removeCount !== hunk.oldLines) {
-      throw new Error("Removed line count did not match for hunk at line " + (chunkHeaderIndex + 1));
-    }
-    if (i < diffstr.length && diffstr[i] && /^[+ -]/.test(diffstr[i]) && !isFileHeader(diffstr[i])) {
-      throw new Error("Hunk at line " + (chunkHeaderIndex + 1) + " has more lines than expected (expected " + hunk.oldLines + " old lines and " + hunk.newLines + " new lines)");
-    }
-    return hunk;
-  }
-  while (i < diffstr.length) {
-    parseIndex();
-  }
-  return list;
-}
+};
+
 // src/renderables/Diff.ts
-class DiffRenderable extends Renderable {
+import { parsePatch } from "diff";
+var DiffRenderable = class extends Renderable {
   _diff;
   _syncScroll = false;
   _view;
   _parsedDiff = null;
   _parseError = null;
+  // Source-line anchors for hunk starts; native extmarks should eventually own these anchors.
   _hunkStartLines = [];
   _hunkRowOffsets = null;
+  // CodeRenderable options
   _fg;
   _filetype;
   _syntaxStyle;
@@ -4009,9 +3865,11 @@ class DiffRenderable extends Renderable {
   _selectionBg;
   _selectionFg;
   _treeSitterClient;
+  // LineNumberRenderable options
   _showLineNumbers;
   _lineNumberFg;
   _lineNumberBg;
+  // Diff styling
   _addedBg;
   _removedBg;
   _contextBg;
@@ -4042,13 +3900,13 @@ class DiffRenderable extends Renderable {
     this._diff = options.diff ?? "";
     this._syncScroll = options.syncScroll ?? false;
     this._view = options.view ?? "unified";
-    this._fg = options.fg ? parseColor(options.fg) : undefined;
+    this._fg = options.fg ? parseColor(options.fg) : void 0;
     this._filetype = options.filetype;
     this._syntaxStyle = options.syntaxStyle;
     this._wrapMode = options.wrapMode;
     this._conceal = options.conceal ?? false;
-    this._selectionBg = options.selectionBg ? parseColor(options.selectionBg) : undefined;
-    this._selectionFg = options.selectionFg ? parseColor(options.selectionFg) : undefined;
+    this._selectionBg = options.selectionBg ? parseColor(options.selectionBg) : void 0;
+    this._selectionFg = options.selectionFg ? parseColor(options.selectionFg) : void 0;
     this._treeSitterClient = options.treeSitterClient;
     this._showLineNumbers = options.showLineNumbers ?? true;
     this._lineNumberFg = parseColor(options.lineNumberFg ?? "#888888");
@@ -4105,12 +3963,9 @@ class DiffRenderable extends Renderable {
     }
   }
   onMouseEvent(event) {
-    if (event.type !== "scroll" || this._view !== "split" || !this._syncScroll)
-      return;
-    if (!this.leftCodeRenderable || !this.rightCodeRenderable)
-      return;
-    if (!event.target)
-      return;
+    if (event.type !== "scroll" || this._view !== "split" || !this._syncScroll) return;
+    if (!this.leftCodeRenderable || !this.rightCodeRenderable) return;
+    if (!event.target) return;
     if (this.isInsideSide(event.target, "left")) {
       this.rightCodeRenderable.scrollY = this.leftCodeRenderable.scrollY;
       this.rightCodeRenderable.scrollX = this.leftCodeRenderable.scrollX;
@@ -4123,15 +3978,14 @@ class DiffRenderable extends Renderable {
     const container = side === "left" ? this.leftCodeRenderable : this.rightCodeRenderable;
     let current = target;
     while (current) {
-      if (current === container)
-        return true;
+      if (current === container) return true;
       current = current.parent;
     }
     return false;
   }
   onResize(width, height) {
     super.onResize(width, height);
-    if (this._view === "split" && this._wrapMode !== "none" && this._wrapMode !== undefined) {
+    if (this._view === "split" && this._wrapMode !== "none" && this._wrapMode !== void 0) {
       if (this._lastWidth !== width) {
         this._lastWidth = width;
         this.requestRebuild();
@@ -4163,10 +4017,8 @@ class DiffRenderable extends Renderable {
   }
   handleLineInfoChange = () => {
     this.invalidateHunkRowOffsets();
-    if (!this._waitingForHighlight)
-      return;
-    if (!this.leftCodeRenderable || !this.rightCodeRenderable)
-      return;
+    if (!this._waitingForHighlight) return;
+    if (!this.leftCodeRenderable || !this.rightCodeRenderable) return;
     const leftIsHighlighting = this.leftCodeRenderable.isHighlighting;
     const rightIsHighlighting = this.rightCodeRenderable.isHighlighting;
     if (!leftIsHighlighting && !rightIsHighlighting) {
@@ -4175,8 +4027,7 @@ class DiffRenderable extends Renderable {
     }
   };
   attachLineInfoListeners() {
-    if (!this.leftCodeRenderable && !this.rightCodeRenderable)
-      return;
+    if (!this.leftCodeRenderable && !this.rightCodeRenderable) return;
     this._lineInfoChangeHandler ??= this.handleLineInfoChange;
     if (this.leftCodeRenderable) {
       this.leftCodeRenderable.off("line-info-change", this._lineInfoChangeHandler);
@@ -4188,8 +4039,7 @@ class DiffRenderable extends Renderable {
     }
   }
   detachLineInfoListeners() {
-    if (!this._lineInfoChangeHandler)
-      return;
+    if (!this._lineInfoChangeHandler) return;
     if (this.leftCodeRenderable) {
       this.leftCodeRenderable.off("line-info-change", this._lineInfoChangeHandler);
     }
@@ -4219,7 +4069,7 @@ class DiffRenderable extends Renderable {
 `;
     if (!this.errorTextRenderable) {
       this.errorTextRenderable = new TextRenderable(this.ctx, {
-        id: this.id ? `${this.id}-error-text` : undefined,
+        id: this.id ? `${this.id}-error-text` : void 0,
         content: errorMessage,
         fg: "#ef4444",
         width: "100%",
@@ -4235,7 +4085,7 @@ class DiffRenderable extends Renderable {
     }
     if (!this.errorCodeRenderable) {
       this.errorCodeRenderable = new CodeRenderable(this.ctx, {
-        id: this.id ? `${this.id}-error-code` : undefined,
+        id: this.id ? `${this.id}-error-code` : void 0,
         content: this._diff,
         filetype: "diff",
         syntaxStyle: this._syntaxStyle ?? SyntaxStyle.create(),
@@ -4244,7 +4094,7 @@ class DiffRenderable extends Renderable {
         width: "100%",
         flexGrow: 1,
         flexShrink: 1,
-        ...this._treeSitterClient !== undefined && { treeSitterClient: this._treeSitterClient }
+        ...this._treeSitterClient !== void 0 && { treeSitterClient: this._treeSitterClient }
       });
       super.add(this.errorCodeRenderable);
     } else {
@@ -4263,7 +4113,7 @@ class DiffRenderable extends Renderable {
     const existingRenderable = side === "left" ? this.leftCodeRenderable : this.rightCodeRenderable;
     if (!existingRenderable) {
       const codeOptions = {
-        id: this.id ? `${this.id}-${side}-code` : undefined,
+        id: this.id ? `${this.id}-${side}-code` : void 0,
         content,
         filetype: this._filetype,
         wrapMode,
@@ -4271,11 +4121,11 @@ class DiffRenderable extends Renderable {
         syntaxStyle: this._syntaxStyle ?? SyntaxStyle.create(),
         width: "100%",
         height: "100%",
-        ...this._fg !== undefined && { fg: this._fg },
-        ...drawUnstyledText !== undefined && { drawUnstyledText },
-        ...this._selectionBg !== undefined && { selectionBg: this._selectionBg },
-        ...this._selectionFg !== undefined && { selectionFg: this._selectionFg },
-        ...this._treeSitterClient !== undefined && { treeSitterClient: this._treeSitterClient }
+        ...this._fg !== void 0 && { fg: this._fg },
+        ...drawUnstyledText !== void 0 && { drawUnstyledText },
+        ...this._selectionBg !== void 0 && { selectionBg: this._selectionBg },
+        ...this._selectionFg !== void 0 && { selectionFg: this._selectionFg },
+        ...this._treeSitterClient !== void 0 && { treeSitterClient: this._treeSitterClient }
       };
       const newRenderable = new CodeRenderable(this.ctx, codeOptions);
       if (side === "left") {
@@ -4288,22 +4138,22 @@ class DiffRenderable extends Renderable {
       existingRenderable.content = content;
       existingRenderable.wrapMode = wrapMode ?? "none";
       existingRenderable.conceal = this._conceal;
-      if (drawUnstyledText !== undefined) {
+      if (drawUnstyledText !== void 0) {
         existingRenderable.drawUnstyledText = drawUnstyledText;
       }
-      if (this._filetype !== undefined) {
+      if (this._filetype !== void 0) {
         existingRenderable.filetype = this._filetype;
       }
-      if (this._syntaxStyle !== undefined) {
+      if (this._syntaxStyle !== void 0) {
         existingRenderable.syntaxStyle = this._syntaxStyle;
       }
-      if (this._selectionBg !== undefined) {
+      if (this._selectionBg !== void 0) {
         existingRenderable.selectionBg = this._selectionBg;
       }
-      if (this._selectionFg !== undefined) {
+      if (this._selectionFg !== void 0) {
         existingRenderable.selectionFg = this._selectionFg;
       }
-      if (this._fg !== undefined) {
+      if (this._fg !== void 0) {
         existingRenderable.fg = this._fg;
       }
       return existingRenderable;
@@ -4314,7 +4164,7 @@ class DiffRenderable extends Renderable {
     const addedFlag = side === "left" ? this.leftSideAdded : this.rightSideAdded;
     if (!sideRef) {
       const newSide = new LineNumberRenderable(this.ctx, {
-        id: this.id ? `${this.id}-${side}` : undefined,
+        id: this.id ? `${this.id}-${side}` : void 0,
         target,
         fg: this._lineNumberFg,
         bg: this._lineNumberBg,
@@ -4354,8 +4204,7 @@ class DiffRenderable extends Renderable {
     }
   }
   buildUnifiedView() {
-    if (!this._parsedDiff)
-      return;
+    if (!this._parsedDiff) return;
     this.flexDirection = "column";
     if (this.errorTextRenderable) {
       const errorTextIndex = this.getChildren().indexOf(this.errorTextRenderable);
@@ -4370,9 +4219,9 @@ class DiffRenderable extends Renderable {
       }
     }
     const contentLines = [];
-    const lineColors = new Map;
-    const lineSigns = new Map;
-    const lineNumbers = new Map;
+    const lineColors = /* @__PURE__ */ new Map();
+    const lineSigns = /* @__PURE__ */ new Map();
+    const lineNumbers = /* @__PURE__ */ new Map();
     let lineIndex = 0;
     for (const hunk of this._parsedDiff.hunks) {
       this._hunkStartLines.push(lineIndex);
@@ -4435,19 +4284,17 @@ class DiffRenderable extends Renderable {
         }
       }
     }
-    const content = contentLines.join(`
-`);
+    const content = contentLines.join("\n");
     const codeRenderable = this.createOrUpdateCodeRenderable("left", content, this._wrapMode);
     this.attachLineInfoListeners();
-    this.createOrUpdateSide("left", codeRenderable, lineColors, lineSigns, lineNumbers, new Set, "100%");
+    this.createOrUpdateSide("left", codeRenderable, lineColors, lineSigns, lineNumbers, /* @__PURE__ */ new Set(), "100%");
     if (this.rightSide && this.rightSideAdded) {
       super.remove(this.rightSide.id);
       this.rightSideAdded = false;
     }
   }
   buildSplitView() {
-    if (!this._parsedDiff)
-      return;
+    if (!this._parsedDiff) return;
     this.flexDirection = "row";
     if (this.errorTextRenderable) {
       const errorTextIndex = this.getChildren().indexOf(this.errorTextRenderable);
@@ -4511,7 +4358,7 @@ class DiffRenderable extends Renderable {
             i++;
           }
           const maxLength = Math.max(removes.length, adds.length);
-          for (let j = 0;j < maxLength; j++) {
+          for (let j = 0; j < maxLength; j++) {
             if (j < removes.length) {
               leftLogicalLines.push({
                 content: removes[j].content,
@@ -4554,18 +4401,25 @@ class DiffRenderable extends Renderable {
     }
     for (const startIndex of hunkFirstLeftLine) {
       const firstLine = leftLogicalLines[startIndex];
-      if (firstLine)
-        firstLine.hunkStart = true;
+      if (firstLine) firstLine.hunkStart = true;
     }
     const canDoWrapAlignment = this.width > 0 && (this._wrapMode === "word" || this._wrapMode === "char");
-    const preLeftContent = leftLogicalLines.map((l) => l.content).join(`
-`);
-    const preRightContent = rightLogicalLines.map((l) => l.content).join(`
-`);
+    const preLeftContent = leftLogicalLines.map((l) => l.content).join("\n");
+    const preRightContent = rightLogicalLines.map((l) => l.content).join("\n");
     const needsConsistentConcealing = (this._wrapMode === "word" || this._wrapMode === "char") && this._conceal && this._filetype;
     const drawUnstyledText = !needsConsistentConcealing;
-    const leftCodeRenderable = this.createOrUpdateCodeRenderable("left", preLeftContent, this._wrapMode, drawUnstyledText);
-    const rightCodeRenderable = this.createOrUpdateCodeRenderable("right", preRightContent, this._wrapMode, drawUnstyledText);
+    const leftCodeRenderable = this.createOrUpdateCodeRenderable(
+      "left",
+      preLeftContent,
+      this._wrapMode,
+      drawUnstyledText
+    );
+    const rightCodeRenderable = this.createOrUpdateCodeRenderable(
+      "right",
+      preRightContent,
+      this._wrapMode,
+      drawUnstyledText
+    );
     this.attachLineInfoListeners();
     let finalLeftLines;
     let finalRightLines;
@@ -4582,8 +4436,8 @@ class DiffRenderable extends Renderable {
       const rightLineInfo = rightCodeRenderable.lineInfo;
       const leftSources = leftLineInfo.lineSources || [];
       const rightSources = rightLineInfo.lineSources || [];
-      const leftVisualCounts = new Map;
-      const rightVisualCounts = new Map;
+      const leftVisualCounts = /* @__PURE__ */ new Map();
+      const rightVisualCounts = /* @__PURE__ */ new Map();
       for (const logicalLine of leftSources) {
         leftVisualCounts.set(logicalLine, (leftVisualCounts.get(logicalLine) || 0) + 1);
       }
@@ -4594,20 +4448,20 @@ class DiffRenderable extends Renderable {
       finalRightLines = [];
       let leftVisualPos = 0;
       let rightVisualPos = 0;
-      for (let i = 0;i < leftLogicalLines.length; i++) {
+      for (let i = 0; i < leftLogicalLines.length; i++) {
         const leftLine = leftLogicalLines[i];
         const rightLine = rightLogicalLines[i];
         const leftVisualCount = leftVisualCounts.get(i) ?? 0;
         const rightVisualCount = rightVisualCounts.get(i) ?? 0;
         if (leftVisualPos < rightVisualPos) {
           const pad = rightVisualPos - leftVisualPos;
-          for (let p = 0;p < pad; p++) {
+          for (let p = 0; p < pad; p++) {
             finalLeftLines.push({ content: "", hideLineNumber: true, type: "empty" });
           }
           leftVisualPos += pad;
         } else if (rightVisualPos < leftVisualPos) {
           const pad = leftVisualPos - rightVisualPos;
-          for (let p = 0;p < pad; p++) {
+          for (let p = 0; p < pad; p++) {
             finalRightLines.push({ content: "", hideLineNumber: true, type: "empty" });
           }
           rightVisualPos += pad;
@@ -4619,12 +4473,12 @@ class DiffRenderable extends Renderable {
       }
       if (leftVisualPos < rightVisualPos) {
         const pad = rightVisualPos - leftVisualPos;
-        for (let p = 0;p < pad; p++) {
+        for (let p = 0; p < pad; p++) {
           finalLeftLines.push({ content: "", hideLineNumber: true, type: "empty" });
         }
       } else if (rightVisualPos < leftVisualPos) {
         const pad = leftVisualPos - rightVisualPos;
-        for (let p = 0;p < pad; p++) {
+        for (let p = 0; p < pad; p++) {
           finalRightLines.push({ content: "", hideLineNumber: true, type: "empty" });
         }
       }
@@ -4632,19 +4486,19 @@ class DiffRenderable extends Renderable {
       finalLeftLines = leftLogicalLines;
       finalRightLines = rightLogicalLines;
     }
-    const leftLineColors = new Map;
-    const rightLineColors = new Map;
-    const leftLineSigns = new Map;
-    const rightLineSigns = new Map;
-    const leftHideLineNumbers = new Set;
-    const rightHideLineNumbers = new Set;
-    const leftLineNumbers = new Map;
-    const rightLineNumbers = new Map;
+    const leftLineColors = /* @__PURE__ */ new Map();
+    const rightLineColors = /* @__PURE__ */ new Map();
+    const leftLineSigns = /* @__PURE__ */ new Map();
+    const rightLineSigns = /* @__PURE__ */ new Map();
+    const leftHideLineNumbers = /* @__PURE__ */ new Set();
+    const rightHideLineNumbers = /* @__PURE__ */ new Set();
+    const leftLineNumbers = /* @__PURE__ */ new Map();
+    const rightLineNumbers = /* @__PURE__ */ new Map();
     finalLeftLines.forEach((line, index) => {
       if (line.hunkStart) {
         this._hunkStartLines.push(index);
       }
-      if (line.lineNum !== undefined) {
+      if (line.lineNum !== void 0) {
         leftLineNumbers.set(index, line.lineNum);
       }
       if (line.hideLineNumber) {
@@ -4676,7 +4530,7 @@ class DiffRenderable extends Renderable {
       }
     });
     finalRightLines.forEach((line, index) => {
-      if (line.lineNum !== undefined) {
+      if (line.lineNum !== void 0) {
         rightLineNumbers.set(index, line.lineNum);
       }
       if (line.hideLineNumber) {
@@ -4707,14 +4561,28 @@ class DiffRenderable extends Renderable {
         rightLineSigns.set(index, line.sign);
       }
     });
-    const leftContentFinal = finalLeftLines.map((l) => l.content).join(`
-`);
-    const rightContentFinal = finalRightLines.map((l) => l.content).join(`
-`);
+    const leftContentFinal = finalLeftLines.map((l) => l.content).join("\n");
+    const rightContentFinal = finalRightLines.map((l) => l.content).join("\n");
     leftCodeRenderable.content = leftContentFinal;
     rightCodeRenderable.content = rightContentFinal;
-    this.createOrUpdateSide("left", leftCodeRenderable, leftLineColors, leftLineSigns, leftLineNumbers, leftHideLineNumbers, "50%");
-    this.createOrUpdateSide("right", rightCodeRenderable, rightLineColors, rightLineSigns, rightLineNumbers, rightHideLineNumbers, "50%");
+    this.createOrUpdateSide(
+      "left",
+      leftCodeRenderable,
+      leftLineColors,
+      leftLineSigns,
+      leftLineNumbers,
+      leftHideLineNumbers,
+      "50%"
+    );
+    this.createOrUpdateSide(
+      "right",
+      rightCodeRenderable,
+      rightLineColors,
+      rightLineSigns,
+      rightLineNumbers,
+      rightHideLineNumbers,
+      "50%"
+    );
   }
   get diff() {
     return this._diff;
@@ -4915,7 +4783,7 @@ class DiffRenderable extends Renderable {
     return this._selectionBg;
   }
   set selectionBg(value) {
-    const parsed = value ? parseColor(value) : undefined;
+    const parsed = value ? parseColor(value) : void 0;
     if (this._selectionBg !== parsed) {
       this._selectionBg = parsed;
       if (this.leftCodeRenderable) {
@@ -4930,7 +4798,7 @@ class DiffRenderable extends Renderable {
     return this._selectionFg;
   }
   set selectionFg(value) {
-    const parsed = value ? parseColor(value) : undefined;
+    const parsed = value ? parseColor(value) : void 0;
     if (this._selectionFg !== parsed) {
       this._selectionFg = parsed;
       if (this.leftCodeRenderable) {
@@ -4954,7 +4822,7 @@ class DiffRenderable extends Renderable {
     return this._fg;
   }
   set fg(value) {
-    const parsed = value ? parseColor(value) : undefined;
+    const parsed = value ? parseColor(value) : void 0;
     if (this._fg !== parsed) {
       this._fg = parsed;
       if (this.leftCodeRenderable) {
@@ -4990,17 +4858,14 @@ class DiffRenderable extends Renderable {
     this.rightSide?.clearHighlightLines(startLine, endLine);
   }
   getHunkRowOffsets() {
-    if (this._hunkRowOffsets)
-      return [...this._hunkRowOffsets];
+    if (this._hunkRowOffsets) return [...this._hunkRowOffsets];
     this._hunkRowOffsets = this.computeHunkRowOffsets();
     return [...this._hunkRowOffsets];
   }
   computeHunkRowOffsets() {
-    if (this._hunkStartLines.length === 0)
-      return [];
+    if (this._hunkStartLines.length === 0) return [];
     const sources = this.leftCodeRenderable?.lineInfo.lineSources;
-    if (!sources || sources.length === 0)
-      return [...this._hunkStartLines];
+    if (!sources || sources.length === 0) return [...this._hunkStartLines];
     const offsets = [];
     let visualRow = 0;
     for (const hunkStartLine of this._hunkStartLines) {
@@ -5011,7 +4876,8 @@ class DiffRenderable extends Renderable {
     }
     return offsets;
   }
-}
+};
+
 // src/renderables/Textarea.ts
 var defaultTextareaKeyBindings = [
   { name: "left", action: "move-left" },
@@ -5054,6 +4920,7 @@ var defaultTextareaKeyBindings = [
   { name: "linefeed", action: "newline" },
   { name: "return", meta: true, action: "submit" },
   { name: "kpenter", meta: true, action: "submit" },
+  // undo/redo
   { name: "-", ctrl: true, action: "undo" },
   { name: ".", ctrl: true, action: "redo" },
   { name: "z", super: true, action: "undo" },
@@ -5069,6 +4936,7 @@ var defaultTextareaKeyBindings = [
   { name: "right", meta: true, shift: true, action: "select-word-forward" },
   { name: "left", meta: true, shift: true, action: "select-word-backward" },
   { name: "backspace", meta: true, action: "delete-word-backward" },
+  // super (cmd/win) + arrow keys for Kitty Keyboard mode
   { name: "left", super: true, action: "visual-line-home" },
   { name: "right", super: true, action: "visual-line-end" },
   { name: "up", super: true, action: "buffer-home" },
@@ -5079,8 +4947,7 @@ var defaultTextareaKeyBindings = [
   { name: "down", super: true, shift: true, action: "select-buffer-end" },
   { name: "a", super: true, action: "select-all" }
 ];
-
-class TextareaRenderable extends EditBufferRenderable {
+var TextareaRenderable = class _TextareaRenderable extends EditBufferRenderable {
   _placeholder;
   _placeholderColor;
   _unfocusedBackgroundColor;
@@ -5092,7 +4959,7 @@ class TextareaRenderable extends EditBufferRenderable {
   _keyBindings;
   _actionHandlers;
   _initialValueSet = false;
-  _submitListener = undefined;
+  _submitListener = void 0;
   static defaults = {
     backgroundColor: "transparent",
     textColor: "#FFFFFF",
@@ -5102,7 +4969,7 @@ class TextareaRenderable extends EditBufferRenderable {
     placeholderColor: "#666666"
   };
   constructor(ctx, options) {
-    const defaults = TextareaRenderable.defaults;
+    const defaults = _TextareaRenderable.defaults;
     const baseOptions = {
       ...options,
       backgroundColor: options.backgroundColor || defaults.backgroundColor,
@@ -5111,7 +4978,9 @@ class TextareaRenderable extends EditBufferRenderable {
     super(ctx, baseOptions);
     this._unfocusedBackgroundColor = parseColor(options.backgroundColor || defaults.backgroundColor);
     this._unfocusedTextColor = parseColor(options.textColor || defaults.textColor);
-    this._focusedBackgroundColor = parseColor(options.focusedBackgroundColor || options.backgroundColor || defaults.focusedBackgroundColor);
+    this._focusedBackgroundColor = parseColor(
+      options.focusedBackgroundColor || options.backgroundColor || defaults.focusedBackgroundColor
+    );
     this._focusedTextColor = parseColor(options.focusedTextColor || options.textColor || defaults.focusedTextColor);
     this._placeholder = options.placeholder ?? defaults.placeholder;
     this._placeholderColor = parseColor(options.placeholderColor ?? defaults.placeholderColor);
@@ -5142,7 +5011,7 @@ class TextareaRenderable extends EditBufferRenderable {
     }
   }
   buildActionHandlers() {
-    return new Map([
+    return /* @__PURE__ */ new Map([
       ["move-left", () => this.moveCursorLeft()],
       ["move-right", () => this.moveCursorRight()],
       ["move-up", () => this.moveCursorUp()],
@@ -5244,7 +5113,7 @@ class TextareaRenderable extends EditBufferRenderable {
     return this._placeholderColor;
   }
   set placeholderColor(value) {
-    const newColor = parseColor(value ?? TextareaRenderable.defaults.placeholderColor);
+    const newColor = parseColor(value ?? _TextareaRenderable.defaults.placeholderColor);
     if (this._placeholderColor !== newColor) {
       this._placeholderColor = newColor;
       this.applyPlaceholder(this._placeholder);
@@ -5255,7 +5124,7 @@ class TextareaRenderable extends EditBufferRenderable {
     return this._unfocusedBackgroundColor;
   }
   set backgroundColor(value) {
-    const newColor = parseColor(value ?? TextareaRenderable.defaults.backgroundColor);
+    const newColor = parseColor(value ?? _TextareaRenderable.defaults.backgroundColor);
     if (this._unfocusedBackgroundColor !== newColor) {
       this._unfocusedBackgroundColor = newColor;
       this.updateColors();
@@ -5265,21 +5134,21 @@ class TextareaRenderable extends EditBufferRenderable {
     return this._unfocusedTextColor;
   }
   set textColor(value) {
-    const newColor = parseColor(value ?? TextareaRenderable.defaults.textColor);
+    const newColor = parseColor(value ?? _TextareaRenderable.defaults.textColor);
     if (this._unfocusedTextColor !== newColor) {
       this._unfocusedTextColor = newColor;
       this.updateColors();
     }
   }
   set focusedBackgroundColor(value) {
-    const newColor = parseColor(value ?? TextareaRenderable.defaults.focusedBackgroundColor);
+    const newColor = parseColor(value ?? _TextareaRenderable.defaults.focusedBackgroundColor);
     if (this._focusedBackgroundColor !== newColor) {
       this._focusedBackgroundColor = newColor;
       this.updateColors();
     }
   }
   set focusedTextColor(value) {
-    const newColor = parseColor(value ?? TextareaRenderable.defaults.focusedTextColor);
+    const newColor = parseColor(value ?? _TextareaRenderable.defaults.focusedTextColor);
     if (this._focusedTextColor !== newColor) {
       this._focusedTextColor = newColor;
       this.updateColors();
@@ -5316,28 +5185,30 @@ class TextareaRenderable extends EditBufferRenderable {
   get extmarks() {
     return this.editorView.extmarks;
   }
-}
+};
 
 // src/renderables/Input.ts
-var InputRenderableEvents;
-((InputRenderableEvents2) => {
+var InputRenderableEvents = /* @__PURE__ */ ((InputRenderableEvents2) => {
   InputRenderableEvents2["INPUT"] = "input";
   InputRenderableEvents2["CHANGE"] = "change";
   InputRenderableEvents2["ENTER"] = "enter";
-})(InputRenderableEvents ||= {});
-
-class InputRenderable extends TextareaRenderable {
+  return InputRenderableEvents2;
+})(InputRenderableEvents || {});
+var InputRenderable = class _InputRenderable extends TextareaRenderable {
   _maxLength;
   _minLength;
   _lastCommittedValue = "";
+  // Only specify defaults that differ from TextareaRenderable/EditBufferRenderable
   static defaultOptions = {
+    // Different from Textarea's null
     placeholder: "",
-    maxLength: 1000,
+    // Input-specific
+    maxLength: 1e3,
     minLength: 0,
     value: ""
   };
   constructor(ctx, options) {
-    const defaults = InputRenderable.defaultOptions;
+    const defaults = _InputRenderable.defaultOptions;
     const maxLength = options.maxLength ?? defaults.maxLength;
     const minLength = options.minLength ?? defaults.minLength;
     const rawValue = options.value ?? defaults.value;
@@ -5349,8 +5220,10 @@ class InputRenderable extends TextareaRenderable {
       ...options,
       placeholder: options.placeholder ?? defaults.placeholder,
       initialValue,
+      // Single-line constraints
       height: 1,
       wrapMode: "none",
+      // Override return/linefeed to submit instead of newline
       keyBindings: [
         { name: "return", action: "submit" },
         { name: "kpenter", action: "submit" },
@@ -5365,23 +5238,30 @@ class InputRenderable extends TextareaRenderable {
       this.cursorOffset = initialValue.length;
     }
   }
+  /**
+   * Prevent newlines in single-line input
+   */
   newLine() {
     return false;
   }
+  /**
+   * Handle paste - strip newlines and enforce maxLength
+   */
   handlePaste(event) {
     const sanitized = stripAnsiSequences(decodePasteBytes(event.bytes)).replace(/[\n\r]/g, "");
     if (sanitized) {
       this.insertText(sanitized);
     }
   }
+  /**
+   * Insert text - strip newlines and enforce maxLength
+   */
   insertText(text) {
     const sanitized = text.replace(/[\n\r]/g, "");
-    if (!sanitized)
-      return;
+    if (!sanitized) return;
     const currentLength = this.plainText.length;
     const remaining = this._maxLength - currentLength;
-    if (remaining <= 0)
-      return;
+    if (remaining <= 0) return;
     const toInsert = sanitized.substring(0, remaining);
     super.insertText(toInsert);
     this.emit("input" /* INPUT */, this.plainText);
@@ -5502,1277 +5382,16 @@ class InputRenderable extends TextareaRenderable {
     const p = super.placeholder;
     return typeof p === "string" ? p : "";
   }
-  set initialValue(value) {}
-}
-// ../../node_modules/.bun/marked@17.0.1/node_modules/marked/lib/marked.esm.js
-function L() {
-  return { async: false, breaks: false, extensions: null, gfm: true, hooks: null, pedantic: false, renderer: null, silent: false, tokenizer: null, walkTokens: null };
-}
-var T = L();
-function Z(u) {
-  T = u;
-}
-var C = { exec: () => null };
-function k(u, e = "") {
-  let t2 = typeof u == "string" ? u : u.source, n = { replace: (r, i) => {
-    let s = typeof i == "string" ? i : i.source;
-    return s = s.replace(m.caret, "$1"), t2 = t2.replace(r, s), n;
-  }, getRegex: () => new RegExp(t2, e) };
-  return n;
-}
-var me = (() => {
-  try {
-    return !!new RegExp("(?<=1)(?<!1)");
-  } catch {
-    return false;
-  }
-})();
-var m = { codeRemoveIndent: /^(?: {1,4}| {0,3}\t)/gm, outputLinkReplace: /\\([\[\]])/g, indentCodeCompensation: /^(\s+)(?:```)/, beginningSpace: /^\s+/, endingHash: /#$/, startingSpaceChar: /^ /, endingSpaceChar: / $/, nonSpaceChar: /[^ ]/, newLineCharGlobal: /\n/g, tabCharGlobal: /\t/g, multipleSpaceGlobal: /\s+/g, blankLine: /^[ \t]*$/, doubleBlankLine: /\n[ \t]*\n[ \t]*$/, blockquoteStart: /^ {0,3}>/, blockquoteSetextReplace: /\n {0,3}((?:=+|-+) *)(?=\n|$)/g, blockquoteSetextReplace2: /^ {0,3}>[ \t]?/gm, listReplaceTabs: /^\t+/, listReplaceNesting: /^ {1,4}(?=( {4})*[^ ])/g, listIsTask: /^\[[ xX]\] +\S/, listReplaceTask: /^\[[ xX]\] +/, listTaskCheckbox: /\[[ xX]\]/, anyLine: /\n.*\n/, hrefBrackets: /^<(.*)>$/, tableDelimiter: /[:|]/, tableAlignChars: /^\||\| *$/g, tableRowBlankLine: /\n[ \t]*$/, tableAlignRight: /^ *-+: *$/, tableAlignCenter: /^ *:-+: *$/, tableAlignLeft: /^ *:-+ *$/, startATag: /^<a /i, endATag: /^<\/a>/i, startPreScriptTag: /^<(pre|code|kbd|script)(\s|>)/i, endPreScriptTag: /^<\/(pre|code|kbd|script)(\s|>)/i, startAngleBracket: /^</, endAngleBracket: />$/, pedanticHrefTitle: /^([^'"]*[^\s])\s+(['"])(.*)\2/, unicodeAlphaNumeric: /[\p{L}\p{N}]/u, escapeTest: /[&<>"']/, escapeReplace: /[&<>"']/g, escapeTestNoEncode: /[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/, escapeReplaceNoEncode: /[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/g, unescapeTest: /&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig, caret: /(^|[^\[])\^/g, percentDecode: /%25/g, findPipe: /\|/g, splitPipe: / \|/, slashPipe: /\\\|/g, carriageReturn: /\r\n|\r/g, spaceLine: /^ +$/gm, notSpaceStart: /^\S*/, endingNewline: /\n$/, listItemRegex: (u) => new RegExp(`^( {0,3}${u})((?:[	 ][^\\n]*)?(?:\\n|$))`), nextBulletRegex: (u) => new RegExp(`^ {0,${Math.min(3, u - 1)}}(?:[*+-]|\\d{1,9}[.)])((?:[ 	][^\\n]*)?(?:\\n|$))`), hrRegex: (u) => new RegExp(`^ {0,${Math.min(3, u - 1)}}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})(?:\\n+|$)`), fencesBeginRegex: (u) => new RegExp(`^ {0,${Math.min(3, u - 1)}}(?:\`\`\`|~~~)`), headingBeginRegex: (u) => new RegExp(`^ {0,${Math.min(3, u - 1)}}#`), htmlBeginRegex: (u) => new RegExp(`^ {0,${Math.min(3, u - 1)}}<(?:[a-z].*>|!--)`, "i") };
-var xe = /^(?:[ \t]*(?:\n|$))+/;
-var be = /^((?: {4}| {0,3}\t)[^\n]+(?:\n(?:[ \t]*(?:\n|$))*)?)+/;
-var Re = /^ {0,3}(`{3,}(?=[^`\n]*(?:\n|$))|~{3,})([^\n]*)(?:\n|$)(?:|([\s\S]*?)(?:\n|$))(?: {0,3}\1[~`]* *(?=\n|$)|$)/;
-var I = /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})(?:\n+|$)/;
-var Te = /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/;
-var N = /(?:[*+-]|\d{1,9}[.)])/;
-var re = /^(?!bull |blockCode|fences|blockquote|heading|html|table)((?:.|\n(?!\s*?\n|bull |blockCode|fences|blockquote|heading|html|table))+?)\n {0,3}(=+|-+) *(?:\n+|$)/;
-var se = k(re).replace(/bull/g, N).replace(/blockCode/g, /(?: {4}| {0,3}\t)/).replace(/fences/g, / {0,3}(?:`{3,}|~{3,})/).replace(/blockquote/g, / {0,3}>/).replace(/heading/g, / {0,3}#{1,6}/).replace(/html/g, / {0,3}<[^\n>]+>\n/).replace(/\|table/g, "").getRegex();
-var Oe = k(re).replace(/bull/g, N).replace(/blockCode/g, /(?: {4}| {0,3}\t)/).replace(/fences/g, / {0,3}(?:`{3,}|~{3,})/).replace(/blockquote/g, / {0,3}>/).replace(/heading/g, / {0,3}#{1,6}/).replace(/html/g, / {0,3}<[^\n>]+>\n/).replace(/table/g, / {0,3}\|?(?:[:\- ]*\|)+[\:\- ]*\n/).getRegex();
-var Q = /^([^\n]+(?:\n(?!hr|heading|lheading|blockquote|fences|list|html|table| +\n)[^\n]+)*)/;
-var we = /^[^\n]+/;
-var F = /(?!\s*\])(?:\\[\s\S]|[^\[\]\\])+/;
-var ye = k(/^ {0,3}\[(label)\]: *(?:\n[ \t]*)?([^<\s][^\s]*|<.*?>)(?:(?: +(?:\n[ \t]*)?| *\n[ \t]*)(title))? *(?:\n+|$)/).replace("label", F).replace("title", /(?:"(?:\\"?|[^"\\])*"|'[^'\n]*(?:\n[^'\n]+)*\n?'|\([^()]*\))/).getRegex();
-var Pe = k(/^( {0,3}bull)([ \t][^\n]+?)?(?:\n|$)/).replace(/bull/g, N).getRegex();
-var v = "address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul";
-var j = /<!--(?:-?>|[\s\S]*?(?:-->|$))/;
-var Se = k("^ {0,3}(?:<(script|pre|style|textarea)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)|comment[^\\n]*(\\n+|$)|<\\?[\\s\\S]*?(?:\\?>\\n*|$)|<![A-Z][\\s\\S]*?(?:>\\n*|$)|<!\\[CDATA\\[[\\s\\S]*?(?:\\]\\]>\\n*|$)|</?(tag)(?: +|\\n|/?>)[\\s\\S]*?(?:(?:\\n[ \t]*)+\\n|$)|<(?!script|pre|style|textarea)([a-z][\\w-]*)(?:attribute)*? */?>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:(?:\\n[ \t]*)+\\n|$)|</(?!script|pre|style|textarea)[a-z][\\w-]*\\s*>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:(?:\\n[ \t]*)+\\n|$))", "i").replace("comment", j).replace("tag", v).replace("attribute", / +[a-zA-Z:_][\w.:-]*(?: *= *"[^"\n]*"| *= *'[^'\n]*'| *= *[^\s"'=<>`]+)?/).getRegex();
-var ie = k(Q).replace("hr", I).replace("heading", " {0,3}#{1,6}(?:\\s|$)").replace("|lheading", "").replace("|table", "").replace("blockquote", " {0,3}>").replace("fences", " {0,3}(?:`{3,}(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n").replace("list", " {0,3}(?:[*+-]|1[.)]) ").replace("html", "</?(?:tag)(?: +|\\n|/?>)|<(?:script|pre|style|textarea|!--)").replace("tag", v).getRegex();
-var $e = k(/^( {0,3}> ?(paragraph|[^\n]*)(?:\n|$))+/).replace("paragraph", ie).getRegex();
-var U = { blockquote: $e, code: be, def: ye, fences: Re, heading: Te, hr: I, html: Se, lheading: se, list: Pe, newline: xe, paragraph: ie, table: C, text: we };
-var te = k("^ *([^\\n ].*)\\n {0,3}((?:\\| *)?:?-+:? *(?:\\| *:?-+:? *)*(?:\\| *)?)(?:\\n((?:(?! *\\n|hr|heading|blockquote|code|fences|list|html).*(?:\\n|$))*)\\n*|$)").replace("hr", I).replace("heading", " {0,3}#{1,6}(?:\\s|$)").replace("blockquote", " {0,3}>").replace("code", "(?: {4}| {0,3}\t)[^\\n]").replace("fences", " {0,3}(?:`{3,}(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n").replace("list", " {0,3}(?:[*+-]|1[.)]) ").replace("html", "</?(?:tag)(?: +|\\n|/?>)|<(?:script|pre|style|textarea|!--)").replace("tag", v).getRegex();
-var _e = { ...U, lheading: Oe, table: te, paragraph: k(Q).replace("hr", I).replace("heading", " {0,3}#{1,6}(?:\\s|$)").replace("|lheading", "").replace("table", te).replace("blockquote", " {0,3}>").replace("fences", " {0,3}(?:`{3,}(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n").replace("list", " {0,3}(?:[*+-]|1[.)]) ").replace("html", "</?(?:tag)(?: +|\\n|/?>)|<(?:script|pre|style|textarea|!--)").replace("tag", v).getRegex() };
-var Le = { ...U, html: k(`^ *(?:comment *(?:\\n|\\s*$)|<(tag)[\\s\\S]+?</\\1> *(?:\\n{2,}|\\s*$)|<tag(?:"[^"]*"|'[^']*'|\\s[^'"/>\\s]*)*?/?> *(?:\\n{2,}|\\s*$))`).replace("comment", j).replace(/tag/g, "(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\\b)\\w+(?!:|[^\\w\\s@]*@)\\b").getRegex(), def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +(["(][^\n]+[")]))? *(?:\n+|$)/, heading: /^(#{1,6})(.*)(?:\n+|$)/, fences: C, lheading: /^(.+?)\n {0,3}(=+|-+) *(?:\n+|$)/, paragraph: k(Q).replace("hr", I).replace("heading", ` *#{1,6} *[^
-]`).replace("lheading", se).replace("|table", "").replace("blockquote", " {0,3}>").replace("|fences", "").replace("|list", "").replace("|html", "").replace("|tag", "").getRegex() };
-var Me = /^\\([!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])/;
-var ze = /^(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/;
-var oe = /^( {2,}|\\)\n(?!\s*$)/;
-var Ae = /^(`+|[^`])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*_]|\b_|$)|[^ ](?= {2,}\n)))/;
-var D = /[\p{P}\p{S}]/u;
-var K = /[\s\p{P}\p{S}]/u;
-var ae = /[^\s\p{P}\p{S}]/u;
-var Ce = k(/^((?![*_])punctSpace)/, "u").replace(/punctSpace/g, K).getRegex();
-var le = /(?!~)[\p{P}\p{S}]/u;
-var Ie = /(?!~)[\s\p{P}\p{S}]/u;
-var Ee = /(?:[^\s\p{P}\p{S}]|~)/u;
-var Be = k(/link|precode-code|html/, "g").replace("link", /\[(?:[^\[\]`]|(?<a>`+)[^`]+\k<a>(?!`))*?\]\((?:\\[\s\S]|[^\\\(\)]|\((?:\\[\s\S]|[^\\\(\)])*\))*\)/).replace("precode-", me ? "(?<!`)()" : "(^^|[^`])").replace("code", /(?<b>`+)[^`]+\k<b>(?!`)/).replace("html", /<(?! )[^<>]*?>/).getRegex();
-var ue = /^(?:\*+(?:((?!\*)punct)|[^\s*]))|^_+(?:((?!_)punct)|([^\s_]))/;
-var qe = k(ue, "u").replace(/punct/g, D).getRegex();
-var ve = k(ue, "u").replace(/punct/g, le).getRegex();
-var pe = "^[^_*]*?__[^_*]*?\\*[^_*]*?(?=__)|[^*]+(?=[^*])|(?!\\*)punct(\\*+)(?=[\\s]|$)|notPunctSpace(\\*+)(?!\\*)(?=punctSpace|$)|(?!\\*)punctSpace(\\*+)(?=notPunctSpace)|[\\s](\\*+)(?!\\*)(?=punct)|(?!\\*)punct(\\*+)(?!\\*)(?=punct)|notPunctSpace(\\*+)(?=notPunctSpace)";
-var De = k(pe, "gu").replace(/notPunctSpace/g, ae).replace(/punctSpace/g, K).replace(/punct/g, D).getRegex();
-var He = k(pe, "gu").replace(/notPunctSpace/g, Ee).replace(/punctSpace/g, Ie).replace(/punct/g, le).getRegex();
-var Ze = k("^[^_*]*?\\*\\*[^_*]*?_[^_*]*?(?=\\*\\*)|[^_]+(?=[^_])|(?!_)punct(_+)(?=[\\s]|$)|notPunctSpace(_+)(?!_)(?=punctSpace|$)|(?!_)punctSpace(_+)(?=notPunctSpace)|[\\s](_+)(?!_)(?=punct)|(?!_)punct(_+)(?!_)(?=punct)", "gu").replace(/notPunctSpace/g, ae).replace(/punctSpace/g, K).replace(/punct/g, D).getRegex();
-var Ge = k(/\\(punct)/, "gu").replace(/punct/g, D).getRegex();
-var Ne = k(/^<(scheme:[^\s\x00-\x1f<>]*|email)>/).replace("scheme", /[a-zA-Z][a-zA-Z0-9+.-]{1,31}/).replace("email", /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+(@)[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(?![-_])/).getRegex();
-var Qe = k(j).replace("(?:-->|$)", "-->").getRegex();
-var Fe = k("^comment|^</[a-zA-Z][\\w:-]*\\s*>|^<[a-zA-Z][\\w-]*(?:attribute)*?\\s*/?>|^<\\?[\\s\\S]*?\\?>|^<![a-zA-Z]+\\s[\\s\\S]*?>|^<!\\[CDATA\\[[\\s\\S]*?\\]\\]>").replace("comment", Qe).replace("attribute", /\s+[a-zA-Z:_][\w.:-]*(?:\s*=\s*"[^"]*"|\s*=\s*'[^']*'|\s*=\s*[^\s"'=<>`]+)?/).getRegex();
-var q = /(?:\[(?:\\[\s\S]|[^\[\]\\])*\]|\\[\s\S]|`+[^`]*?`+(?!`)|[^\[\]\\`])*?/;
-var je = k(/^!?\[(label)\]\(\s*(href)(?:(?:[ \t]*(?:\n[ \t]*)?)(title))?\s*\)/).replace("label", q).replace("href", /<(?:\\.|[^\n<>\\])+>|[^ \t\n\x00-\x1f]*/).replace("title", /"(?:\\"?|[^"\\])*"|'(?:\\'?|[^'\\])*'|\((?:\\\)?|[^)\\])*\)/).getRegex();
-var ce = k(/^!?\[(label)\]\[(ref)\]/).replace("label", q).replace("ref", F).getRegex();
-var he = k(/^!?\[(ref)\](?:\[\])?/).replace("ref", F).getRegex();
-var Ue = k("reflink|nolink(?!\\()", "g").replace("reflink", ce).replace("nolink", he).getRegex();
-var ne = /[hH][tT][tT][pP][sS]?|[fF][tT][pP]/;
-var W = { _backpedal: C, anyPunctuation: Ge, autolink: Ne, blockSkip: Be, br: oe, code: ze, del: C, emStrongLDelim: qe, emStrongRDelimAst: De, emStrongRDelimUnd: Ze, escape: Me, link: je, nolink: he, punctuation: Ce, reflink: ce, reflinkSearch: Ue, tag: Fe, text: Ae, url: C };
-var Ke = { ...W, link: k(/^!?\[(label)\]\((.*?)\)/).replace("label", q).getRegex(), reflink: k(/^!?\[(label)\]\s*\[([^\]]*)\]/).replace("label", q).getRegex() };
-var G = { ...W, emStrongRDelimAst: He, emStrongLDelim: ve, url: k(/^((?:protocol):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/).replace("protocol", ne).replace("email", /[A-Za-z0-9._+-]+(@)[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/).getRegex(), _backpedal: /(?:[^?!.,:;*_'"~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_'"~)]+(?!$))+/, del: /^(~~?)(?=[^\s~])((?:\\[\s\S]|[^\\])*?(?:\\[\s\S]|[^\s~\\]))\1(?=[^~]|$)/, text: k(/^([`~]+|[^`~])(?:(?= {2,}\n)|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)|[\s\S]*?(?:(?=[\\<!\[`*~_]|\b_|protocol:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)))/).replace("protocol", ne).getRegex() };
-var We = { ...G, br: k(oe).replace("{2,}", "*").getRegex(), text: k(G.text).replace("\\b_", "\\b_| {2,}\\n").replace(/\{2,\}/g, "*").getRegex() };
-var E = { normal: U, gfm: _e, pedantic: Le };
-var M = { normal: W, gfm: G, breaks: We, pedantic: Ke };
-var Xe = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-var ke = (u) => Xe[u];
-function w(u, e) {
-  if (e) {
-    if (m.escapeTest.test(u))
-      return u.replace(m.escapeReplace, ke);
-  } else if (m.escapeTestNoEncode.test(u))
-    return u.replace(m.escapeReplaceNoEncode, ke);
-  return u;
-}
-function X(u) {
-  try {
-    u = encodeURI(u).replace(m.percentDecode, "%");
-  } catch {
-    return null;
-  }
-  return u;
-}
-function J(u, e) {
-  let t2 = u.replace(m.findPipe, (i, s, a) => {
-    let o = false, l = s;
-    for (;--l >= 0 && a[l] === "\\"; )
-      o = !o;
-    return o ? "|" : " |";
-  }), n = t2.split(m.splitPipe), r = 0;
-  if (n[0].trim() || n.shift(), n.length > 0 && !n.at(-1)?.trim() && n.pop(), e)
-    if (n.length > e)
-      n.splice(e);
-    else
-      for (;n.length < e; )
-        n.push("");
-  for (;r < n.length; r++)
-    n[r] = n[r].trim().replace(m.slashPipe, "|");
-  return n;
-}
-function z(u, e, t2) {
-  let n = u.length;
-  if (n === 0)
-    return "";
-  let r = 0;
-  for (;r < n; ) {
-    let i = u.charAt(n - r - 1);
-    if (i === e && !t2)
-      r++;
-    else if (i !== e && t2)
-      r++;
-    else
-      break;
-  }
-  return u.slice(0, n - r);
-}
-function de(u, e) {
-  if (u.indexOf(e[1]) === -1)
-    return -1;
-  let t2 = 0;
-  for (let n = 0;n < u.length; n++)
-    if (u[n] === "\\")
-      n++;
-    else if (u[n] === e[0])
-      t2++;
-    else if (u[n] === e[1] && (t2--, t2 < 0))
-      return n;
-  return t2 > 0 ? -2 : -1;
-}
-function ge(u, e, t2, n, r) {
-  let i = e.href, s = e.title || null, a = u[1].replace(r.other.outputLinkReplace, "$1");
-  n.state.inLink = true;
-  let o = { type: u[0].charAt(0) === "!" ? "image" : "link", raw: t2, href: i, title: s, text: a, tokens: n.inlineTokens(a) };
-  return n.state.inLink = false, o;
-}
-function Je(u, e, t2) {
-  let n = u.match(t2.other.indentCodeCompensation);
-  if (n === null)
-    return e;
-  let r = n[1];
-  return e.split(`
-`).map((i) => {
-    let s = i.match(t2.other.beginningSpace);
-    if (s === null)
-      return i;
-    let [a] = s;
-    return a.length >= r.length ? i.slice(r.length) : i;
-  }).join(`
-`);
-}
-var y = class {
-  options;
-  rules;
-  lexer;
-  constructor(e) {
-    this.options = e || T;
-  }
-  space(e) {
-    let t2 = this.rules.block.newline.exec(e);
-    if (t2 && t2[0].length > 0)
-      return { type: "space", raw: t2[0] };
-  }
-  code(e) {
-    let t2 = this.rules.block.code.exec(e);
-    if (t2) {
-      let n = t2[0].replace(this.rules.other.codeRemoveIndent, "");
-      return { type: "code", raw: t2[0], codeBlockStyle: "indented", text: this.options.pedantic ? n : z(n, `
-`) };
-    }
-  }
-  fences(e) {
-    let t2 = this.rules.block.fences.exec(e);
-    if (t2) {
-      let n = t2[0], r = Je(n, t2[3] || "", this.rules);
-      return { type: "code", raw: n, lang: t2[2] ? t2[2].trim().replace(this.rules.inline.anyPunctuation, "$1") : t2[2], text: r };
-    }
-  }
-  heading(e) {
-    let t2 = this.rules.block.heading.exec(e);
-    if (t2) {
-      let n = t2[2].trim();
-      if (this.rules.other.endingHash.test(n)) {
-        let r = z(n, "#");
-        (this.options.pedantic || !r || this.rules.other.endingSpaceChar.test(r)) && (n = r.trim());
-      }
-      return { type: "heading", raw: t2[0], depth: t2[1].length, text: n, tokens: this.lexer.inline(n) };
-    }
-  }
-  hr(e) {
-    let t2 = this.rules.block.hr.exec(e);
-    if (t2)
-      return { type: "hr", raw: z(t2[0], `
-`) };
-  }
-  blockquote(e) {
-    let t2 = this.rules.block.blockquote.exec(e);
-    if (t2) {
-      let n = z(t2[0], `
-`).split(`
-`), r = "", i = "", s = [];
-      for (;n.length > 0; ) {
-        let a = false, o = [], l;
-        for (l = 0;l < n.length; l++)
-          if (this.rules.other.blockquoteStart.test(n[l]))
-            o.push(n[l]), a = true;
-          else if (!a)
-            o.push(n[l]);
-          else
-            break;
-        n = n.slice(l);
-        let p = o.join(`
-`), c = p.replace(this.rules.other.blockquoteSetextReplace, `
-    $1`).replace(this.rules.other.blockquoteSetextReplace2, "");
-        r = r ? `${r}
-${p}` : p, i = i ? `${i}
-${c}` : c;
-        let g = this.lexer.state.top;
-        if (this.lexer.state.top = true, this.lexer.blockTokens(c, s, true), this.lexer.state.top = g, n.length === 0)
-          break;
-        let h2 = s.at(-1);
-        if (h2?.type === "code")
-          break;
-        if (h2?.type === "blockquote") {
-          let R = h2, f = R.raw + `
-` + n.join(`
-`), O = this.blockquote(f);
-          s[s.length - 1] = O, r = r.substring(0, r.length - R.raw.length) + O.raw, i = i.substring(0, i.length - R.text.length) + O.text;
-          break;
-        } else if (h2?.type === "list") {
-          let R = h2, f = R.raw + `
-` + n.join(`
-`), O = this.list(f);
-          s[s.length - 1] = O, r = r.substring(0, r.length - h2.raw.length) + O.raw, i = i.substring(0, i.length - R.raw.length) + O.raw, n = f.substring(s.at(-1).raw.length).split(`
-`);
-          continue;
-        }
-      }
-      return { type: "blockquote", raw: r, tokens: s, text: i };
-    }
-  }
-  list(e) {
-    let t2 = this.rules.block.list.exec(e);
-    if (t2) {
-      let n = t2[1].trim(), r = n.length > 1, i = { type: "list", raw: "", ordered: r, start: r ? +n.slice(0, -1) : "", loose: false, items: [] };
-      n = r ? `\\d{1,9}\\${n.slice(-1)}` : `\\${n}`, this.options.pedantic && (n = r ? n : "[*+-]");
-      let s = this.rules.other.listItemRegex(n), a = false;
-      for (;e; ) {
-        let l = false, p = "", c = "";
-        if (!(t2 = s.exec(e)) || this.rules.block.hr.test(e))
-          break;
-        p = t2[0], e = e.substring(p.length);
-        let g = t2[2].split(`
-`, 1)[0].replace(this.rules.other.listReplaceTabs, (O) => " ".repeat(3 * O.length)), h2 = e.split(`
-`, 1)[0], R = !g.trim(), f = 0;
-        if (this.options.pedantic ? (f = 2, c = g.trimStart()) : R ? f = t2[1].length + 1 : (f = t2[2].search(this.rules.other.nonSpaceChar), f = f > 4 ? 1 : f, c = g.slice(f), f += t2[1].length), R && this.rules.other.blankLine.test(h2) && (p += h2 + `
-`, e = e.substring(h2.length + 1), l = true), !l) {
-          let O = this.rules.other.nextBulletRegex(f), V = this.rules.other.hrRegex(f), Y = this.rules.other.fencesBeginRegex(f), ee = this.rules.other.headingBeginRegex(f), fe = this.rules.other.htmlBeginRegex(f);
-          for (;e; ) {
-            let H = e.split(`
-`, 1)[0], A;
-            if (h2 = H, this.options.pedantic ? (h2 = h2.replace(this.rules.other.listReplaceNesting, "  "), A = h2) : A = h2.replace(this.rules.other.tabCharGlobal, "    "), Y.test(h2) || ee.test(h2) || fe.test(h2) || O.test(h2) || V.test(h2))
-              break;
-            if (A.search(this.rules.other.nonSpaceChar) >= f || !h2.trim())
-              c += `
-` + A.slice(f);
-            else {
-              if (R || g.replace(this.rules.other.tabCharGlobal, "    ").search(this.rules.other.nonSpaceChar) >= 4 || Y.test(g) || ee.test(g) || V.test(g))
-                break;
-              c += `
-` + h2;
-            }
-            !R && !h2.trim() && (R = true), p += H + `
-`, e = e.substring(H.length + 1), g = A.slice(f);
-          }
-        }
-        i.loose || (a ? i.loose = true : this.rules.other.doubleBlankLine.test(p) && (a = true)), i.items.push({ type: "list_item", raw: p, task: !!this.options.gfm && this.rules.other.listIsTask.test(c), loose: false, text: c, tokens: [] }), i.raw += p;
-      }
-      let o = i.items.at(-1);
-      if (o)
-        o.raw = o.raw.trimEnd(), o.text = o.text.trimEnd();
-      else
-        return;
-      i.raw = i.raw.trimEnd();
-      for (let l of i.items) {
-        if (this.lexer.state.top = false, l.tokens = this.lexer.blockTokens(l.text, []), l.task) {
-          if (l.text = l.text.replace(this.rules.other.listReplaceTask, ""), l.tokens[0]?.type === "text" || l.tokens[0]?.type === "paragraph") {
-            l.tokens[0].raw = l.tokens[0].raw.replace(this.rules.other.listReplaceTask, ""), l.tokens[0].text = l.tokens[0].text.replace(this.rules.other.listReplaceTask, "");
-            for (let c = this.lexer.inlineQueue.length - 1;c >= 0; c--)
-              if (this.rules.other.listIsTask.test(this.lexer.inlineQueue[c].src)) {
-                this.lexer.inlineQueue[c].src = this.lexer.inlineQueue[c].src.replace(this.rules.other.listReplaceTask, "");
-                break;
-              }
-          }
-          let p = this.rules.other.listTaskCheckbox.exec(l.raw);
-          if (p) {
-            let c = { type: "checkbox", raw: p[0] + " ", checked: p[0] !== "[ ]" };
-            l.checked = c.checked, i.loose ? l.tokens[0] && ["paragraph", "text"].includes(l.tokens[0].type) && "tokens" in l.tokens[0] && l.tokens[0].tokens ? (l.tokens[0].raw = c.raw + l.tokens[0].raw, l.tokens[0].text = c.raw + l.tokens[0].text, l.tokens[0].tokens.unshift(c)) : l.tokens.unshift({ type: "paragraph", raw: c.raw, text: c.raw, tokens: [c] }) : l.tokens.unshift(c);
-          }
-        }
-        if (!i.loose) {
-          let p = l.tokens.filter((g) => g.type === "space"), c = p.length > 0 && p.some((g) => this.rules.other.anyLine.test(g.raw));
-          i.loose = c;
-        }
-      }
-      if (i.loose)
-        for (let l of i.items) {
-          l.loose = true;
-          for (let p of l.tokens)
-            p.type === "text" && (p.type = "paragraph");
-        }
-      return i;
-    }
-  }
-  html(e) {
-    let t2 = this.rules.block.html.exec(e);
-    if (t2)
-      return { type: "html", block: true, raw: t2[0], pre: t2[1] === "pre" || t2[1] === "script" || t2[1] === "style", text: t2[0] };
-  }
-  def(e) {
-    let t2 = this.rules.block.def.exec(e);
-    if (t2) {
-      let n = t2[1].toLowerCase().replace(this.rules.other.multipleSpaceGlobal, " "), r = t2[2] ? t2[2].replace(this.rules.other.hrefBrackets, "$1").replace(this.rules.inline.anyPunctuation, "$1") : "", i = t2[3] ? t2[3].substring(1, t2[3].length - 1).replace(this.rules.inline.anyPunctuation, "$1") : t2[3];
-      return { type: "def", tag: n, raw: t2[0], href: r, title: i };
-    }
-  }
-  table(e) {
-    let t2 = this.rules.block.table.exec(e);
-    if (!t2 || !this.rules.other.tableDelimiter.test(t2[2]))
-      return;
-    let n = J(t2[1]), r = t2[2].replace(this.rules.other.tableAlignChars, "").split("|"), i = t2[3]?.trim() ? t2[3].replace(this.rules.other.tableRowBlankLine, "").split(`
-`) : [], s = { type: "table", raw: t2[0], header: [], align: [], rows: [] };
-    if (n.length === r.length) {
-      for (let a of r)
-        this.rules.other.tableAlignRight.test(a) ? s.align.push("right") : this.rules.other.tableAlignCenter.test(a) ? s.align.push("center") : this.rules.other.tableAlignLeft.test(a) ? s.align.push("left") : s.align.push(null);
-      for (let a = 0;a < n.length; a++)
-        s.header.push({ text: n[a], tokens: this.lexer.inline(n[a]), header: true, align: s.align[a] });
-      for (let a of i)
-        s.rows.push(J(a, s.header.length).map((o, l) => ({ text: o, tokens: this.lexer.inline(o), header: false, align: s.align[l] })));
-      return s;
-    }
-  }
-  lheading(e) {
-    let t2 = this.rules.block.lheading.exec(e);
-    if (t2)
-      return { type: "heading", raw: t2[0], depth: t2[2].charAt(0) === "=" ? 1 : 2, text: t2[1], tokens: this.lexer.inline(t2[1]) };
-  }
-  paragraph(e) {
-    let t2 = this.rules.block.paragraph.exec(e);
-    if (t2) {
-      let n = t2[1].charAt(t2[1].length - 1) === `
-` ? t2[1].slice(0, -1) : t2[1];
-      return { type: "paragraph", raw: t2[0], text: n, tokens: this.lexer.inline(n) };
-    }
-  }
-  text(e) {
-    let t2 = this.rules.block.text.exec(e);
-    if (t2)
-      return { type: "text", raw: t2[0], text: t2[0], tokens: this.lexer.inline(t2[0]) };
-  }
-  escape(e) {
-    let t2 = this.rules.inline.escape.exec(e);
-    if (t2)
-      return { type: "escape", raw: t2[0], text: t2[1] };
-  }
-  tag(e) {
-    let t2 = this.rules.inline.tag.exec(e);
-    if (t2)
-      return !this.lexer.state.inLink && this.rules.other.startATag.test(t2[0]) ? this.lexer.state.inLink = true : this.lexer.state.inLink && this.rules.other.endATag.test(t2[0]) && (this.lexer.state.inLink = false), !this.lexer.state.inRawBlock && this.rules.other.startPreScriptTag.test(t2[0]) ? this.lexer.state.inRawBlock = true : this.lexer.state.inRawBlock && this.rules.other.endPreScriptTag.test(t2[0]) && (this.lexer.state.inRawBlock = false), { type: "html", raw: t2[0], inLink: this.lexer.state.inLink, inRawBlock: this.lexer.state.inRawBlock, block: false, text: t2[0] };
-  }
-  link(e) {
-    let t2 = this.rules.inline.link.exec(e);
-    if (t2) {
-      let n = t2[2].trim();
-      if (!this.options.pedantic && this.rules.other.startAngleBracket.test(n)) {
-        if (!this.rules.other.endAngleBracket.test(n))
-          return;
-        let s = z(n.slice(0, -1), "\\");
-        if ((n.length - s.length) % 2 === 0)
-          return;
-      } else {
-        let s = de(t2[2], "()");
-        if (s === -2)
-          return;
-        if (s > -1) {
-          let o = (t2[0].indexOf("!") === 0 ? 5 : 4) + t2[1].length + s;
-          t2[2] = t2[2].substring(0, s), t2[0] = t2[0].substring(0, o).trim(), t2[3] = "";
-        }
-      }
-      let r = t2[2], i = "";
-      if (this.options.pedantic) {
-        let s = this.rules.other.pedanticHrefTitle.exec(r);
-        s && (r = s[1], i = s[3]);
-      } else
-        i = t2[3] ? t2[3].slice(1, -1) : "";
-      return r = r.trim(), this.rules.other.startAngleBracket.test(r) && (this.options.pedantic && !this.rules.other.endAngleBracket.test(n) ? r = r.slice(1) : r = r.slice(1, -1)), ge(t2, { href: r && r.replace(this.rules.inline.anyPunctuation, "$1"), title: i && i.replace(this.rules.inline.anyPunctuation, "$1") }, t2[0], this.lexer, this.rules);
-    }
-  }
-  reflink(e, t2) {
-    let n;
-    if ((n = this.rules.inline.reflink.exec(e)) || (n = this.rules.inline.nolink.exec(e))) {
-      let r = (n[2] || n[1]).replace(this.rules.other.multipleSpaceGlobal, " "), i = t2[r.toLowerCase()];
-      if (!i) {
-        let s = n[0].charAt(0);
-        return { type: "text", raw: s, text: s };
-      }
-      return ge(n, i, n[0], this.lexer, this.rules);
-    }
-  }
-  emStrong(e, t2, n = "") {
-    let r = this.rules.inline.emStrongLDelim.exec(e);
-    if (!r || r[3] && n.match(this.rules.other.unicodeAlphaNumeric))
-      return;
-    if (!(r[1] || r[2] || "") || !n || this.rules.inline.punctuation.exec(n)) {
-      let s = [...r[0]].length - 1, a, o, l = s, p = 0, c = r[0][0] === "*" ? this.rules.inline.emStrongRDelimAst : this.rules.inline.emStrongRDelimUnd;
-      for (c.lastIndex = 0, t2 = t2.slice(-1 * e.length + s);(r = c.exec(t2)) != null; ) {
-        if (a = r[1] || r[2] || r[3] || r[4] || r[5] || r[6], !a)
-          continue;
-        if (o = [...a].length, r[3] || r[4]) {
-          l += o;
-          continue;
-        } else if ((r[5] || r[6]) && s % 3 && !((s + o) % 3)) {
-          p += o;
-          continue;
-        }
-        if (l -= o, l > 0)
-          continue;
-        o = Math.min(o, o + l + p);
-        let g = [...r[0]][0].length, h2 = e.slice(0, s + r.index + g + o);
-        if (Math.min(s, o) % 2) {
-          let f = h2.slice(1, -1);
-          return { type: "em", raw: h2, text: f, tokens: this.lexer.inlineTokens(f) };
-        }
-        let R = h2.slice(2, -2);
-        return { type: "strong", raw: h2, text: R, tokens: this.lexer.inlineTokens(R) };
-      }
-    }
-  }
-  codespan(e) {
-    let t2 = this.rules.inline.code.exec(e);
-    if (t2) {
-      let n = t2[2].replace(this.rules.other.newLineCharGlobal, " "), r = this.rules.other.nonSpaceChar.test(n), i = this.rules.other.startingSpaceChar.test(n) && this.rules.other.endingSpaceChar.test(n);
-      return r && i && (n = n.substring(1, n.length - 1)), { type: "codespan", raw: t2[0], text: n };
-    }
-  }
-  br(e) {
-    let t2 = this.rules.inline.br.exec(e);
-    if (t2)
-      return { type: "br", raw: t2[0] };
-  }
-  del(e) {
-    let t2 = this.rules.inline.del.exec(e);
-    if (t2)
-      return { type: "del", raw: t2[0], text: t2[2], tokens: this.lexer.inlineTokens(t2[2]) };
-  }
-  autolink(e) {
-    let t2 = this.rules.inline.autolink.exec(e);
-    if (t2) {
-      let n, r;
-      return t2[2] === "@" ? (n = t2[1], r = "mailto:" + n) : (n = t2[1], r = n), { type: "link", raw: t2[0], text: n, href: r, tokens: [{ type: "text", raw: n, text: n }] };
-    }
-  }
-  url(e) {
-    let t2;
-    if (t2 = this.rules.inline.url.exec(e)) {
-      let n, r;
-      if (t2[2] === "@")
-        n = t2[0], r = "mailto:" + n;
-      else {
-        let i;
-        do
-          i = t2[0], t2[0] = this.rules.inline._backpedal.exec(t2[0])?.[0] ?? "";
-        while (i !== t2[0]);
-        n = t2[0], t2[1] === "www." ? r = "http://" + t2[0] : r = t2[0];
-      }
-      return { type: "link", raw: t2[0], text: n, href: r, tokens: [{ type: "text", raw: n, text: n }] };
-    }
-  }
-  inlineText(e) {
-    let t2 = this.rules.inline.text.exec(e);
-    if (t2) {
-      let n = this.lexer.state.inRawBlock;
-      return { type: "text", raw: t2[0], text: t2[0], escaped: n };
-    }
+  set initialValue(value) {
   }
 };
-var x = class u {
-  tokens;
-  options;
-  state;
-  inlineQueue;
-  tokenizer;
-  constructor(e) {
-    this.tokens = [], this.tokens.links = Object.create(null), this.options = e || T, this.options.tokenizer = this.options.tokenizer || new y, this.tokenizer = this.options.tokenizer, this.tokenizer.options = this.options, this.tokenizer.lexer = this, this.inlineQueue = [], this.state = { inLink: false, inRawBlock: false, top: true };
-    let t2 = { other: m, block: E.normal, inline: M.normal };
-    this.options.pedantic ? (t2.block = E.pedantic, t2.inline = M.pedantic) : this.options.gfm && (t2.block = E.gfm, this.options.breaks ? t2.inline = M.breaks : t2.inline = M.gfm), this.tokenizer.rules = t2;
-  }
-  static get rules() {
-    return { block: E, inline: M };
-  }
-  static lex(e, t2) {
-    return new u(t2).lex(e);
-  }
-  static lexInline(e, t2) {
-    return new u(t2).inlineTokens(e);
-  }
-  lex(e) {
-    e = e.replace(m.carriageReturn, `
-`), this.blockTokens(e, this.tokens);
-    for (let t2 = 0;t2 < this.inlineQueue.length; t2++) {
-      let n = this.inlineQueue[t2];
-      this.inlineTokens(n.src, n.tokens);
-    }
-    return this.inlineQueue = [], this.tokens;
-  }
-  blockTokens(e, t2 = [], n = false) {
-    for (this.options.pedantic && (e = e.replace(m.tabCharGlobal, "    ").replace(m.spaceLine, ""));e; ) {
-      let r;
-      if (this.options.extensions?.block?.some((s) => (r = s.call({ lexer: this }, e, t2)) ? (e = e.substring(r.raw.length), t2.push(r), true) : false))
-        continue;
-      if (r = this.tokenizer.space(e)) {
-        e = e.substring(r.raw.length);
-        let s = t2.at(-1);
-        r.raw.length === 1 && s !== undefined ? s.raw += `
-` : t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.code(e)) {
-        e = e.substring(r.raw.length);
-        let s = t2.at(-1);
-        s?.type === "paragraph" || s?.type === "text" ? (s.raw += (s.raw.endsWith(`
-`) ? "" : `
-`) + r.raw, s.text += `
-` + r.text, this.inlineQueue.at(-1).src = s.text) : t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.fences(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.heading(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.hr(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.blockquote(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.list(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.html(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.def(e)) {
-        e = e.substring(r.raw.length);
-        let s = t2.at(-1);
-        s?.type === "paragraph" || s?.type === "text" ? (s.raw += (s.raw.endsWith(`
-`) ? "" : `
-`) + r.raw, s.text += `
-` + r.raw, this.inlineQueue.at(-1).src = s.text) : this.tokens.links[r.tag] || (this.tokens.links[r.tag] = { href: r.href, title: r.title }, t2.push(r));
-        continue;
-      }
-      if (r = this.tokenizer.table(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      if (r = this.tokenizer.lheading(e)) {
-        e = e.substring(r.raw.length), t2.push(r);
-        continue;
-      }
-      let i = e;
-      if (this.options.extensions?.startBlock) {
-        let s = 1 / 0, a = e.slice(1), o;
-        this.options.extensions.startBlock.forEach((l) => {
-          o = l.call({ lexer: this }, a), typeof o == "number" && o >= 0 && (s = Math.min(s, o));
-        }), s < 1 / 0 && s >= 0 && (i = e.substring(0, s + 1));
-      }
-      if (this.state.top && (r = this.tokenizer.paragraph(i))) {
-        let s = t2.at(-1);
-        n && s?.type === "paragraph" ? (s.raw += (s.raw.endsWith(`
-`) ? "" : `
-`) + r.raw, s.text += `
-` + r.text, this.inlineQueue.pop(), this.inlineQueue.at(-1).src = s.text) : t2.push(r), n = i.length !== e.length, e = e.substring(r.raw.length);
-        continue;
-      }
-      if (r = this.tokenizer.text(e)) {
-        e = e.substring(r.raw.length);
-        let s = t2.at(-1);
-        s?.type === "text" ? (s.raw += (s.raw.endsWith(`
-`) ? "" : `
-`) + r.raw, s.text += `
-` + r.text, this.inlineQueue.pop(), this.inlineQueue.at(-1).src = s.text) : t2.push(r);
-        continue;
-      }
-      if (e) {
-        let s = "Infinite loop on byte: " + e.charCodeAt(0);
-        if (this.options.silent) {
-          console.error(s);
-          break;
-        } else
-          throw new Error(s);
-      }
-    }
-    return this.state.top = true, t2;
-  }
-  inline(e, t2 = []) {
-    return this.inlineQueue.push({ src: e, tokens: t2 }), t2;
-  }
-  inlineTokens(e, t2 = []) {
-    let n = e, r = null;
-    if (this.tokens.links) {
-      let o = Object.keys(this.tokens.links);
-      if (o.length > 0)
-        for (;(r = this.tokenizer.rules.inline.reflinkSearch.exec(n)) != null; )
-          o.includes(r[0].slice(r[0].lastIndexOf("[") + 1, -1)) && (n = n.slice(0, r.index) + "[" + "a".repeat(r[0].length - 2) + "]" + n.slice(this.tokenizer.rules.inline.reflinkSearch.lastIndex));
-    }
-    for (;(r = this.tokenizer.rules.inline.anyPunctuation.exec(n)) != null; )
-      n = n.slice(0, r.index) + "++" + n.slice(this.tokenizer.rules.inline.anyPunctuation.lastIndex);
-    let i;
-    for (;(r = this.tokenizer.rules.inline.blockSkip.exec(n)) != null; )
-      i = r[2] ? r[2].length : 0, n = n.slice(0, r.index + i) + "[" + "a".repeat(r[0].length - i - 2) + "]" + n.slice(this.tokenizer.rules.inline.blockSkip.lastIndex);
-    n = this.options.hooks?.emStrongMask?.call({ lexer: this }, n) ?? n;
-    let s = false, a = "";
-    for (;e; ) {
-      s || (a = ""), s = false;
-      let o;
-      if (this.options.extensions?.inline?.some((p) => (o = p.call({ lexer: this }, e, t2)) ? (e = e.substring(o.raw.length), t2.push(o), true) : false))
-        continue;
-      if (o = this.tokenizer.escape(e)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.tag(e)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.link(e)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.reflink(e, this.tokens.links)) {
-        e = e.substring(o.raw.length);
-        let p = t2.at(-1);
-        o.type === "text" && p?.type === "text" ? (p.raw += o.raw, p.text += o.text) : t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.emStrong(e, n, a)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.codespan(e)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.br(e)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.del(e)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (o = this.tokenizer.autolink(e)) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      if (!this.state.inLink && (o = this.tokenizer.url(e))) {
-        e = e.substring(o.raw.length), t2.push(o);
-        continue;
-      }
-      let l = e;
-      if (this.options.extensions?.startInline) {
-        let p = 1 / 0, c = e.slice(1), g;
-        this.options.extensions.startInline.forEach((h2) => {
-          g = h2.call({ lexer: this }, c), typeof g == "number" && g >= 0 && (p = Math.min(p, g));
-        }), p < 1 / 0 && p >= 0 && (l = e.substring(0, p + 1));
-      }
-      if (o = this.tokenizer.inlineText(l)) {
-        e = e.substring(o.raw.length), o.raw.slice(-1) !== "_" && (a = o.raw.slice(-1)), s = true;
-        let p = t2.at(-1);
-        p?.type === "text" ? (p.raw += o.raw, p.text += o.text) : t2.push(o);
-        continue;
-      }
-      if (e) {
-        let p = "Infinite loop on byte: " + e.charCodeAt(0);
-        if (this.options.silent) {
-          console.error(p);
-          break;
-        } else
-          throw new Error(p);
-      }
-    }
-    return t2;
-  }
-};
-var P = class {
-  options;
-  parser;
-  constructor(e) {
-    this.options = e || T;
-  }
-  space(e) {
-    return "";
-  }
-  code({ text: e, lang: t2, escaped: n }) {
-    let r = (t2 || "").match(m.notSpaceStart)?.[0], i = e.replace(m.endingNewline, "") + `
-`;
-    return r ? '<pre><code class="language-' + w(r) + '">' + (n ? i : w(i, true)) + `</code></pre>
-` : "<pre><code>" + (n ? i : w(i, true)) + `</code></pre>
-`;
-  }
-  blockquote({ tokens: e }) {
-    return `<blockquote>
-${this.parser.parse(e)}</blockquote>
-`;
-  }
-  html({ text: e }) {
-    return e;
-  }
-  def(e) {
-    return "";
-  }
-  heading({ tokens: e, depth: t2 }) {
-    return `<h${t2}>${this.parser.parseInline(e)}</h${t2}>
-`;
-  }
-  hr(e) {
-    return `<hr>
-`;
-  }
-  list(e) {
-    let { ordered: t2, start: n } = e, r = "";
-    for (let a = 0;a < e.items.length; a++) {
-      let o = e.items[a];
-      r += this.listitem(o);
-    }
-    let i = t2 ? "ol" : "ul", s = t2 && n !== 1 ? ' start="' + n + '"' : "";
-    return "<" + i + s + `>
-` + r + "</" + i + `>
-`;
-  }
-  listitem(e) {
-    return `<li>${this.parser.parse(e.tokens)}</li>
-`;
-  }
-  checkbox({ checked: e }) {
-    return "<input " + (e ? 'checked="" ' : "") + 'disabled="" type="checkbox"> ';
-  }
-  paragraph({ tokens: e }) {
-    return `<p>${this.parser.parseInline(e)}</p>
-`;
-  }
-  table(e) {
-    let t2 = "", n = "";
-    for (let i = 0;i < e.header.length; i++)
-      n += this.tablecell(e.header[i]);
-    t2 += this.tablerow({ text: n });
-    let r = "";
-    for (let i = 0;i < e.rows.length; i++) {
-      let s = e.rows[i];
-      n = "";
-      for (let a = 0;a < s.length; a++)
-        n += this.tablecell(s[a]);
-      r += this.tablerow({ text: n });
-    }
-    return r && (r = `<tbody>${r}</tbody>`), `<table>
-<thead>
-` + t2 + `</thead>
-` + r + `</table>
-`;
-  }
-  tablerow({ text: e }) {
-    return `<tr>
-${e}</tr>
-`;
-  }
-  tablecell(e) {
-    let t2 = this.parser.parseInline(e.tokens), n = e.header ? "th" : "td";
-    return (e.align ? `<${n} align="${e.align}">` : `<${n}>`) + t2 + `</${n}>
-`;
-  }
-  strong({ tokens: e }) {
-    return `<strong>${this.parser.parseInline(e)}</strong>`;
-  }
-  em({ tokens: e }) {
-    return `<em>${this.parser.parseInline(e)}</em>`;
-  }
-  codespan({ text: e }) {
-    return `<code>${w(e, true)}</code>`;
-  }
-  br(e) {
-    return "<br>";
-  }
-  del({ tokens: e }) {
-    return `<del>${this.parser.parseInline(e)}</del>`;
-  }
-  link({ href: e, title: t2, tokens: n }) {
-    let r = this.parser.parseInline(n), i = X(e);
-    if (i === null)
-      return r;
-    e = i;
-    let s = '<a href="' + e + '"';
-    return t2 && (s += ' title="' + w(t2) + '"'), s += ">" + r + "</a>", s;
-  }
-  image({ href: e, title: t2, text: n, tokens: r }) {
-    r && (n = this.parser.parseInline(r, this.parser.textRenderer));
-    let i = X(e);
-    if (i === null)
-      return w(n);
-    e = i;
-    let s = `<img src="${e}" alt="${n}"`;
-    return t2 && (s += ` title="${w(t2)}"`), s += ">", s;
-  }
-  text(e) {
-    return "tokens" in e && e.tokens ? this.parser.parseInline(e.tokens) : ("escaped" in e) && e.escaped ? e.text : w(e.text);
-  }
-};
-var $ = class {
-  strong({ text: e }) {
-    return e;
-  }
-  em({ text: e }) {
-    return e;
-  }
-  codespan({ text: e }) {
-    return e;
-  }
-  del({ text: e }) {
-    return e;
-  }
-  html({ text: e }) {
-    return e;
-  }
-  text({ text: e }) {
-    return e;
-  }
-  link({ text: e }) {
-    return "" + e;
-  }
-  image({ text: e }) {
-    return "" + e;
-  }
-  br() {
-    return "";
-  }
-  checkbox({ raw: e }) {
-    return e;
-  }
-};
-var b = class u2 {
-  options;
-  renderer;
-  textRenderer;
-  constructor(e) {
-    this.options = e || T, this.options.renderer = this.options.renderer || new P, this.renderer = this.options.renderer, this.renderer.options = this.options, this.renderer.parser = this, this.textRenderer = new $;
-  }
-  static parse(e, t2) {
-    return new u2(t2).parse(e);
-  }
-  static parseInline(e, t2) {
-    return new u2(t2).parseInline(e);
-  }
-  parse(e) {
-    let t2 = "";
-    for (let n = 0;n < e.length; n++) {
-      let r = e[n];
-      if (this.options.extensions?.renderers?.[r.type]) {
-        let s = r, a = this.options.extensions.renderers[s.type].call({ parser: this }, s);
-        if (a !== false || !["space", "hr", "heading", "code", "table", "blockquote", "list", "html", "def", "paragraph", "text"].includes(s.type)) {
-          t2 += a || "";
-          continue;
-        }
-      }
-      let i = r;
-      switch (i.type) {
-        case "space": {
-          t2 += this.renderer.space(i);
-          break;
-        }
-        case "hr": {
-          t2 += this.renderer.hr(i);
-          break;
-        }
-        case "heading": {
-          t2 += this.renderer.heading(i);
-          break;
-        }
-        case "code": {
-          t2 += this.renderer.code(i);
-          break;
-        }
-        case "table": {
-          t2 += this.renderer.table(i);
-          break;
-        }
-        case "blockquote": {
-          t2 += this.renderer.blockquote(i);
-          break;
-        }
-        case "list": {
-          t2 += this.renderer.list(i);
-          break;
-        }
-        case "checkbox": {
-          t2 += this.renderer.checkbox(i);
-          break;
-        }
-        case "html": {
-          t2 += this.renderer.html(i);
-          break;
-        }
-        case "def": {
-          t2 += this.renderer.def(i);
-          break;
-        }
-        case "paragraph": {
-          t2 += this.renderer.paragraph(i);
-          break;
-        }
-        case "text": {
-          t2 += this.renderer.text(i);
-          break;
-        }
-        default: {
-          let s = 'Token with "' + i.type + '" type was not found.';
-          if (this.options.silent)
-            return console.error(s), "";
-          throw new Error(s);
-        }
-      }
-    }
-    return t2;
-  }
-  parseInline(e, t2 = this.renderer) {
-    let n = "";
-    for (let r = 0;r < e.length; r++) {
-      let i = e[r];
-      if (this.options.extensions?.renderers?.[i.type]) {
-        let a = this.options.extensions.renderers[i.type].call({ parser: this }, i);
-        if (a !== false || !["escape", "html", "link", "image", "strong", "em", "codespan", "br", "del", "text"].includes(i.type)) {
-          n += a || "";
-          continue;
-        }
-      }
-      let s = i;
-      switch (s.type) {
-        case "escape": {
-          n += t2.text(s);
-          break;
-        }
-        case "html": {
-          n += t2.html(s);
-          break;
-        }
-        case "link": {
-          n += t2.link(s);
-          break;
-        }
-        case "image": {
-          n += t2.image(s);
-          break;
-        }
-        case "checkbox": {
-          n += t2.checkbox(s);
-          break;
-        }
-        case "strong": {
-          n += t2.strong(s);
-          break;
-        }
-        case "em": {
-          n += t2.em(s);
-          break;
-        }
-        case "codespan": {
-          n += t2.codespan(s);
-          break;
-        }
-        case "br": {
-          n += t2.br(s);
-          break;
-        }
-        case "del": {
-          n += t2.del(s);
-          break;
-        }
-        case "text": {
-          n += t2.text(s);
-          break;
-        }
-        default: {
-          let a = 'Token with "' + s.type + '" type was not found.';
-          if (this.options.silent)
-            return console.error(a), "";
-          throw new Error(a);
-        }
-      }
-    }
-    return n;
-  }
-};
-var S = class {
-  options;
-  block;
-  constructor(e) {
-    this.options = e || T;
-  }
-  static passThroughHooks = new Set(["preprocess", "postprocess", "processAllTokens", "emStrongMask"]);
-  static passThroughHooksRespectAsync = new Set(["preprocess", "postprocess", "processAllTokens"]);
-  preprocess(e) {
-    return e;
-  }
-  postprocess(e) {
-    return e;
-  }
-  processAllTokens(e) {
-    return e;
-  }
-  emStrongMask(e) {
-    return e;
-  }
-  provideLexer() {
-    return this.block ? x.lex : x.lexInline;
-  }
-  provideParser() {
-    return this.block ? b.parse : b.parseInline;
-  }
-};
-var B = class {
-  defaults = L();
-  options = this.setOptions;
-  parse = this.parseMarkdown(true);
-  parseInline = this.parseMarkdown(false);
-  Parser = b;
-  Renderer = P;
-  TextRenderer = $;
-  Lexer = x;
-  Tokenizer = y;
-  Hooks = S;
-  constructor(...e) {
-    this.use(...e);
-  }
-  walkTokens(e, t2) {
-    let n = [];
-    for (let r of e)
-      switch (n = n.concat(t2.call(this, r)), r.type) {
-        case "table": {
-          let i = r;
-          for (let s of i.header)
-            n = n.concat(this.walkTokens(s.tokens, t2));
-          for (let s of i.rows)
-            for (let a of s)
-              n = n.concat(this.walkTokens(a.tokens, t2));
-          break;
-        }
-        case "list": {
-          let i = r;
-          n = n.concat(this.walkTokens(i.items, t2));
-          break;
-        }
-        default: {
-          let i = r;
-          this.defaults.extensions?.childTokens?.[i.type] ? this.defaults.extensions.childTokens[i.type].forEach((s) => {
-            let a = i[s].flat(1 / 0);
-            n = n.concat(this.walkTokens(a, t2));
-          }) : i.tokens && (n = n.concat(this.walkTokens(i.tokens, t2)));
-        }
-      }
-    return n;
-  }
-  use(...e) {
-    let t2 = this.defaults.extensions || { renderers: {}, childTokens: {} };
-    return e.forEach((n) => {
-      let r = { ...n };
-      if (r.async = this.defaults.async || r.async || false, n.extensions && (n.extensions.forEach((i) => {
-        if (!i.name)
-          throw new Error("extension name required");
-        if ("renderer" in i) {
-          let s = t2.renderers[i.name];
-          s ? t2.renderers[i.name] = function(...a) {
-            let o = i.renderer.apply(this, a);
-            return o === false && (o = s.apply(this, a)), o;
-          } : t2.renderers[i.name] = i.renderer;
-        }
-        if ("tokenizer" in i) {
-          if (!i.level || i.level !== "block" && i.level !== "inline")
-            throw new Error("extension level must be 'block' or 'inline'");
-          let s = t2[i.level];
-          s ? s.unshift(i.tokenizer) : t2[i.level] = [i.tokenizer], i.start && (i.level === "block" ? t2.startBlock ? t2.startBlock.push(i.start) : t2.startBlock = [i.start] : i.level === "inline" && (t2.startInline ? t2.startInline.push(i.start) : t2.startInline = [i.start]));
-        }
-        "childTokens" in i && i.childTokens && (t2.childTokens[i.name] = i.childTokens);
-      }), r.extensions = t2), n.renderer) {
-        let i = this.defaults.renderer || new P(this.defaults);
-        for (let s in n.renderer) {
-          if (!(s in i))
-            throw new Error(`renderer '${s}' does not exist`);
-          if (["options", "parser"].includes(s))
-            continue;
-          let a = s, o = n.renderer[a], l = i[a];
-          i[a] = (...p) => {
-            let c = o.apply(i, p);
-            return c === false && (c = l.apply(i, p)), c || "";
-          };
-        }
-        r.renderer = i;
-      }
-      if (n.tokenizer) {
-        let i = this.defaults.tokenizer || new y(this.defaults);
-        for (let s in n.tokenizer) {
-          if (!(s in i))
-            throw new Error(`tokenizer '${s}' does not exist`);
-          if (["options", "rules", "lexer"].includes(s))
-            continue;
-          let a = s, o = n.tokenizer[a], l = i[a];
-          i[a] = (...p) => {
-            let c = o.apply(i, p);
-            return c === false && (c = l.apply(i, p)), c;
-          };
-        }
-        r.tokenizer = i;
-      }
-      if (n.hooks) {
-        let i = this.defaults.hooks || new S;
-        for (let s in n.hooks) {
-          if (!(s in i))
-            throw new Error(`hook '${s}' does not exist`);
-          if (["options", "block"].includes(s))
-            continue;
-          let a = s, o = n.hooks[a], l = i[a];
-          S.passThroughHooks.has(s) ? i[a] = (p) => {
-            if (this.defaults.async && S.passThroughHooksRespectAsync.has(s))
-              return (async () => {
-                let g = await o.call(i, p);
-                return l.call(i, g);
-              })();
-            let c = o.call(i, p);
-            return l.call(i, c);
-          } : i[a] = (...p) => {
-            if (this.defaults.async)
-              return (async () => {
-                let g = await o.apply(i, p);
-                return g === false && (g = await l.apply(i, p)), g;
-              })();
-            let c = o.apply(i, p);
-            return c === false && (c = l.apply(i, p)), c;
-          };
-        }
-        r.hooks = i;
-      }
-      if (n.walkTokens) {
-        let i = this.defaults.walkTokens, s = n.walkTokens;
-        r.walkTokens = function(a) {
-          let o = [];
-          return o.push(s.call(this, a)), i && (o = o.concat(i.call(this, a))), o;
-        };
-      }
-      this.defaults = { ...this.defaults, ...r };
-    }), this;
-  }
-  setOptions(e) {
-    return this.defaults = { ...this.defaults, ...e }, this;
-  }
-  lexer(e, t2) {
-    return x.lex(e, t2 ?? this.defaults);
-  }
-  parser(e, t2) {
-    return b.parse(e, t2 ?? this.defaults);
-  }
-  parseMarkdown(e) {
-    return (n, r) => {
-      let i = { ...r }, s = { ...this.defaults, ...i }, a = this.onError(!!s.silent, !!s.async);
-      if (this.defaults.async === true && i.async === false)
-        return a(new Error("marked(): The async option was set to true by an extension. Remove async: false from the parse options object to return a Promise."));
-      if (typeof n > "u" || n === null)
-        return a(new Error("marked(): input parameter is undefined or null"));
-      if (typeof n != "string")
-        return a(new Error("marked(): input parameter is of type " + Object.prototype.toString.call(n) + ", string expected"));
-      if (s.hooks && (s.hooks.options = s, s.hooks.block = e), s.async)
-        return (async () => {
-          let o = s.hooks ? await s.hooks.preprocess(n) : n, p = await (s.hooks ? await s.hooks.provideLexer() : e ? x.lex : x.lexInline)(o, s), c = s.hooks ? await s.hooks.processAllTokens(p) : p;
-          s.walkTokens && await Promise.all(this.walkTokens(c, s.walkTokens));
-          let h2 = await (s.hooks ? await s.hooks.provideParser() : e ? b.parse : b.parseInline)(c, s);
-          return s.hooks ? await s.hooks.postprocess(h2) : h2;
-        })().catch(a);
-      try {
-        s.hooks && (n = s.hooks.preprocess(n));
-        let l = (s.hooks ? s.hooks.provideLexer() : e ? x.lex : x.lexInline)(n, s);
-        s.hooks && (l = s.hooks.processAllTokens(l)), s.walkTokens && this.walkTokens(l, s.walkTokens);
-        let c = (s.hooks ? s.hooks.provideParser() : e ? b.parse : b.parseInline)(l, s);
-        return s.hooks && (c = s.hooks.postprocess(c)), c;
-      } catch (o) {
-        return a(o);
-      }
-    };
-  }
-  onError(e, t2) {
-    return (n) => {
-      if (n.message += `
-Please report this to https://github.com/markedjs/marked.`, e) {
-        let r = "<p>An error occurred:</p><pre>" + w(n.message + "", true) + "</pre>";
-        return t2 ? Promise.resolve(r) : r;
-      }
-      if (t2)
-        return Promise.reject(n);
-      throw n;
-    };
-  }
-};
-var _ = new B;
-function d(u3, e) {
-  return _.parse(u3, e);
-}
-d.options = d.setOptions = function(u3) {
-  return _.setOptions(u3), d.defaults = _.defaults, Z(d.defaults), d;
-};
-d.getDefaults = L;
-d.defaults = T;
-d.use = function(...u3) {
-  return _.use(...u3), d.defaults = _.defaults, Z(d.defaults), d;
-};
-d.walkTokens = function(u3, e) {
-  return _.walkTokens(u3, e);
-};
-d.parseInline = _.parseInline;
-d.Parser = b;
-d.parser = b.parse;
-d.Renderer = P;
-d.TextRenderer = $;
-d.Lexer = x;
-d.lexer = x.lex;
-d.Tokenizer = y;
-d.Hooks = S;
-d.parse = d;
-var Dt = d.options;
-var Ht = d.setOptions;
-var Zt = d.use;
-var Gt = d.walkTokens;
-var Nt = d.parseInline;
-var Ft = b.parse;
-var jt = x.lex;
+
+// src/renderables/Markdown.ts
+import { Lexer as Lexer2 } from "marked";
 
 // src/renderables/TextTable.ts
 var MEASURE_HEIGHT = 1e4;
-
-class TextTableRenderable extends Renderable {
+var TextTableRenderable = class extends Renderable {
   _content;
   _wrapMode;
   _columnWidthMode;
@@ -6803,22 +5422,22 @@ class TextTableRenderable extends Renderable {
   _layoutDirty = true;
   _rasterDirty = true;
   _cachedMeasureLayout = null;
-  _cachedMeasureWidth = undefined;
+  _cachedMeasureWidth = void 0;
   _defaultOptions = {
     content: [],
     wrapMode: "word",
     columnWidthMode: "full",
     columnFitter: "proportional",
     cellPadding: 0,
-    cellPaddingX: undefined,
-    cellPaddingY: undefined,
+    cellPaddingX: void 0,
+    cellPaddingY: void 0,
     columnGap: 0,
     showBorders: true,
     border: true,
     outerBorder: true,
     selectable: true,
-    selectionBg: undefined,
-    selectionFg: undefined,
+    selectionBg: void 0,
+    selectionFg: void 0,
     borderStyle: "single",
     borderColor: "#FFFFFF",
     borderBackgroundColor: "transparent",
@@ -6838,14 +5457,16 @@ class TextTableRenderable extends Renderable {
     this._columnGap = this.resolveColumnGap(options.columnGap);
     this._showBorders = options.showBorders ?? this._defaultOptions.showBorders;
     this._border = options.border ?? this._defaultOptions.border;
-    this._hasExplicitOuterBorder = options.outerBorder !== undefined;
+    this._hasExplicitOuterBorder = options.outerBorder !== void 0;
     this._outerBorder = options.outerBorder ?? this._border;
     this.selectable = options.selectable ?? this._defaultOptions.selectable;
-    this._selectionBg = options.selectionBg ? parseColor(options.selectionBg) : undefined;
-    this._selectionFg = options.selectionFg ? parseColor(options.selectionFg) : undefined;
+    this._selectionBg = options.selectionBg ? parseColor(options.selectionBg) : void 0;
+    this._selectionFg = options.selectionFg ? parseColor(options.selectionFg) : void 0;
     this._borderStyle = parseBorderStyle(options.borderStyle, this._defaultOptions.borderStyle);
     this._borderColor = parseColor(options.borderColor ?? this._defaultOptions.borderColor);
-    this._borderBackgroundColor = parseColor(options.borderBackgroundColor ?? this._defaultOptions.borderBackgroundColor);
+    this._borderBackgroundColor = parseColor(
+      options.borderBackgroundColor ?? this._defaultOptions.borderBackgroundColor
+    );
     this._backgroundColor = parseColor(options.backgroundColor ?? this._defaultOptions.backgroundColor);
     this._defaultFg = parseColor(options.fg ?? this._defaultOptions.fg);
     this._defaultBg = parseColor(options.bg ?? this._defaultOptions.bg);
@@ -6864,8 +5485,7 @@ class TextTableRenderable extends Renderable {
     return this._wrapMode;
   }
   set wrapMode(value) {
-    if (this._wrapMode === value)
-      return;
+    if (this._wrapMode === value) return;
     this._wrapMode = value;
     for (const row of this._cells) {
       for (const cell of row) {
@@ -6878,8 +5498,7 @@ class TextTableRenderable extends Renderable {
     return this._columnWidthMode;
   }
   set columnWidthMode(value) {
-    if (this._columnWidthMode === value)
-      return;
+    if (this._columnWidthMode === value) return;
     this._columnWidthMode = value;
     this.invalidateLayoutAndRaster();
   }
@@ -6888,8 +5507,7 @@ class TextTableRenderable extends Renderable {
   }
   set columnFitter(value) {
     const next = this.resolveColumnFitter(value);
-    if (this._columnFitter === next)
-      return;
+    if (this._columnFitter === next) return;
     this._columnFitter = next;
     this.invalidateLayoutAndRaster();
   }
@@ -6898,8 +5516,7 @@ class TextTableRenderable extends Renderable {
   }
   set cellPadding(value) {
     const next = this.resolveCellPadding(value);
-    if (this._cellPaddingX === next && this._cellPaddingY === next)
-      return;
+    if (this._cellPaddingX === next && this._cellPaddingY === next) return;
     this._cellPaddingX = next;
     this._cellPaddingY = next;
     this.invalidateLayoutAndRaster();
@@ -6909,8 +5526,7 @@ class TextTableRenderable extends Renderable {
   }
   set cellPaddingX(value) {
     const next = this.resolveCellPadding(value);
-    if (this._cellPaddingX === next)
-      return;
+    if (this._cellPaddingX === next) return;
     this._cellPaddingX = next;
     this.invalidateLayoutAndRaster();
   }
@@ -6919,8 +5535,7 @@ class TextTableRenderable extends Renderable {
   }
   set cellPaddingY(value) {
     const next = this.resolveCellPadding(value);
-    if (this._cellPaddingY === next)
-      return;
+    if (this._cellPaddingY === next) return;
     this._cellPaddingY = next;
     this.invalidateLayoutAndRaster();
   }
@@ -6929,8 +5544,7 @@ class TextTableRenderable extends Renderable {
   }
   set columnGap(value) {
     const next = this.resolveColumnGap(value);
-    if (this._columnGap === next)
-      return;
+    if (this._columnGap === next) return;
     this._columnGap = next;
     this.invalidateLayoutAndRaster();
   }
@@ -6938,8 +5552,7 @@ class TextTableRenderable extends Renderable {
     return this._showBorders;
   }
   set showBorders(value) {
-    if (this._showBorders === value)
-      return;
+    if (this._showBorders === value) return;
     this._showBorders = value;
     this.invalidateRasterOnly();
   }
@@ -6947,8 +5560,7 @@ class TextTableRenderable extends Renderable {
     return this._outerBorder;
   }
   set outerBorder(value) {
-    if (this._outerBorder === value)
-      return;
+    if (this._outerBorder === value) return;
     this._hasExplicitOuterBorder = true;
     this._outerBorder = value;
     this.invalidateLayoutAndRaster();
@@ -6957,8 +5569,7 @@ class TextTableRenderable extends Renderable {
     return this._border;
   }
   set border(value) {
-    if (this._border === value)
-      return;
+    if (this._border === value) return;
     this._border = value;
     if (!this._hasExplicitOuterBorder) {
       this._outerBorder = value;
@@ -6970,8 +5581,7 @@ class TextTableRenderable extends Renderable {
   }
   set borderStyle(value) {
     const next = parseBorderStyle(value, this._defaultOptions.borderStyle);
-    if (this._borderStyle === next)
-      return;
+    if (this._borderStyle === next) return;
     this._borderStyle = next;
     this.invalidateRasterOnly();
   }
@@ -6980,17 +5590,15 @@ class TextTableRenderable extends Renderable {
   }
   set borderColor(value) {
     const next = parseColor(value);
-    if (this._borderColor === next)
-      return;
+    if (this._borderColor === next) return;
     this._borderColor = next;
     this.invalidateRasterOnly();
   }
-  shouldStartSelection(x2, y2) {
-    if (!this.selectable)
-      return false;
+  shouldStartSelection(x, y) {
+    if (!this.selectable) return false;
     this.ensureLayoutReady();
-    const localX = x2 - this.x;
-    const localY = y2 - this.y;
+    const localX = x - this.x;
+    const localY = y - this.y;
     return this.getCellAtLocalPosition(localX, localY) !== null;
   }
   onSelectionChanged(selection) {
@@ -7033,36 +5641,32 @@ class TextTableRenderable extends Renderable {
   }
   getSelectedText() {
     const selectedRows = [];
-    for (let rowIdx = 0;rowIdx < this._rowCount; rowIdx++) {
+    for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
       const rowSelections = [];
-      for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+      for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
-        if (!cell || !cell.textBufferView.hasSelection())
-          continue;
+        if (!cell || !cell.textBufferView.hasSelection()) continue;
         const selectedText = cell.textBufferView.getSelectedText();
         if (selectedText.length > 0) {
           rowSelections.push(selectedText);
         }
       }
       if (rowSelections.length > 0) {
-        selectedRows.push(rowSelections.join("\t"));
+        selectedRows.push(rowSelections.join("	"));
       }
     }
-    return selectedRows.join(`
-`);
+    return selectedRows.join("\n");
   }
   onResize(width, height) {
     this.invalidateLayoutAndRaster(false);
     super.onResize(width, height);
   }
   renderSelf(buffer) {
-    if (!this.visible || this.isDestroyed)
-      return;
+    if (!this.visible || this.isDestroyed) return;
     if (this._layoutDirty) {
       this.rebuildLayoutForCurrentWidth();
     }
-    if (!this._rasterDirty)
-      return;
+    if (!this._rasterDirty) return;
     buffer.clear(this._backgroundColor);
     if (this._rowCount === 0 || this._columnCount === 0) {
       this._rasterDirty = false;
@@ -7079,14 +5683,14 @@ class TextTableRenderable extends Renderable {
   setupMeasureFunc() {
     const measureFunc = (width, widthMode, _height, _heightMode) => {
       const hasWidthConstraint = widthMode !== 0 /* Undefined */ && Number.isFinite(width);
-      const rawWidthConstraint = hasWidthConstraint ? Math.max(1, Math.floor(width)) : undefined;
+      const rawWidthConstraint = hasWidthConstraint ? Math.max(1, Math.floor(width)) : void 0;
       const widthConstraint = this.resolveLayoutWidthConstraint(rawWidthConstraint);
       const measuredLayout = this.computeLayout(widthConstraint);
       this._cachedMeasureLayout = measuredLayout;
       this._cachedMeasureWidth = widthConstraint;
       let measuredWidth = measuredLayout.tableWidth > 0 ? measuredLayout.tableWidth : 1;
       let measuredHeight = measuredLayout.tableHeight > 0 ? measuredLayout.tableHeight : 1;
-      if (widthMode === 2 /* AtMost */ && rawWidthConstraint !== undefined && this._positionType !== "absolute") {
+      if (widthMode === 2 /* AtMost */ && rawWidthConstraint !== void 0 && this._positionType !== "absolute") {
         measuredWidth = Math.min(rawWidthConstraint, measuredWidth);
       }
       return {
@@ -7104,11 +5708,11 @@ class TextTableRenderable extends Renderable {
       this._columnCount = newColumnCount;
       this._cells = [];
       this._prevCellContent = [];
-      for (let rowIdx = 0;rowIdx < newRowCount; rowIdx++) {
+      for (let rowIdx = 0; rowIdx < newRowCount; rowIdx++) {
         const row = this._content[rowIdx] ?? [];
         const rowCells = [];
         const rowRefs = [];
-        for (let colIdx = 0;colIdx < newColumnCount; colIdx++) {
+        for (let colIdx = 0; colIdx < newColumnCount; colIdx++) {
           const cellContent = row[colIdx];
           rowCells.push(this.createCell(cellContent));
           rowRefs.push(cellContent);
@@ -7127,14 +5731,13 @@ class TextTableRenderable extends Renderable {
     const oldColumnCount = this._columnCount;
     const keepRows = Math.min(oldRowCount, newRowCount);
     const keepCols = Math.min(oldColumnCount, newColumnCount);
-    for (let rowIdx = 0;rowIdx < keepRows; rowIdx++) {
+    for (let rowIdx = 0; rowIdx < keepRows; rowIdx++) {
       const newRow = this._content[rowIdx] ?? [];
       const cellRow = this._cells[rowIdx];
       const refRow = this._prevCellContent[rowIdx];
-      for (let colIdx = 0;colIdx < keepCols; colIdx++) {
+      for (let colIdx = 0; colIdx < keepCols; colIdx++) {
         const cellContent = newRow[colIdx];
-        if (cellContent === refRow[colIdx])
-          continue;
+        if (cellContent === refRow[colIdx]) continue;
         const oldCell = cellRow[colIdx];
         oldCell.textBufferView.destroy();
         oldCell.textBuffer.destroy();
@@ -7143,13 +5746,13 @@ class TextTableRenderable extends Renderable {
         refRow[colIdx] = cellContent;
       }
       if (newColumnCount > oldColumnCount) {
-        for (let colIdx = oldColumnCount;colIdx < newColumnCount; colIdx++) {
+        for (let colIdx = oldColumnCount; colIdx < newColumnCount; colIdx++) {
           const cellContent = newRow[colIdx];
           cellRow.push(this.createCell(cellContent));
           refRow.push(cellContent);
         }
       } else if (newColumnCount < oldColumnCount) {
-        for (let colIdx = newColumnCount;colIdx < oldColumnCount; colIdx++) {
+        for (let colIdx = newColumnCount; colIdx < oldColumnCount; colIdx++) {
           const cell = cellRow[colIdx];
           cell.textBufferView.destroy();
           cell.textBuffer.destroy();
@@ -7160,11 +5763,11 @@ class TextTableRenderable extends Renderable {
       }
     }
     if (newRowCount > oldRowCount) {
-      for (let rowIdx = oldRowCount;rowIdx < newRowCount; rowIdx++) {
+      for (let rowIdx = oldRowCount; rowIdx < newRowCount; rowIdx++) {
         const newRow = this._content[rowIdx] ?? [];
         const rowCells = [];
         const rowRefs = [];
-        for (let colIdx = 0;colIdx < newColumnCount; colIdx++) {
+        for (let colIdx = 0; colIdx < newColumnCount; colIdx++) {
           const cellContent = newRow[colIdx];
           rowCells.push(this.createCell(cellContent));
           rowRefs.push(cellContent);
@@ -7173,7 +5776,7 @@ class TextTableRenderable extends Renderable {
         this._prevCellContent.push(rowRefs);
       }
     } else if (newRowCount < oldRowCount) {
-      for (let rowIdx = newRowCount;rowIdx < oldRowCount; rowIdx++) {
+      for (let rowIdx = newRowCount; rowIdx < oldRowCount; rowIdx++) {
         const row = this._cells[rowIdx];
         for (const cell of row) {
           cell.textBufferView.destroy();
@@ -7204,7 +5807,7 @@ class TextTableRenderable extends Renderable {
     if (Array.isArray(content)) {
       return new StyledText(content);
     }
-    if (content === null || content === undefined) {
+    if (content === null || content === void 0) {
       return stringToStyledText("");
     }
     return stringToStyledText(String(content));
@@ -7232,7 +5835,7 @@ class TextTableRenderable extends Renderable {
       layout = this.computeLayout(maxTableWidth);
     }
     this._cachedMeasureLayout = null;
-    this._cachedMeasureWidth = undefined;
+    this._cachedMeasureWidth = void 0;
     this._layout = layout;
     this.applyLayoutToViews(layout);
     this._layoutDirty = false;
@@ -7247,8 +5850,19 @@ class TextTableRenderable extends Renderable {
     const borderLayout = this.resolveBorderLayout();
     const columnWidths = this.computeColumnWidths(maxTableWidth, borderLayout);
     const rowHeights = this.computeRowHeights(columnWidths);
-    const columnOffsets = this.computeOffsets(columnWidths, borderLayout.left, borderLayout.right, borderLayout.innerVertical, this.getInterColumnGap(borderLayout));
-    const rowOffsets = this.computeOffsets(rowHeights, borderLayout.top, borderLayout.bottom, borderLayout.innerHorizontal);
+    const columnOffsets = this.computeOffsets(
+      columnWidths,
+      borderLayout.left,
+      borderLayout.right,
+      borderLayout.innerVertical,
+      this.getInterColumnGap(borderLayout)
+    );
+    const rowOffsets = this.computeOffsets(
+      rowHeights,
+      borderLayout.top,
+      borderLayout.bottom,
+      borderLayout.innerHorizontal
+    );
     return {
       columnWidths,
       rowHeights,
@@ -7266,20 +5880,22 @@ class TextTableRenderable extends Renderable {
   computeColumnWidths(maxTableWidth, borderLayout) {
     const horizontalPadding = this.getHorizontalCellPadding();
     const intrinsicWidths = new Array(this._columnCount).fill(1 + horizontalPadding);
-    for (let rowIdx = 0;rowIdx < this._rowCount; rowIdx++) {
-      for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+    for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
+      for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
-        if (!cell)
-          continue;
+        if (!cell) continue;
         const measure = cell.textBufferView.measureForDimensions(0, MEASURE_HEIGHT);
         const measuredWidth = Math.max(1, measure?.widthColsMax ?? 0) + horizontalPadding;
         intrinsicWidths[colIdx] = Math.max(intrinsicWidths[colIdx], measuredWidth);
       }
     }
-    if (maxTableWidth === undefined || !Number.isFinite(maxTableWidth) || maxTableWidth <= 0) {
+    if (maxTableWidth === void 0 || !Number.isFinite(maxTableWidth) || maxTableWidth <= 0) {
       return intrinsicWidths;
     }
-    const maxContentWidth = Math.max(1, Math.floor(maxTableWidth) - this.getVerticalBorderCount(borderLayout) - this.getTotalInterColumnGap(borderLayout));
+    const maxContentWidth = Math.max(
+      1,
+      Math.floor(maxTableWidth) - this.getVerticalBorderCount(borderLayout) - this.getTotalInterColumnGap(borderLayout)
+    );
     const currentWidth = intrinsicWidths.reduce((sum, width) => sum + width, 0);
     if (currentWidth === maxContentWidth) {
       return intrinsicWidths;
@@ -7306,7 +5922,7 @@ class TextTableRenderable extends Renderable {
     const extraWidth = targetContentWidth - totalBaseWidth;
     const sharedWidth = Math.floor(extraWidth / columns);
     const remainder = extraWidth % columns;
-    for (let idx = 0;idx < columns; idx++) {
+    for (let idx = 0; idx < columns; idx++) {
       expanded[idx] += sharedWidth;
       if (idx < remainder) {
         expanded[idx] += 1;
@@ -7342,9 +5958,8 @@ class TextTableRenderable extends Renderable {
     const integerShrink = new Array(baseWidths.length).fill(0);
     const fractions = new Array(baseWidths.length).fill(0);
     let usedShrink = 0;
-    for (let idx = 0;idx < baseWidths.length; idx++) {
-      if (shrinkable[idx] <= 0)
-        continue;
+    for (let idx = 0; idx < baseWidths.length; idx++) {
+      if (shrinkable[idx] <= 0) continue;
       const exact = shrinkable[idx] / totalShrinkable * targetShrink;
       const whole = Math.min(shrinkable[idx], Math.floor(exact));
       integerShrink[idx] = whole;
@@ -7355,16 +5970,14 @@ class TextTableRenderable extends Renderable {
     while (remainingShrink > 0) {
       let bestIdx = -1;
       let bestFraction = -1;
-      for (let idx = 0;idx < baseWidths.length; idx++) {
-        if (shrinkable[idx] - integerShrink[idx] <= 0)
-          continue;
+      for (let idx = 0; idx < baseWidths.length; idx++) {
+        if (shrinkable[idx] - integerShrink[idx] <= 0) continue;
         if (fractions[idx] > bestFraction) {
           bestFraction = fractions[idx];
           bestIdx = idx;
         }
       }
-      if (bestIdx === -1)
-        break;
+      if (bestIdx === -1) break;
       integerShrink[bestIdx] += 1;
       fractions[bestIdx] = 0;
       remainingShrink -= 1;
@@ -7415,9 +6028,8 @@ class TextTableRenderable extends Renderable {
     }
     const fractions = new Array(shrinkable.length).fill(0);
     let usedShrink = 0;
-    for (let idx = 0;idx < shrinkable.length; idx++) {
-      if (shrinkable[idx] <= 0 || weights[idx] <= 0)
-        continue;
+    for (let idx = 0; idx < shrinkable.length; idx++) {
+      if (shrinkable[idx] <= 0 || weights[idx] <= 0) continue;
       const exact = weights[idx] / totalWeight * targetShrink;
       const whole = Math.min(shrinkable[idx], Math.floor(exact));
       shrink[idx] = whole;
@@ -7428,9 +6040,8 @@ class TextTableRenderable extends Renderable {
     while (remainingShrink > 0) {
       let bestIdx = -1;
       let bestFraction = -1;
-      for (let idx = 0;idx < shrinkable.length; idx++) {
-        if (shrinkable[idx] - shrink[idx] <= 0)
-          continue;
+      for (let idx = 0; idx < shrinkable.length; idx++) {
+        if (shrinkable[idx] - shrink[idx] <= 0) continue;
         if (bestIdx === -1 || fractions[idx] > bestFraction || fractions[idx] === bestFraction && shrinkable[idx] > shrinkable[bestIdx]) {
           bestIdx = idx;
           bestFraction = fractions[idx];
@@ -7449,11 +6060,10 @@ class TextTableRenderable extends Renderable {
     const horizontalPadding = this.getHorizontalCellPadding();
     const verticalPadding = this.getVerticalCellPadding();
     const rowHeights = new Array(this._rowCount).fill(1 + verticalPadding);
-    for (let rowIdx = 0;rowIdx < this._rowCount; rowIdx++) {
-      for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+    for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
+      for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
-        if (!cell)
-          continue;
+        if (!cell) continue;
         const width = Math.max(1, (columnWidths[colIdx] ?? 1) - horizontalPadding);
         const measure = cell.textBufferView.measureForDimensions(width, MEASURE_HEIGHT);
         const lineCount = Math.max(1, measure?.lineCount ?? 1);
@@ -7465,7 +6075,7 @@ class TextTableRenderable extends Renderable {
   computeOffsets(parts, startBoundary, endBoundary, includeInnerBoundaries, innerGap = 0) {
     const offsets = [startBoundary ? 0 : -1];
     let cursor = offsets[0] ?? 0;
-    for (let idx = 0;idx < parts.length; idx++) {
+    for (let idx = 0; idx < parts.length; idx++) {
       const size = parts[idx] ?? 1;
       const separatorAfter = idx < parts.length - 1 ? includeInnerBoundaries ? 1 : innerGap : endBoundary ? 1 : 0;
       cursor += size + separatorAfter;
@@ -7485,11 +6095,10 @@ class TextTableRenderable extends Renderable {
   applyLayoutToViews(layout) {
     const horizontalPadding = this.getHorizontalCellPadding();
     const verticalPadding = this.getVerticalCellPadding();
-    for (let rowIdx = 0;rowIdx < this._rowCount; rowIdx++) {
-      for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+    for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
+      for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
-        if (!cell)
-          continue;
+        if (!cell) continue;
         const colWidth = layout.columnWidths[colIdx] ?? 1;
         const rowHeight = layout.rowHeights[rowIdx] ?? 1;
         const contentWidth = Math.max(1, colWidth - horizontalPadding);
@@ -7545,26 +6154,23 @@ class TextTableRenderable extends Renderable {
     const rowOffsets = this._layout.rowOffsets;
     const cellPaddingX = this._cellPaddingX;
     const cellPaddingY = this._cellPaddingY;
-    for (let rowIdx = firstRow;rowIdx <= lastRow; rowIdx++) {
+    for (let rowIdx = firstRow; rowIdx <= lastRow; rowIdx++) {
       const cellY = (rowOffsets[rowIdx] ?? 0) + 1 + cellPaddingY;
-      for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+      for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
-        if (!cell)
-          continue;
+        if (!cell) continue;
         buffer.drawTextBuffer(cell.textBufferView, (colOffsets[colIdx] ?? 0) + 1 + cellPaddingX, cellY);
       }
     }
   }
   redrawSelectionRows(firstRow, lastRow) {
-    if (firstRow > lastRow)
-      return;
+    if (firstRow > lastRow) return;
     if (this._backgroundColor.a < 1) {
       this.invalidateRasterOnly();
       return;
     }
     const buffer = this.frameBuffer;
-    if (!buffer)
-      return;
+    if (!buffer) return;
     this.clearCellRange(buffer, firstRow, lastRow);
     this.drawCellRange(buffer, firstRow, lastRow);
     this.requestRender();
@@ -7574,16 +6180,16 @@ class TextTableRenderable extends Renderable {
     const rowHeights = this._layout.rowHeights;
     const colOffsets = this._layout.columnOffsets;
     const rowOffsets = this._layout.rowOffsets;
-    for (let rowIdx = firstRow;rowIdx <= lastRow; rowIdx++) {
+    for (let rowIdx = firstRow; rowIdx <= lastRow; rowIdx++) {
       const cellY = (rowOffsets[rowIdx] ?? 0) + 1;
       const rowHeight = rowHeights[rowIdx] ?? 1;
-      for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+      for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cellX = (colOffsets[colIdx] ?? 0) + 1;
         const colWidth = colWidths[colIdx] ?? 1;
         if (this._backgroundColor.a < 1) {
-          for (let y2 = cellY;y2 < cellY + rowHeight; y2++) {
-            for (let x2 = cellX;x2 < cellX + colWidth; x2++) {
-              buffer.setCell(x2, y2, " ", this._defaultFg, this._backgroundColor, this._defaultAttributes);
+          for (let y = cellY; y < cellY + rowHeight; y++) {
+            for (let x = cellX; x < cellX + colWidth; x++) {
+              buffer.setCell(x, y, " ", this._defaultFg, this._backgroundColor, this._defaultAttributes);
             }
           }
         } else {
@@ -7593,18 +6199,16 @@ class TextTableRenderable extends Renderable {
     }
   }
   ensureLayoutReady() {
-    if (!this._layoutDirty)
-      return;
+    if (!this._layoutDirty) return;
     this.rebuildLayoutForCurrentWidth();
   }
   getCellAtLocalPosition(localX, localY) {
-    if (this._rowCount === 0 || this._columnCount === 0)
-      return null;
+    if (this._rowCount === 0 || this._columnCount === 0) return null;
     if (localX < 0 || localY < 0 || localX >= this._layout.tableWidth || localY >= this._layout.tableHeight) {
       return null;
     }
     let rowIdx = -1;
-    for (let idx = 0;idx < this._rowCount; idx++) {
+    for (let idx = 0; idx < this._rowCount; idx++) {
       const top = (this._layout.rowOffsets[idx] ?? 0) + 1;
       const bottom = top + (this._layout.rowHeights[idx] ?? 1) - 1;
       if (localY >= top && localY <= bottom) {
@@ -7612,10 +6216,9 @@ class TextTableRenderable extends Renderable {
         break;
       }
     }
-    if (rowIdx < 0)
-      return null;
+    if (rowIdx < 0) return null;
     let colIdx = -1;
-    for (let idx = 0;idx < this._columnCount; idx++) {
+    for (let idx = 0; idx < this._columnCount; idx++) {
       const left = (this._layout.columnOffsets[idx] ?? 0) + 1;
       const right = left + (this._layout.columnWidths[idx] ?? 1) - 1;
       if (localX >= left && localX <= right) {
@@ -7623,8 +6226,7 @@ class TextTableRenderable extends Renderable {
         break;
       }
     }
-    if (colIdx < 0)
-      return null;
+    if (colIdx < 0) return null;
     return { rowIdx, colIdx };
   }
   applySelectionToCells(localSelection, isStart) {
@@ -7641,16 +6243,15 @@ class TextTableRenderable extends Renderable {
     const modeChanged = this._lastSelectionMode !== selection.mode;
     this._lastSelectionMode = selection.mode;
     const lockToAnchorColumn = selection.mode === "column-locked" && selection.anchorColumn !== null;
-    for (let rowIdx = 0;rowIdx < this._rowCount; rowIdx++) {
+    for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
       if (rowIdx < firstRow || rowIdx > lastRow) {
         this.resetRowSelection(rowIdx);
         continue;
       }
       const cellTop = (this._layout.rowOffsets[rowIdx] ?? 0) + 1 + this._cellPaddingY;
-      for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+      for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
-        if (!cell)
-          continue;
+        if (!cell) continue;
         if (lockToAnchorColumn && colIdx !== selection.anchorColumn) {
           cell.textBufferView.resetLocalSelection();
           continue;
@@ -7673,9 +6274,23 @@ class TextTableRenderable extends Renderable {
         }
         const shouldUseSet = isStart || modeChanged || forceSet;
         if (shouldUseSet) {
-          cell.textBufferView.setLocalSelection(coords.anchorX, coords.anchorY, coords.focusX, coords.focusY, this._selectionBg, this._selectionFg);
+          cell.textBufferView.setLocalSelection(
+            coords.anchorX,
+            coords.anchorY,
+            coords.focusX,
+            coords.focusY,
+            this._selectionBg,
+            this._selectionFg
+          );
         } else {
-          cell.textBufferView.updateLocalSelection(coords.anchorX, coords.anchorY, coords.focusX, coords.focusY, this._selectionBg, this._selectionFg);
+          cell.textBufferView.updateLocalSelection(
+            coords.anchorX,
+            coords.anchorY,
+            coords.focusX,
+            coords.focusY,
+            this._selectionBg,
+            this._selectionFg
+          );
         }
       }
     }
@@ -7706,11 +6321,9 @@ class TextTableRenderable extends Renderable {
     };
   }
   getColumnAtLocalX(localX) {
-    if (this._columnCount === 0)
-      return null;
-    if (localX < 0 || localX >= this._layout.tableWidth)
-      return null;
-    for (let colIdx = 0;colIdx < this._columnCount; colIdx++) {
+    if (this._columnCount === 0) return null;
+    if (localX < 0 || localX >= this._layout.tableWidth) return null;
+    for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
       const colStart = (this._layout.columnOffsets[colIdx] ?? 0) + 1;
       const colEnd = colStart + (this._layout.columnWidths[colIdx] ?? 1) - 1;
       if (localX >= colStart && localX <= colEnd) {
@@ -7732,21 +6345,17 @@ class TextTableRenderable extends Renderable {
     };
   }
   findRowForLocalY(localY) {
-    if (this._rowCount === 0)
-      return 0;
-    if (localY < 0)
-      return 0;
-    for (let rowIdx = 0;rowIdx < this._rowCount; rowIdx++) {
+    if (this._rowCount === 0) return 0;
+    if (localY < 0) return 0;
+    for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
       const rowStart = (this._layout.rowOffsets[rowIdx] ?? 0) + 1;
       const rowEnd = rowStart + (this._layout.rowHeights[rowIdx] ?? 1) - 1;
-      if (localY <= rowEnd)
-        return rowIdx;
+      if (localY <= rowEnd) return rowIdx;
     }
     return this._rowCount - 1;
   }
   getSelectionRowRange(selection) {
-    if (!selection?.isActive || this._rowCount === 0)
-      return null;
+    if (!selection?.isActive || this._rowCount === 0) return null;
     const minSelY = Math.min(selection.anchorY, selection.focusY);
     const maxSelY = Math.max(selection.anchorY, selection.focusY);
     return {
@@ -7757,10 +6366,8 @@ class TextTableRenderable extends Renderable {
   getDirtySelectionRowRange(previousSelection, currentSelection) {
     const previousRange = this.getSelectionRowRange(previousSelection);
     const currentRange = this.getSelectionRowRange(currentSelection);
-    if (previousRange === null)
-      return currentRange;
-    if (currentRange === null)
-      return previousRange;
+    if (previousRange === null) return currentRange;
+    if (currentRange === null) return previousRange;
     return {
       firstRow: Math.min(previousRange.firstRow, currentRange.firstRow),
       lastRow: Math.max(previousRange.lastRow, currentRange.lastRow)
@@ -7768,14 +6375,13 @@ class TextTableRenderable extends Renderable {
   }
   resetRowSelection(rowIdx) {
     const row = this._cells[rowIdx];
-    if (!row)
-      return;
+    if (!row) return;
     for (const cell of row) {
       cell.textBufferView.resetLocalSelection();
     }
   }
   resetCellSelections() {
-    for (let rowIdx = 0;rowIdx < this._rowCount; rowIdx++) {
+    for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
       this.resetRowSelection(rowIdx);
     }
   }
@@ -7792,13 +6398,13 @@ class TextTableRenderable extends Renderable {
     };
   }
   resolveLayoutWidthConstraint(width) {
-    if (width === undefined || !Number.isFinite(width) || width <= 0) {
-      return;
+    if (width === void 0 || !Number.isFinite(width) || width <= 0) {
+      return void 0;
     }
     if (this._wrapMode !== "none" || this.isFullWidthMode()) {
       return Math.max(1, Math.floor(width));
     }
-    return;
+    return void 0;
   }
   getHorizontalCellPadding() {
     return this._cellPaddingX * 2;
@@ -7807,19 +6413,19 @@ class TextTableRenderable extends Renderable {
     return this._cellPaddingY * 2;
   }
   resolveColumnFitter(value) {
-    if (value === undefined) {
+    if (value === void 0) {
       return this._defaultOptions.columnFitter;
     }
     return value === "balanced" ? "balanced" : "proportional";
   }
   resolveCellPadding(value) {
-    if (value === undefined || !Number.isFinite(value)) {
+    if (value === void 0 || !Number.isFinite(value)) {
       return this._defaultOptions.cellPadding;
     }
     return Math.max(0, Math.floor(value));
   }
   resolveColumnGap(value) {
-    if (value === undefined || !Number.isFinite(value)) {
+    if (value === void 0 || !Number.isFinite(value)) {
       return this._defaultOptions.columnGap;
     }
     return Math.max(0, Math.floor(value));
@@ -7828,7 +6434,7 @@ class TextTableRenderable extends Renderable {
     this._layoutDirty = true;
     this._rasterDirty = true;
     this._cachedMeasureLayout = null;
-    this._cachedMeasureWidth = undefined;
+    this._cachedMeasureWidth = void 0;
     if (markYogaDirty) {
       this.yogaNode.markDirty();
     }
@@ -7838,13 +6444,14 @@ class TextTableRenderable extends Renderable {
     this._rasterDirty = true;
     this.requestRender();
   }
-}
+};
 
 // src/renderables/markdown-parser.ts
+import { Lexer } from "marked";
 function parseMarkdownIncremental(newContent, prevState, trailingUnstable = 2) {
   if (!prevState || prevState.tokens.length === 0) {
     try {
-      const tokens = x.lex(newContent, { gfm: true });
+      const tokens = Lexer.lex(newContent, { gfm: true });
       return {
         content: newContent,
         tokens,
@@ -7867,7 +6474,7 @@ function parseMarkdownIncremental(newContent, prevState, trailingUnstable = 2) {
   }
   reuseCount = Math.max(0, reuseCount - trailingUnstable);
   offset = 0;
-  for (let i = 0;i < reuseCount; i++) {
+  for (let i = 0; i < reuseCount; i++) {
     offset += prevState.tokens[i].raw.length;
   }
   const stableTokens = prevState.tokens.slice(0, reuseCount);
@@ -7880,7 +6487,7 @@ function parseMarkdownIncremental(newContent, prevState, trailingUnstable = 2) {
     };
   }
   try {
-    const newTokens = x.lex(remainingContent, { gfm: true });
+    const newTokens = Lexer.lex(remainingContent, { gfm: true });
     return {
       content: newContent,
       tokens: [...stableTokens, ...newTokens],
@@ -7888,7 +6495,7 @@ function parseMarkdownIncremental(newContent, prevState, trailingUnstable = 2) {
     };
   } catch {
     try {
-      const fullTokens = x.lex(newContent, { gfm: true });
+      const fullTokens = Lexer.lex(newContent, { gfm: true });
       return { content: newContent, tokens: fullTokens, stableTokenCount: 0 };
     } catch {
       return { content: newContent, tokens: [], stableTokenCount: 0 };
@@ -7898,7 +6505,7 @@ function parseMarkdownIncremental(newContent, prevState, trailingUnstable = 2) {
 
 // src/renderables/Markdown.ts
 function normalizeMarkdownCodeBlockRenderers(renderers) {
-  const rendererMap = new Map;
+  const rendererMap = /* @__PURE__ */ new Map();
   const maybeMap = renderers;
   if (typeof maybeMap.forEach === "function") {
     maybeMap.forEach((renderer, language) => {
@@ -7916,11 +6523,10 @@ function createMarkdownCodeBlockRenderer(renderers) {
   const rendererMap = normalizeMarkdownCodeBlockRenderers(renderers);
   const renderNode = (token, context) => {
     if (token.type !== "code") {
-      return;
+      return void 0;
     }
     const language = infoStringToFiletype(token.lang ?? "");
-    if (!language)
-      return;
+    if (!language) return void 0;
     return rendererMap.get(language)?.(token, context);
   };
   renderNode.codeBlockOnly = true;
@@ -7929,12 +6535,10 @@ function createMarkdownCodeBlockRenderer(renderers) {
 var TRAILING_MARKDOWN_BLOCK_BREAKS_RE = /(?:\r?\n){2,}$/;
 var TRAILING_MARKDOWN_BLOCK_NEWLINES_RE = /(?:\r?\n)+$/;
 function colorsEqual(left, right) {
-  if (!left || !right)
-    return left === right;
+  if (!left || !right) return left === right;
   return left.equals(right);
 }
-
-class MarkdownRenderable extends Renderable {
+var MarkdownRenderable = class extends Renderable {
   _content = "";
   _syntaxStyle;
   _fg;
@@ -7968,8 +6572,8 @@ class MarkdownRenderable extends Renderable {
       flexShrink: options.flexShrink ?? 0
     });
     this._syntaxStyle = options.syntaxStyle;
-    this._fg = options.fg ? parseColor(options.fg) : undefined;
-    this._bg = options.bg ? parseColor(options.bg) : undefined;
+    this._fg = options.fg ? parseColor(options.fg) : void 0;
+    this._bg = options.bg ? parseColor(options.bg) : void 0;
     this._conceal = options.conceal ?? this._contentDefaultOptions.conceal;
     this._concealCode = options.concealCode ?? this._contentDefaultOptions.concealCode;
     this._content = options.content ?? this._contentDefaultOptions.content;
@@ -7984,8 +6588,7 @@ class MarkdownRenderable extends Renderable {
     return this._content;
   }
   set content(value) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     if (this._content !== value) {
       this._content = value;
       this.updateBlocks();
@@ -8005,7 +6608,7 @@ class MarkdownRenderable extends Renderable {
     return this._fg;
   }
   set fg(value) {
-    const next = value ? parseColor(value) : undefined;
+    const next = value ? parseColor(value) : void 0;
     if (!colorsEqual(this._fg, next)) {
       this._fg = next;
       this._styleDirty = true;
@@ -8015,7 +6618,7 @@ class MarkdownRenderable extends Renderable {
     return this._bg;
   }
   set bg(value) {
-    const next = value ? parseColor(value) : undefined;
+    const next = value ? parseColor(value) : void 0;
     if (!colorsEqual(this._bg, next)) {
       this._bg = next;
       this._styleDirty = true;
@@ -8043,8 +6646,7 @@ class MarkdownRenderable extends Renderable {
     return this._streaming;
   }
   set streaming(value) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     if (this._streaming !== value) {
       this._streaming = value;
       this.updateBlocks(true);
@@ -8061,8 +6663,7 @@ class MarkdownRenderable extends Renderable {
     return this._renderNode;
   }
   set renderNode(value) {
-    if (this._renderNode === value)
-      return;
+    if (this._renderNode === value) return;
     this._renderNode = value;
     this.clearBlockStates();
     this._parseState = null;
@@ -8073,15 +6674,13 @@ class MarkdownRenderable extends Renderable {
     return this._internalBlockMode;
   }
   set internalBlockMode(value) {
-    if (this._internalBlockMode === value)
-      return;
+    if (this._internalBlockMode === value) return;
     this._internalBlockMode = value;
     this.updateBlocks(true);
     this.requestRender();
   }
   getStyle(group) {
-    if (!this._syntaxStyle)
-      return;
+    if (!this._syntaxStyle) return void 0;
     let style = this._syntaxStyle.getStyle(group);
     if (!style && group.includes(".")) {
       const baseName = group.split(".")[0];
@@ -8109,16 +6708,15 @@ class MarkdownRenderable extends Renderable {
     return this.createChunk(text, "default");
   }
   createInitialStyledText(token) {
-    if (!this._streaming)
-      return;
+    if (!this._streaming) return void 0;
     const chunks = [];
     if ("tokens" in token && Array.isArray(token.tokens)) {
       this.renderInlineContent(token.tokens, chunks);
     }
     if (chunks.length === 0 && "text" in token && typeof token.text === "string") {
-      this.renderInlineContent(x.lexInline(token.text), chunks);
+      this.renderInlineContent(Lexer2.lexInline(token.text), chunks);
     }
-    return chunks.length > 0 ? new StyledText(chunks) : undefined;
+    return chunks.length > 0 ? new StyledText(chunks) : void 0;
   }
   renderInlineContent(tokens, chunks) {
     for (const token of tokens) {
@@ -8209,8 +6807,7 @@ class MarkdownRenderable extends Renderable {
         break;
       }
       case "br":
-        chunks.push(this.createDefaultChunk(`
-`));
+        chunks.push(this.createDefaultChunk("\n"));
         break;
       default:
         if ("tokens" in token && Array.isArray(token.tokens)) {
@@ -8256,7 +6853,7 @@ class MarkdownRenderable extends Renderable {
       fg: this._fg,
       bg: this._bg,
       conceal: this._conceal,
-      drawUnstyledText: initialStyledText !== undefined,
+      drawUnstyledText: initialStyledText !== void 0,
       streaming: true,
       initialStyledText,
       baseHighlight,
@@ -8282,7 +6879,15 @@ class MarkdownRenderable extends Renderable {
       flexShrink: 0,
       marginBottom
     });
-    renderable.add(this.createMarkdownCodeRenderable(this.getBlockquoteContent(token), `${id}-content`, 0, this._linkifyMarkdownChunks, "markup.quote"));
+    renderable.add(
+      this.createMarkdownCodeRenderable(
+        this.getBlockquoteContent(token),
+        `${id}-content`,
+        0,
+        this._linkifyMarkdownChunks,
+        "markup.quote"
+      )
+    );
     return renderable;
   }
   createListRenderable(token, id, marginBottom = 0) {
@@ -8300,8 +6905,8 @@ class MarkdownRenderable extends Renderable {
   }
   getListItemInputs(token, id) {
     const items = token.items ?? [];
-    const start = token.start === "" || token.start === undefined || token.start === null ? 1 : Number(token.start);
-    const markerWidth = Math.max(1, ...items.map((_2, index) => (token.ordered ? `${start + index}.` : "-").length));
+    const start = token.start === "" || token.start === void 0 || token.start === null ? 1 : Number(token.start);
+    const markerWidth = Math.max(1, ...items.map((_, index) => (token.ordered ? `${start + index}.` : "-").length));
     return items.map((item, index) => ({
       item,
       marker: token.ordered ? `${start + index}.` : "-",
@@ -8310,13 +6915,12 @@ class MarkdownRenderable extends Renderable {
     }));
   }
   applyListRenderable(renderable, token, previousToken, id, marginBottom = 0) {
-    if (!(renderable instanceof BoxRenderable))
-      return false;
+    if (!(renderable instanceof BoxRenderable)) return false;
     renderable.marginBottom = marginBottom;
     const inputs = this.getListItemInputs(token, id);
     const previousItems = previousToken?.items ?? [];
     const rows = renderable.getChildren();
-    for (let index = 0;index < inputs.length; index += 1) {
+    for (let index = 0; index < inputs.length; index += 1) {
       const input = inputs[index];
       const existing = rows[index];
       if (existing instanceof BoxRenderable && this.applyListItemRenderable(existing, input, previousItems[index])) {
@@ -8325,7 +6929,7 @@ class MarkdownRenderable extends Renderable {
       existing?.destroyRecursively();
       renderable.add(this.createListItemRenderable(input), index);
     }
-    for (let index = rows.length - 1;index >= inputs.length; index -= 1) {
+    for (let index = rows.length - 1; index >= inputs.length; index -= 1) {
       rows[index]?.destroyRecursively();
     }
     return true;
@@ -8338,12 +6942,14 @@ class MarkdownRenderable extends Renderable {
       flexShrink: 0,
       marginBottom: /\n[ \t]*\n$/.test(input.item.raw) ? 1 : 0
     });
-    row.add(new TextRenderable(this.ctx, {
-      id: `${input.id}-marker`,
-      content: new StyledText([this.createChunk(input.marker.padStart(input.markerWidth) + " ", "markup.list")]),
-      width: input.markerWidth + 1,
-      flexShrink: 0
-    }));
+    row.add(
+      new TextRenderable(this.ctx, {
+        id: `${input.id}-marker`,
+        content: new StyledText([this.createChunk(input.marker.padStart(input.markerWidth) + " ", "markup.list")]),
+        width: input.markerWidth + 1,
+        flexShrink: 0
+      })
+    );
     const content = new BoxRenderable(this.ctx, {
       id: `${input.id}-content`,
       flexDirection: "column",
@@ -8352,19 +6958,16 @@ class MarkdownRenderable extends Renderable {
     });
     row.add(content);
     let pendingMarginTop = 0;
-    for (let index = 0;index < input.item.tokens.length; index += 1) {
+    for (let index = 0; index < input.item.tokens.length; index += 1) {
       const child = input.item.tokens[index];
-      if (!child)
-        continue;
-      if (child.type === "checkbox")
-        continue;
+      if (!child) continue;
+      if (child.type === "checkbox") continue;
       if (child.type === "space") {
         pendingMarginTop = Math.max(pendingMarginTop, 1);
         continue;
       }
       const renderable = this.createListChildRenderable(child, `${input.id}-child-${index}`);
-      if (!renderable)
-        continue;
+      if (!renderable) continue;
       renderable.marginTop = child.type === "list" ? 0 : pendingMarginTop;
       pendingMarginTop = 0;
       content.add(renderable);
@@ -8374,8 +6977,7 @@ class MarkdownRenderable extends Renderable {
   applyListItemRenderable(row, input, previousItem) {
     this.applyListItemMarker(row, input);
     const content = row.getChildren()[1];
-    if (!(content instanceof BoxRenderable))
-      return false;
+    if (!(content instanceof BoxRenderable)) return false;
     if (previousItem && previousItem.raw === input.item.raw) {
       return true;
     }
@@ -8386,12 +6988,10 @@ class MarkdownRenderable extends Renderable {
     const children = content.getChildren();
     let childIndex = 0;
     let pendingMarginTop = 0;
-    for (let tokenIndex = 0;tokenIndex < item.tokens.length; tokenIndex += 1) {
+    for (let tokenIndex = 0; tokenIndex < item.tokens.length; tokenIndex += 1) {
       const token = item.tokens[tokenIndex];
-      if (!token)
-        continue;
-      if (token.type === "checkbox")
-        continue;
+      if (!token) continue;
+      if (token.type === "checkbox") continue;
       if (token.type === "space") {
         pendingMarginTop = Math.max(pendingMarginTop, 1);
         continue;
@@ -8402,8 +7002,7 @@ class MarkdownRenderable extends Renderable {
       pendingMarginTop = 0;
       if (!existing) {
         const renderable = this.createListChildRenderable(token, childId);
-        if (!renderable)
-          return false;
+        if (!renderable) return false;
         renderable.marginTop = marginTop;
         content.add(renderable, childIndex);
         childIndex += 1;
@@ -8421,8 +7020,7 @@ class MarkdownRenderable extends Renderable {
   getRenderableListItemTokens(item) {
     const tokens = [];
     for (const token of item.tokens) {
-      if (token.type === "checkbox" || token.type === "space")
-        continue;
+      if (token.type === "checkbox" || token.type === "space") continue;
       tokens.push(token);
     }
     return tokens;
@@ -8443,40 +7041,46 @@ class MarkdownRenderable extends Renderable {
   }
   destroyListItemChildrenAfter(content, index) {
     const children = content.getChildren();
-    for (let i = children.length - 1;i >= index; i -= 1) {
+    for (let i = children.length - 1; i >= index; i -= 1) {
       children[i]?.destroyRecursively();
     }
   }
   applyListItemMarker(row, input) {
     const marker = row.getChildren()[0];
-    if (!(marker instanceof TextRenderable))
-      return;
+    if (!(marker instanceof TextRenderable)) return;
     const marginBottom = /\n[ \t]*\n$/.test(input.item.raw) ? 1 : 0;
     const markerWidth = input.markerWidth + 1;
     const markerText = input.marker.padStart(input.markerWidth) + " ";
-    if (row.marginBottom !== marginBottom)
-      row.marginBottom = marginBottom;
-    if (marker.width !== markerWidth)
-      marker.width = markerWidth;
+    if (row.marginBottom !== marginBottom) row.marginBottom = marginBottom;
+    if (marker.width !== markerWidth) marker.width = markerWidth;
     if (marker.chunks[0]?.text !== markerText) {
       marker.content = new StyledText([this.createChunk(markerText, "markup.list")]);
     }
   }
   createListChildRenderable(token, id) {
     if (token.type === "text" || token.type === "paragraph") {
-      return this.createMarkdownCodeRenderable(this.normalizeScrollbackMarkdownBlockRaw(token.raw), id, 0, this._linkifyMarkdownChunks, undefined, this.createInitialStyledText(token));
+      return this.createMarkdownCodeRenderable(
+        this.normalizeScrollbackMarkdownBlockRaw(token.raw),
+        id,
+        0,
+        this._linkifyMarkdownChunks,
+        void 0,
+        this.createInitialStyledText(token)
+      );
     }
-    if (token.type === "list")
-      return this.createListRenderable(token, id);
-    if (token.type === "code")
-      return this.createCodeRenderable(token, id);
-    if (token.type === "blockquote")
-      return this.createBlockquoteRenderable(token, id);
-    if (token.type === "hr")
-      return this.createHorizontalRuleRenderable(id);
-    if (token.type === "table")
-      return this.createTableBlock(token, id).renderable;
-    return token.raw ? this.createMarkdownCodeRenderable(token.raw, id, 0, this._linkifyMarkdownChunks, undefined, this.createInitialStyledText(token)) : null;
+    if (token.type === "list") return this.createListRenderable(token, id);
+    if (token.type === "code") return this.createCodeRenderable(token, id);
+    if (token.type === "blockquote") return this.createBlockquoteRenderable(token, id);
+    if (token.type === "hr") return this.createHorizontalRuleRenderable(id);
+    if (token.type === "table") return this.createTableBlock(token, id).renderable;
+    return token.raw ? this.createMarkdownCodeRenderable(
+      token.raw,
+      id,
+      0,
+      this._linkifyMarkdownChunks,
+      void 0,
+      this.createInitialStyledText(token)
+    ) : null;
   }
   createHorizontalRuleRenderable(id, marginBottom = 0) {
     return new BoxRenderable(this.ctx, {
@@ -8512,15 +7116,14 @@ class MarkdownRenderable extends Renderable {
     renderable.fg = this._fg;
     renderable.bg = this._bg;
     renderable.conceal = this._conceal;
-    renderable.drawUnstyledText = initialStyledText !== undefined;
+    renderable.drawUnstyledText = initialStyledText !== void 0;
     renderable.streaming = true;
     renderable.baseHighlight = baseHighlight;
     renderable.content = content;
     renderable.marginBottom = marginBottom;
   }
   applyBlockquoteRenderable(renderable, token, marginBottom) {
-    if (!(renderable instanceof BoxRenderable))
-      return;
+    if (!(renderable instanceof BoxRenderable)) return;
     renderable.borderColor = this.getBlockquoteBorderColor();
     renderable.marginBottom = marginBottom;
     const child = renderable.getChildren()[0];
@@ -8531,11 +7134,18 @@ class MarkdownRenderable extends Renderable {
     for (const existing of renderable.getChildren()) {
       existing.destroyRecursively();
     }
-    renderable.add(this.createMarkdownCodeRenderable(this.getBlockquoteContent(token), `${renderable.id}-content`, 0, this._linkifyMarkdownChunks, "markup.quote"));
+    renderable.add(
+      this.createMarkdownCodeRenderable(
+        this.getBlockquoteContent(token),
+        `${renderable.id}-content`,
+        0,
+        this._linkifyMarkdownChunks,
+        "markup.quote"
+      )
+    );
   }
   applyCodeBlockRenderable(renderable, token, marginBottom) {
-    if (!(renderable instanceof CodeRenderable))
-      return;
+    if (!(renderable instanceof CodeRenderable)) return;
     renderable.filetype = infoStringToFiletype(token.lang ?? "");
     renderable.syntaxStyle = this._syntaxStyle;
     renderable.fg = this._fg;
@@ -8550,17 +7160,13 @@ class MarkdownRenderable extends Renderable {
     return token.type === "code" || token.type === "table" || token.type === "blockquote" || token.type === "hr";
   }
   getInterBlockMargin(token, nextToken) {
-    if (!nextToken)
-      return 0;
-    if (this.shouldRenderSeparately(token))
-      return 1;
-    if (!this.shouldRenderSeparately(nextToken))
-      return 0;
+    if (!nextToken) return 0;
+    if (this.shouldRenderSeparately(token)) return 1;
+    if (!this.shouldRenderSeparately(nextToken)) return 0;
     return TRAILING_MARKDOWN_BLOCK_NEWLINES_RE.test(token.raw) ? 0 : 1;
   }
   applyInterBlockMargin(state, token, nextToken) {
-    if (state.tracksInterBlockMargin === false)
-      return;
+    if (state.tracksInterBlockMargin === false) return;
     state.renderable.marginBottom = this.getInterBlockMargin(token, nextToken);
   }
   createMarkdownBlockToken(raw) {
@@ -8572,8 +7178,7 @@ class MarkdownRenderable extends Renderable {
     };
   }
   normalizeMarkdownBlockRaw(raw) {
-    return raw.replace(TRAILING_MARKDOWN_BLOCK_BREAKS_RE, `
-`);
+    return raw.replace(TRAILING_MARKDOWN_BLOCK_BREAKS_RE, "\n");
   }
   normalizeScrollbackMarkdownBlockRaw(raw) {
     return raw.replace(TRAILING_MARKDOWN_BLOCK_NEWLINES_RE, "");
@@ -8588,15 +7193,14 @@ class MarkdownRenderable extends Renderable {
     const renderTokens = [];
     let markdownRaw = "";
     const flushMarkdownRaw = () => {
-      if (markdownRaw.length === 0)
-        return;
+      if (markdownRaw.length === 0) return;
       const normalizedRaw = this.normalizeMarkdownBlockRaw(markdownRaw);
       if (normalizedRaw.length > 0) {
         renderTokens.push(this.createMarkdownBlockToken(normalizedRaw));
       }
       markdownRaw = "";
     };
-    for (let i = 0;i < tokens.length; i += 1) {
+    for (let i = 0; i < tokens.length; i += 1) {
       const token = tokens[i];
       if (token.type === "space") {
         if (markdownRaw.length === 0) {
@@ -8625,7 +7229,7 @@ class MarkdownRenderable extends Renderable {
   buildTopLevelRenderBlocks(tokens) {
     const blocks = [];
     let gapBefore = "";
-    for (let i = 0;i < tokens.length; i += 1) {
+    for (let i = 0; i < tokens.length; i += 1) {
       const token = tokens[i];
       if (token.type === "space") {
         gapBefore += token.raw;
@@ -8643,10 +7247,8 @@ class MarkdownRenderable extends Renderable {
     return blocks;
   }
   shouldAddTopLevelMargin(prev, current, gapBefore) {
-    if (this.isSeparatedTopLevelBlock(prev) || this.isSeparatedTopLevelBlock(current))
-      return true;
-    if (prev.type !== "paragraph" || current.type !== "paragraph")
-      return false;
+    if (this.isSeparatedTopLevelBlock(prev) || this.isSeparatedTopLevelBlock(current)) return true;
+    if (prev.type !== "paragraph" || current.type !== "paragraph") return false;
     return TRAILING_MARKDOWN_BLOCK_BREAKS_RE.test(prev.raw + gapBefore);
   }
   isSeparatedTopLevelBlock(token) {
@@ -8657,7 +7259,7 @@ class MarkdownRenderable extends Renderable {
   }
   hashString(value, seed) {
     let hash = seed >>> 0;
-    for (let i = 0;i < value.length; i += 1) {
+    for (let i = 0; i < value.length; i += 1) {
       hash ^= value.charCodeAt(i);
       hash = Math.imul(hash, 16777619);
     }
@@ -8727,16 +7329,16 @@ class MarkdownRenderable extends Renderable {
     const colCount = table.header.length;
     const rowsToRender = this.getTableRowsToRender(table);
     if (colCount === 0 || rowsToRender.length === 0) {
-      return { cache: null, changed: previous !== undefined };
+      return { cache: null, changed: previous !== void 0 };
     }
     const content = [];
     const cellKeys = [];
     const totalRows = rowsToRender.length + 1;
     let changed = forceRegenerate || !previous;
-    for (let rowIndex = 0;rowIndex < totalRows; rowIndex += 1) {
+    for (let rowIndex = 0; rowIndex < totalRows; rowIndex += 1) {
       const rowContent = [];
       const rowKeys = new Uint32Array(colCount);
-      for (let colIndex = 0;colIndex < colCount; colIndex += 1) {
+      for (let colIndex = 0; colIndex < colCount; colIndex += 1) {
         const isHeader = rowIndex === 0;
         const cell = isHeader ? table.header[colIndex] : rowsToRender[rowIndex - 1]?.[colIndex];
         const cellKey = this.getTableCellKey(cell, isHeader);
@@ -8748,7 +7350,9 @@ class MarkdownRenderable extends Renderable {
           continue;
         }
         changed = true;
-        rowContent.push(isHeader ? this.createTableHeaderCellChunks(table.header[colIndex]) : this.createTableDataCellChunks(cell));
+        rowContent.push(
+          isHeader ? this.createTableHeaderCellChunks(table.header[colIndex]) : this.createTableDataCellChunks(cell)
+        );
       }
       content.push(rowContent);
       cellKeys.push(rowKeys);
@@ -8757,7 +7361,7 @@ class MarkdownRenderable extends Renderable {
       if (previous.content.length !== content.length) {
         changed = true;
       } else {
-        for (let rowIndex = 0;rowIndex < content.length; rowIndex += 1) {
+        for (let rowIndex = 0; rowIndex < content.length; rowIndex += 1) {
           if ((previous.content[rowIndex]?.length ?? 0) !== content[rowIndex].length) {
             changed = true;
             break;
@@ -8889,7 +7493,7 @@ class MarkdownRenderable extends Renderable {
   }
   getTopLevelBlockRaw(token) {
     if (!token.raw) {
-      return;
+      return void 0;
     }
     return this.shouldRenderSeparately(token) ? token.raw : this.normalizeScrollbackMarkdownBlockRaw(token.raw);
   }
@@ -8923,9 +7527,16 @@ class MarkdownRenderable extends Renderable {
     }
     const markdownRaw = this.getTopLevelBlockRaw(token);
     if (!markdownRaw) {
-      return { renderable: undefined, canUpdateInPlace: true };
+      return { renderable: void 0, canUpdateInPlace: true };
     }
-    const renderable = this.createMarkdownCodeRenderable(markdownRaw, id, 0, this._linkifyMarkdownChunks, undefined, this.createInitialStyledText(token));
+    const renderable = this.createMarkdownCodeRenderable(
+      markdownRaw,
+      id,
+      0,
+      this._linkifyMarkdownChunks,
+      void 0,
+      this.createInitialStyledText(token)
+    );
     renderable.marginTop = marginTop;
     return { renderable, canUpdateInPlace: true };
   }
@@ -8934,8 +7545,7 @@ class MarkdownRenderable extends Renderable {
       return this.createTopLevelDefaultRenderable(block, index);
     }
     const custom = this.createTopLevelCustomRenderable(block, index);
-    if (!custom.renderable)
-      return this.createTopLevelDefaultRenderable(block, index);
+    if (!custom.renderable) return this.createTopLevelDefaultRenderable(block, index);
     const marginTop = typeof custom.renderable.marginTop === "number" ? Math.max(custom.renderable.marginTop, block.marginTop) : block.marginTop;
     this.applyMargins(custom.renderable, marginTop, 0);
     return {
@@ -8968,7 +7578,14 @@ class MarkdownRenderable extends Renderable {
     if (!token.raw) {
       return null;
     }
-    return this.createMarkdownCodeRenderable(token.raw, id, marginBottom, this._linkifyMarkdownChunks, undefined, this.createInitialStyledText(token));
+    return this.createMarkdownCodeRenderable(
+      token.raw,
+      id,
+      marginBottom,
+      this._linkifyMarkdownChunks,
+      void 0,
+      this.createInitialStyledText(token)
+    );
   }
   createCustomRenderable(token, index, nextToken) {
     const custom = this.renderCustomNode(token, () => {
@@ -8994,14 +7611,13 @@ class MarkdownRenderable extends Renderable {
     const canUpdateInPlace = custom.renderable === custom.defaultResult?.renderable;
     return {
       renderable: custom.renderable,
-      tableContentCache: canUpdateInPlace ? custom.defaultResult?.tableContentCache : undefined,
+      tableContentCache: canUpdateInPlace ? custom.defaultResult?.tableContentCache : void 0,
       tracksInterBlockMargin: canUpdateInPlace,
       canUpdateInPlace
     };
   }
   renderCustomNode(token, createDefault) {
-    if (!this._renderNode)
-      return {};
+    if (!this._renderNode) return {};
     let defaultResult;
     const custom = this._renderNode(token, {
       syntaxStyle: this._syntaxStyle,
@@ -9013,12 +7629,11 @@ class MarkdownRenderable extends Renderable {
         return defaultResult.renderable ?? null;
       }
     });
-    this.destroyUnusedDefaultRenderable(defaultResult?.renderable, custom ?? undefined);
+    this.destroyUnusedDefaultRenderable(defaultResult?.renderable, custom ?? void 0);
     return custom ? { renderable: custom, defaultResult } : {};
   }
   destroyUnusedDefaultRenderable(renderable, usedRenderable) {
-    if (!renderable || renderable === usedRenderable || renderable.parent)
-      return;
+    if (!renderable || renderable === usedRenderable || renderable.parent) return;
     renderable.destroyRecursively();
   }
   updateBlockRenderable(state, token, index, nextToken, forceListRefresh = false) {
@@ -9032,7 +7647,13 @@ class MarkdownRenderable extends Renderable {
       return;
     }
     if (token.type === "list") {
-      if (!this.applyListRenderable(state.renderable, token, forceListRefresh ? undefined : state.token, `${this.id}-block-${index}`, marginBottom)) {
+      if (!this.applyListRenderable(
+        state.renderable,
+        token,
+        forceListRefresh ? void 0 : state.token,
+        `${this.id}-block-${index}`,
+        marginBottom
+      )) {
         state.renderable.destroyRecursively();
         state.renderable = this.createListRenderable(token, `${this.id}-block-${index}`, marginBottom);
         this.add(state.renderable, index);
@@ -9049,14 +7670,18 @@ class MarkdownRenderable extends Renderable {
       if (!cache) {
         if (state.renderable instanceof CodeRenderable) {
           this.applyMarkdownCodeRenderable(state.renderable, tableToken.raw, marginBottom);
-          state.tableContentCache = undefined;
+          state.tableContentCache = void 0;
           return;
         }
         state.renderable.destroyRecursively();
-        const fallbackRenderable = this.createMarkdownCodeRenderable(tableToken.raw, `${this.id}-block-${index}`, marginBottom);
+        const fallbackRenderable = this.createMarkdownCodeRenderable(
+          tableToken.raw,
+          `${this.id}-block-${index}`,
+          marginBottom
+        );
         this.add(fallbackRenderable, index);
         state.renderable = fallbackRenderable;
-        state.tableContentCache = undefined;
+        state.tableContentCache = void 0;
         return;
       }
       if (state.renderable instanceof TextTableRenderable) {
@@ -9076,11 +7701,24 @@ class MarkdownRenderable extends Renderable {
       return;
     }
     if (state.renderable instanceof CodeRenderable) {
-      this.applyMarkdownCodeRenderable(state.renderable, this.getTopLevelBlockRaw(token) ?? token.raw, marginBottom, undefined, this.createInitialStyledText(token));
+      this.applyMarkdownCodeRenderable(
+        state.renderable,
+        this.getTopLevelBlockRaw(token) ?? token.raw,
+        marginBottom,
+        void 0,
+        this.createInitialStyledText(token)
+      );
       return;
     }
     state.renderable.destroyRecursively();
-    const markdownRenderable = this.createMarkdownCodeRenderable(this.getTopLevelBlockRaw(token) ?? token.raw, `${this.id}-block-${index}`, marginBottom, this._linkifyMarkdownChunks, undefined, this.createInitialStyledText(token));
+    const markdownRenderable = this.createMarkdownCodeRenderable(
+      this.getTopLevelBlockRaw(token) ?? token.raw,
+      `${this.id}-block-${index}`,
+      marginBottom,
+      this._linkifyMarkdownChunks,
+      void 0,
+      this.createInitialStyledText(token)
+    );
     this.add(markdownRenderable, index);
     state.renderable = markdownRenderable;
   }
@@ -9088,7 +7726,7 @@ class MarkdownRenderable extends Renderable {
     const blocks = this.buildTopLevelRenderBlocks(tokens);
     this._stableBlockCount = this.getStableBlockCount(blocks, this._parseState?.stableTokenCount ?? 0);
     let blockIndex = 0;
-    for (let i = 0;i < blocks.length; i += 1) {
+    for (let i = 0; i < blocks.length; i += 1) {
       const block = blocks[i];
       const existing = this._blockStates[blockIndex];
       if (existing && existing.token === block.token && !forceTableRefresh) {
@@ -9162,21 +7800,15 @@ class MarkdownRenderable extends Renderable {
     }
   }
   canUpdateBlockRenderable(renderable, token) {
-    if (token.type === "code")
-      return renderable instanceof CodeRenderable;
-    if (token.type === "table")
-      return renderable instanceof TextTableRenderable;
-    if (token.type === "blockquote")
-      return renderable instanceof BoxRenderable;
-    if (token.type === "list")
-      return renderable instanceof BoxRenderable;
-    if (token.type === "hr")
-      return renderable instanceof BoxRenderable;
+    if (token.type === "code") return renderable instanceof CodeRenderable;
+    if (token.type === "table") return renderable instanceof TextTableRenderable;
+    if (token.type === "blockquote") return renderable instanceof BoxRenderable;
+    if (token.type === "list") return renderable instanceof BoxRenderable;
+    if (token.type === "hr") return renderable instanceof BoxRenderable;
     return renderable instanceof CodeRenderable;
   }
   updateBlocks(forceTableRefresh = false) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     if (!this._content) {
       this.clearBlockStates();
       this._parseState = null;
@@ -9210,7 +7842,7 @@ class MarkdownRenderable extends Renderable {
     this._stableBlockCount = 0;
     const blockTokens = this.buildRenderableTokens(tokens);
     let blockIndex = 0;
-    for (let i = 0;i < blockTokens.length; i++) {
+    for (let i = 0; i < blockTokens.length; i++) {
       const token = blockTokens[i];
       const nextToken = blockTokens[i + 1];
       const existing = this._blockStates[blockIndex];
@@ -9276,16 +7908,20 @@ class MarkdownRenderable extends Renderable {
       }
       if (!renderable) {
         if (token.type === "table") {
-          const tableBlock = this.createTableBlock(token, `${this.id}-block-${blockIndex}`, this.getInterBlockMargin(token, nextToken));
+          const tableBlock = this.createTableBlock(
+            token,
+            `${this.id}-block-${blockIndex}`,
+            this.getInterBlockMargin(token, nextToken)
+          );
           renderable = tableBlock.renderable;
           tableContentCache = tableBlock.tableContentCache;
         } else {
-          renderable = this.createDefaultRenderable(token, blockIndex, nextToken) ?? undefined;
+          renderable = this.createDefaultRenderable(token, blockIndex, nextToken) ?? void 0;
         }
       }
       if (token.type === "table" && !tableContentCache && renderable instanceof TextTableRenderable) {
         const { cache } = this.buildTableContentCache(token);
-        tableContentCache = cache ?? undefined;
+        tableContentCache = cache ?? void 0;
       }
       if (renderable) {
         this.add(renderable, blockIndex);
@@ -9312,12 +7948,16 @@ class MarkdownRenderable extends Renderable {
     this._blockStates = [];
     this._stableBlockCount = 0;
   }
+  /**
+   * Re-render existing blocks without rebuilding the parse state or block structure.
+   * Used when only style/conceal changes - much faster than full rebuild.
+   */
   rerenderBlocks() {
     if (this._internalBlockMode === "top-level") {
       this.updateBlocks(true);
       return;
     }
-    for (let i = 0;i < this._blockStates.length; i++) {
+    for (let i = 0; i < this._blockStates.length; i++) {
       const state = this._blockStates[i];
       const marginBottom = this.getInterBlockMargin(state.token, this._blockStates[i + 1]?.token);
       if (state.token.type === "code") {
@@ -9344,11 +7984,15 @@ class MarkdownRenderable extends Renderable {
             this.applyMarkdownCodeRenderable(state.renderable, tableToken.raw, marginBottom);
           } else {
             state.renderable.destroyRecursively();
-            const fallbackRenderable = this.createMarkdownCodeRenderable(tableToken.raw, `${this.id}-block-${i}`, marginBottom);
+            const fallbackRenderable = this.createMarkdownCodeRenderable(
+              tableToken.raw,
+              `${this.id}-block-${i}`,
+              marginBottom
+            );
             this.add(fallbackRenderable, i);
             state.renderable = fallbackRenderable;
           }
-          state.tableContentCache = undefined;
+          state.tableContentCache = void 0;
           continue;
         }
         if (state.renderable instanceof TextTableRenderable) {
@@ -9366,11 +8010,24 @@ class MarkdownRenderable extends Renderable {
         continue;
       }
       if (state.renderable instanceof CodeRenderable) {
-        this.applyMarkdownCodeRenderable(state.renderable, this.getTopLevelBlockRaw(state.token) ?? state.token.raw, marginBottom, undefined, this.createInitialStyledText(state.token));
+        this.applyMarkdownCodeRenderable(
+          state.renderable,
+          this.getTopLevelBlockRaw(state.token) ?? state.token.raw,
+          marginBottom,
+          void 0,
+          this.createInitialStyledText(state.token)
+        );
         continue;
       }
       state.renderable.destroyRecursively();
-      const markdownRenderable = this.createMarkdownCodeRenderable(this.getTopLevelBlockRaw(state.token) ?? state.token.raw, `${this.id}-block-${i}`, marginBottom, this._linkifyMarkdownChunks, undefined, this.createInitialStyledText(state.token));
+      const markdownRenderable = this.createMarkdownCodeRenderable(
+        this.getTopLevelBlockRaw(state.token) ?? state.token.raw,
+        `${this.id}-block-${i}`,
+        marginBottom,
+        this._linkifyMarkdownChunks,
+        void 0,
+        this.createInitialStyledText(state.token)
+      );
       this.add(markdownRenderable, i);
       state.renderable = markdownRenderable;
     }
@@ -9393,12 +8050,12 @@ class MarkdownRenderable extends Renderable {
     }
     super.renderSelf(buffer, deltaTime);
   }
-}
+};
+
 // src/renderables/Slider.ts
 var defaultThumbBackgroundColor = RGBA.fromHex("#9a9ea3");
 var defaultTrackBackgroundColor = RGBA.fromHex("#252527");
-
-class SliderRenderable extends Renderable {
+var SliderRenderable = class extends Renderable {
   orientation;
   _value;
   _min;
@@ -9482,7 +8139,10 @@ class SliderRenderable extends Renderable {
   calculateDragOffsetVirtual(event) {
     const trackStart = this.orientation === "vertical" ? this.y : this.x;
     const mousePos = (this.orientation === "vertical" ? event.y : event.x) - trackStart;
-    const virtualMousePos = Math.max(0, Math.min((this.orientation === "vertical" ? this.height : this.width) * 2, mousePos * 2));
+    const virtualMousePos = Math.max(
+      0,
+      Math.min((this.orientation === "vertical" ? this.height : this.width) * 2, mousePos * 2)
+    );
     const virtualThumbStart = this.getVirtualThumbStart();
     const virtualThumbSize = this.getVirtualThumbSize();
     return Math.max(0, Math.min(virtualThumbSize, virtualMousePos - virtualThumbStart));
@@ -9505,8 +8165,7 @@ class SliderRenderable extends Renderable {
       }
     };
     this.onMouseDrag = (event) => {
-      if (!isDragging)
-        return;
+      if (!isDragging) return;
       event.stopPropagation();
       this.updateValueFromMouseWithOffset(event, dragOffsetVirtual);
     };
@@ -9582,7 +8241,7 @@ class SliderRenderable extends Renderable {
     const realEndCell = Math.ceil(virtualThumbEnd / 2) - 1;
     const startX = Math.max(0, realStartCell);
     const endX = Math.min(this.width - 1, realEndCell);
-    for (let realX = startX;realX <= endX; realX++) {
+    for (let realX = startX; realX <= endX; realX++) {
       const virtualCellStart = realX * 2;
       const virtualCellEnd = virtualCellStart + 2;
       const thumbStartInCell = Math.max(virtualThumbStart, virtualCellStart);
@@ -9590,17 +8249,17 @@ class SliderRenderable extends Renderable {
       const coverage = thumbEndInCell - thumbStartInCell;
       let char = " ";
       if (coverage >= 2) {
-        char = "█";
+        char = "\u2588";
       } else {
         const isLeftHalf = thumbStartInCell === virtualCellStart;
         if (isLeftHalf) {
-          char = "▌";
+          char = "\u258C";
         } else {
-          char = "▐";
+          char = "\u2590";
         }
       }
-      for (let y2 = 0;y2 < this.height; y2++) {
-        buffer.setCellWithAlphaBlending(this.x + realX, this.y + y2, char, this._foregroundColor, this._backgroundColor);
+      for (let y = 0; y < this.height; y++) {
+        buffer.setCellWithAlphaBlending(this.x + realX, this.y + y, char, this._foregroundColor, this._backgroundColor);
       }
     }
   }
@@ -9613,7 +8272,7 @@ class SliderRenderable extends Renderable {
     const realEndCell = Math.ceil(virtualThumbEnd / 2) - 1;
     const startY = Math.max(0, realStartCell);
     const endY = Math.min(this.height - 1, realEndCell);
-    for (let realY = startY;realY <= endY; realY++) {
+    for (let realY = startY; realY <= endY; realY++) {
       const virtualCellStart = realY * 2;
       const virtualCellEnd = virtualCellStart + 2;
       const thumbStartInCell = Math.max(virtualThumbStart, virtualCellStart);
@@ -9621,29 +8280,27 @@ class SliderRenderable extends Renderable {
       const coverage = thumbEndInCell - thumbStartInCell;
       let char = " ";
       if (coverage >= 2) {
-        char = "█";
+        char = "\u2588";
       } else if (coverage > 0) {
         const virtualPositionInCell = thumbStartInCell - virtualCellStart;
         if (virtualPositionInCell === 0) {
-          char = "▀";
+          char = "\u2580";
         } else {
-          char = "▄";
+          char = "\u2584";
         }
       }
-      for (let x2 = 0;x2 < this.width; x2++) {
-        buffer.setCellWithAlphaBlending(this.x + x2, this.y + realY, char, this._foregroundColor, this._backgroundColor);
+      for (let x = 0; x < this.width; x++) {
+        buffer.setCellWithAlphaBlending(this.x + x, this.y + realY, char, this._foregroundColor, this._backgroundColor);
       }
     }
   }
   getVirtualThumbSize() {
     const virtualTrackSize = this.orientation === "vertical" ? this.height * 2 : this.width * 2;
     const range = this._max - this._min;
-    if (range === 0)
-      return virtualTrackSize;
+    if (range === 0) return virtualTrackSize;
     const viewportSize = Math.max(1, this._viewPortSize);
     const contentSize = range + viewportSize;
-    if (contentSize <= viewportSize)
-      return virtualTrackSize;
+    if (contentSize <= viewportSize) return virtualTrackSize;
     const thumbRatio = viewportSize / contentSize;
     const calculatedSize = Math.floor(virtualTrackSize * thumbRatio);
     return Math.max(1, Math.min(calculatedSize, virtualTrackSize));
@@ -9651,16 +8308,15 @@ class SliderRenderable extends Renderable {
   getVirtualThumbStart() {
     const virtualTrackSize = this.orientation === "vertical" ? this.height * 2 : this.width * 2;
     const range = this._max - this._min;
-    if (range === 0)
-      return 0;
+    if (range === 0) return 0;
     const valueRatio = (this._value - this._min) / range;
     const virtualThumbSize = this.getVirtualThumbSize();
     return Math.round(valueRatio * (virtualTrackSize - virtualThumbSize));
   }
-}
+};
 
 // src/renderables/ScrollBar.ts
-class ScrollBarRenderable extends Renderable {
+var ScrollBarRenderable = class extends Renderable {
   slider;
   startArrow;
   endArrow;
@@ -9694,8 +8350,7 @@ class ScrollBarRenderable extends Renderable {
     return this._viewportSize;
   }
   set scrollSize(value) {
-    if (value === this.scrollSize)
-      return;
+    if (value === this.scrollSize) return;
     this._scrollSize = value;
     this.recalculateVisibility();
     this.updateSliderFromScrollState();
@@ -9709,8 +8364,7 @@ class ScrollBarRenderable extends Renderable {
     }
   }
   set viewportSize(value) {
-    if (value === this.viewportSize)
-      return;
+    if (value === this.viewportSize) return;
     this._viewportSize = value;
     this.slider.viewPortSize = Math.max(1, this._viewportSize);
     this.recalculateVisibility();
@@ -9721,8 +8375,7 @@ class ScrollBarRenderable extends Renderable {
     return this._showArrows;
   }
   set showArrows(value) {
-    if (value === this._showArrows)
-      return;
+    if (value === this._showArrows) return;
     this._showArrows = value;
     this.startArrow.visible = value;
     this.endArrow.visible = value;
@@ -9788,8 +8441,8 @@ class ScrollBarRenderable extends Renderable {
     this.add(this.startArrow);
     this.add(this.slider);
     this.add(this.endArrow);
-    let startArrowMouseTimeout = undefined;
-    let endArrowMouseTimeout = undefined;
+    let startArrowMouseTimeout = void 0;
+    let endArrowMouseTimeout = void 0;
     this.startArrow.onMouseDown = (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -9851,26 +8504,22 @@ class ScrollBarRenderable extends Renderable {
     switch (key.name) {
       case "left":
       case "h":
-        if (this.orientation !== "horizontal")
-          return false;
+        if (this.orientation !== "horizontal") return false;
         this.scrollBy(-1 / 5, "viewport");
         return true;
       case "right":
       case "l":
-        if (this.orientation !== "horizontal")
-          return false;
+        if (this.orientation !== "horizontal") return false;
         this.scrollBy(1 / 5, "viewport");
         return true;
       case "up":
       case "k":
-        if (this.orientation !== "vertical")
-          return false;
+        if (this.orientation !== "vertical") return false;
         this.scrollBy(-1 / 5, "viewport");
         return true;
       case "down":
       case "j":
-        if (this.orientation !== "vertical")
-          return false;
+        if (this.orientation !== "vertical") return false;
         this.scrollBy(1 / 5, "viewport");
         return true;
       case "pageup":
@@ -9888,9 +8537,8 @@ class ScrollBarRenderable extends Renderable {
     }
     return false;
   }
-}
-
-class ArrowRenderable extends Renderable {
+};
+var ArrowRenderable = class extends Renderable {
   _direction;
   _foregroundColor;
   _backgroundColor;
@@ -9903,10 +8551,10 @@ class ArrowRenderable extends Renderable {
     this._backgroundColor = options.backgroundColor ? parseColor(options.backgroundColor) : RGBA.fromValues(0, 0, 0, 0);
     this._attributes = options.attributes ?? 0;
     this._arrowChars = {
-      up: "▲",
-      down: "▼",
-      left: "◀",
-      right: "▶",
+      up: "\u25B2",
+      down: "\u25BC",
+      left: "\u25C0",
+      right: "\u25B6",
       ...options.arrowChars
     };
     if (!options.width) {
@@ -9974,9 +8622,10 @@ class ArrowRenderable extends Renderable {
         return "?";
     }
   }
-}
+};
+
 // src/renderables/ScrollBox.ts
-class ContentRenderable extends BoxRenderable {
+var ContentRenderable = class extends BoxRenderable {
   viewport;
   _viewportCulling;
   constructor(ctx, viewport, viewportCulling, options) {
@@ -9995,16 +8644,21 @@ class ContentRenderable extends BoxRenderable {
   }
   _getVisibleChildren() {
     if (this._viewportCulling) {
-      return getObjectsInViewport({
-        x: this.viewport.screenX,
-        y: this.viewport.screenY,
-        width: this.viewport.width,
-        height: this.viewport.height
-      }, this.getChildrenSortedByPrimaryAxis(), this.primaryAxis, 0).map((child) => child.num);
+      return getObjectsInViewport(
+        {
+          x: this.viewport.screenX,
+          y: this.viewport.screenY,
+          width: this.viewport.width,
+          height: this.viewport.height
+        },
+        this.getChildrenSortedByPrimaryAxis(),
+        this.primaryAxis,
+        0
+      ).map((child) => child.num);
     }
     return super._getVisibleChildren();
   }
-}
+};
 var SCROLLBOX_PADDING_KEYS = [
   "padding",
   "paddingX",
@@ -10015,12 +8669,11 @@ var SCROLLBOX_PADDING_KEYS = [
   "paddingLeft"
 ];
 function pickScrollBoxPadding(options) {
-  if (!options)
-    return {};
+  if (!options) return {};
   const picked = {};
   for (const key of SCROLLBOX_PADDING_KEYS) {
     const value = options[key];
-    if (value !== undefined) {
+    if (value !== void 0) {
       picked[key] = value;
     }
   }
@@ -10033,8 +8686,7 @@ function stripScrollBoxPadding(options) {
   }
   return sanitized;
 }
-
-class ScrollBoxRenderable extends BoxRenderable {
+var ScrollBoxRenderable = class _ScrollBoxRenderable extends BoxRenderable {
   static idCounter = 0;
   internalId = 0;
   wrapper;
@@ -10197,7 +8849,7 @@ class ScrollBoxRenderable extends BoxRenderable {
       ...pickScrollBoxPadding(rootOptions)
     };
     const sanitizedRootBoxOptions = stripScrollBoxPadding(rootBoxOptions);
-    const sanitizedRootOptions = rootOptions ? stripScrollBoxPadding(rootOptions) : undefined;
+    const sanitizedRootOptions = rootOptions ? stripScrollBoxPadding(rootOptions) : void 0;
     const mergedContentOptions = {
       ...forwardedContentPadding,
       ...contentOptions
@@ -10208,10 +8860,10 @@ class ScrollBoxRenderable extends BoxRenderable {
       ...sanitizedRootBoxOptions,
       ...sanitizedRootOptions
     });
-    this.internalId = ScrollBoxRenderable.idCounter++;
+    this.internalId = _ScrollBoxRenderable.idCounter++;
     this._stickyScroll = stickyScroll;
     this._stickyStart = stickyStart;
-    this.scrollAccel = scrollAcceleration ?? new LinearScrollAccel;
+    this.scrollAccel = scrollAcceleration ?? new LinearScrollAccel();
     this.wrapper = new BoxRenderable(ctx, {
       flexDirection: "column",
       flexGrow: 1,
@@ -10222,6 +8874,8 @@ class ScrollBoxRenderable extends BoxRenderable {
     this.viewport = new BoxRenderable(ctx, {
       flexDirection: "column",
       flexGrow: 1,
+      // NOTE: Overflow scroll makes the content size behave weird
+      // when the scrollbox is in a container with max-width/height
       overflow: "hidden",
       onSizeChange: () => {
         this.recalculateBarProps();
@@ -10297,8 +8951,7 @@ class ScrollBoxRenderable extends BoxRenderable {
   }
   scrollChildIntoView(childId) {
     const child = this.content.findDescendantById(childId);
-    if (!child)
-      return;
+    if (!child) return;
     const getNearestDelta = (elementStart, elementEnd, viewportStart, viewportEnd) => {
       const elementSize = elementEnd - elementStart;
       const viewportSize = viewportEnd - viewportStart;
@@ -10480,11 +9133,10 @@ class ScrollBoxRenderable extends BoxRenderable {
     return false;
   }
   handleAutoScroll(deltaTime) {
-    if (!this.isAutoScrolling)
-      return;
+    if (!this.isAutoScrolling) return;
     const scrollX = this.getAutoScrollDirectionX(this.autoScrollMouseX);
     const scrollY = this.getAutoScrollDirectionY(this.autoScrollMouseY);
-    const scrollAmount = this.cachedAutoScrollSpeed * (deltaTime / 1000);
+    const scrollAmount = this.cachedAutoScrollSpeed * (deltaTime / 1e3);
     let scrolled = false;
     if (scrollX !== 0) {
       this.autoScrollAccumulatorX += scrollX * scrollAmount;
@@ -10588,6 +9240,7 @@ class ScrollBoxRenderable extends BoxRenderable {
       this.requestRender();
     });
   }
+  // Setters for reactive properties
   set padding(value) {
     this.content.padding = value;
     this.requestRender();
@@ -10661,11 +9314,12 @@ class ScrollBoxRenderable extends BoxRenderable {
   destroySelf() {
     if (this.selectionListener) {
       this._ctx.off("selection", this.selectionListener);
-      this.selectionListener = undefined;
+      this.selectionListener = void 0;
     }
     super.destroySelf();
   }
-}
+};
+
 // src/renderables/Select.ts
 var defaultSelectKeybindings = [
   { name: "up", action: "move-up" },
@@ -10677,13 +9331,12 @@ var defaultSelectKeybindings = [
   { name: "return", action: "select-current" },
   { name: "linefeed", action: "select-current" }
 ];
-var SelectRenderableEvents;
-((SelectRenderableEvents2) => {
+var SelectRenderableEvents = /* @__PURE__ */ ((SelectRenderableEvents2) => {
   SelectRenderableEvents2["SELECTION_CHANGED"] = "selectionChanged";
   SelectRenderableEvents2["ITEM_SELECTED"] = "itemSelected";
-})(SelectRenderableEvents ||= {});
-
-class SelectRenderable extends Renderable {
+  return SelectRenderableEvents2;
+})(SelectRenderableEvents || {});
+var SelectRenderable = class extends Renderable {
   _focusable = true;
   _options = [];
   _selectedIndex = 0;
@@ -10731,7 +9384,9 @@ class SelectRenderable extends Renderable {
     this._selectedIndex = this._options.length > 0 ? Math.min(requestedIndex, this._options.length - 1) : 0;
     this._backgroundColor = parseColor(options.backgroundColor || this._defaultOptions.backgroundColor);
     this._textColor = parseColor(options.textColor || this._defaultOptions.textColor);
-    this._focusedBackgroundColor = parseColor(options.focusedBackgroundColor || this._defaultOptions.focusedBackgroundColor);
+    this._focusedBackgroundColor = parseColor(
+      options.focusedBackgroundColor || this._defaultOptions.focusedBackgroundColor
+    );
     this._focusedTextColor = parseColor(options.focusedTextColor || this._defaultOptions.focusedTextColor);
     this._showScrollIndicator = options.showScrollIndicator ?? this._defaultOptions.showScrollIndicator;
     this._wrapSelection = options.wrapSelection ?? this._defaultOptions.wrapSelection;
@@ -10742,10 +9397,14 @@ class SelectRenderable extends Renderable {
     this.linesPerItem = this._showDescription ? this._font ? this.fontHeight + 1 : 2 : this._font ? this.fontHeight : 1;
     this.linesPerItem += this._itemSpacing;
     this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem));
-    this._selectedBackgroundColor = parseColor(options.selectedBackgroundColor || this._defaultOptions.selectedBackgroundColor);
+    this._selectedBackgroundColor = parseColor(
+      options.selectedBackgroundColor || this._defaultOptions.selectedBackgroundColor
+    );
     this._selectedTextColor = parseColor(options.selectedTextColor || this._defaultOptions.selectedTextColor);
     this._descriptionColor = parseColor(options.descriptionColor || this._defaultOptions.descriptionColor);
-    this._selectedDescriptionColor = parseColor(options.selectedDescriptionColor || this._defaultOptions.selectedDescriptionColor);
+    this._selectedDescriptionColor = parseColor(
+      options.selectedDescriptionColor || this._defaultOptions.selectedDescriptionColor
+    );
     this._fastScrollStep = options.fastScrollStep || this._defaultOptions.fastScrollStep;
     this._keyAliasMap = mergeKeyAliases(defaultKeyAliases, options.keyAliasMap || {});
     this._keyBindings = options.keyBindings || [];
@@ -10754,41 +9413,37 @@ class SelectRenderable extends Renderable {
     this.requestRender();
   }
   renderSelf(buffer, deltaTime) {
-    if (!this.visible || !this.frameBuffer)
-      return;
+    if (!this.visible || !this.frameBuffer) return;
     if (this.isDirty) {
       this.refreshFrameBuffer();
     }
   }
   refreshFrameBuffer() {
-    if (!this.frameBuffer)
-      return;
+    if (!this.frameBuffer) return;
     const bgColor = this._focused ? this._focusedBackgroundColor : this._backgroundColor;
     this.frameBuffer.clear(bgColor);
-    if (this._options.length === 0)
-      return;
+    if (this._options.length === 0) return;
     const contentX = 0;
     const contentY = 0;
     const contentWidth = this.width;
     const contentHeight = this.height;
     const visibleOptions = this._options.slice(this.scrollOffset, this.scrollOffset + this.maxVisibleItems);
-    for (let i = 0;i < visibleOptions.length; i++) {
+    for (let i = 0; i < visibleOptions.length; i++) {
       const actualIndex = this.scrollOffset + i;
       const option = visibleOptions[i];
       const isSelected = actualIndex === this._selectedIndex;
       const itemY = contentY + i * this.linesPerItem;
-      if (itemY + this.linesPerItem - 1 >= contentY + contentHeight)
-        break;
+      if (itemY + this.linesPerItem - 1 >= contentY + contentHeight) break;
       if (isSelected) {
         const contentHeight2 = this.linesPerItem - this._itemSpacing;
         this.frameBuffer.fillRect(contentX, itemY, contentWidth, contentHeight2, this._selectedBackgroundColor);
       }
-      const nameContent = `${isSelected ? "▶ " : "  "}${option.name}`;
+      const nameContent = `${isSelected ? "\u25B6 " : "  "}${option.name}`;
       const baseTextColor = this._focused ? this._focusedTextColor : this._textColor;
       const nameColor = isSelected ? this._selectedTextColor : baseTextColor;
       let descX = contentX + 3;
       if (this._font) {
-        const indicator = isSelected ? "▶ " : "  ";
+        const indicator = isSelected ? "\u25B6 " : "  ";
         this.frameBuffer.drawText(indicator, contentX + 1, itemY, nameColor);
         const indicatorWidth = 2;
         renderFontToFrameBuffer(this.frameBuffer, {
@@ -10813,13 +9468,12 @@ class SelectRenderable extends Renderable {
     }
   }
   renderScrollIndicatorToFrameBuffer(contentX, contentY, contentWidth, contentHeight) {
-    if (!this.frameBuffer)
-      return;
+    if (!this.frameBuffer) return;
     const scrollPercent = this._selectedIndex / Math.max(1, this._options.length - 1);
     const indicatorHeight = Math.max(1, contentHeight - 2);
     const indicatorY = contentY + 1 + Math.floor(scrollPercent * indicatorHeight);
     const indicatorX = contentX + contentWidth - 1;
-    this.frameBuffer.drawText("█", indicatorX, indicatorY, parseColor("#666666"));
+    this.frameBuffer.drawText("\u2588", indicatorX, indicatorY, parseColor("#666666"));
   }
   get options() {
     return this._options;
@@ -10877,10 +9531,12 @@ class SelectRenderable extends Renderable {
     }
   }
   updateScrollOffset() {
-    if (!this._options)
-      return;
+    if (!this._options) return;
     const halfVisible = Math.floor(this.maxVisibleItems / 2);
-    const newScrollOffset = Math.max(0, Math.min(this._selectedIndex - halfVisible, this._options.length - this.maxVisibleItems));
+    const newScrollOffset = Math.max(
+      0,
+      Math.min(this._selectedIndex - halfVisible, this._options.length - this.maxVisibleItems)
+    );
     if (newScrollOffset !== this.scrollOffset) {
       this.scrollOffset = newScrollOffset;
       this.requestRender();
@@ -11035,7 +9691,8 @@ class SelectRenderable extends Renderable {
       this.requestRender();
     }
   }
-}
+};
+
 // src/renderables/TabSelect.ts
 var defaultTabSelectKeybindings = [
   { name: "left", action: "move-left" },
@@ -11045,11 +9702,11 @@ var defaultTabSelectKeybindings = [
   { name: "return", action: "select-current" },
   { name: "linefeed", action: "select-current" }
 ];
-var TabSelectRenderableEvents;
-((TabSelectRenderableEvents2) => {
+var TabSelectRenderableEvents = /* @__PURE__ */ ((TabSelectRenderableEvents2) => {
   TabSelectRenderableEvents2["SELECTION_CHANGED"] = "selectionChanged";
   TabSelectRenderableEvents2["ITEM_SELECTED"] = "itemSelected";
-})(TabSelectRenderableEvents ||= {});
+  return TabSelectRenderableEvents2;
+})(TabSelectRenderableEvents || {});
 function calculateDynamicHeight(showUnderline, showDescription) {
   let height = 1;
   if (showUnderline) {
@@ -11060,8 +9717,7 @@ function calculateDynamicHeight(showUnderline, showDescription) {
   }
   return height;
 }
-
-class TabSelectRenderable extends Renderable {
+var TabSelectRenderable = class extends Renderable {
   _focusable = true;
   _options = [];
   selectedIndex = 0;
@@ -11108,31 +9764,27 @@ class TabSelectRenderable extends Renderable {
     return calculateDynamicHeight(this._showUnderline, this._showDescription);
   }
   renderSelf(buffer, deltaTime) {
-    if (!this.visible || !this.frameBuffer)
-      return;
+    if (!this.visible || !this.frameBuffer) return;
     if (this.isDirty) {
       this.refreshFrameBuffer();
     }
   }
   refreshFrameBuffer() {
-    if (!this.frameBuffer)
-      return;
+    if (!this.frameBuffer) return;
     const bgColor = this._focused ? this._focusedBackgroundColor : this._backgroundColor;
     this.frameBuffer.clear(bgColor);
-    if (this._options.length === 0)
-      return;
+    if (this._options.length === 0) return;
     const contentX = 0;
     const contentY = 0;
     const contentWidth = this.width;
     const contentHeight = this.height;
     const visibleOptions = this._options.slice(this.scrollOffset, this.scrollOffset + this.maxVisibleTabs);
-    for (let i = 0;i < visibleOptions.length; i++) {
+    for (let i = 0; i < visibleOptions.length; i++) {
       const actualIndex = this.scrollOffset + i;
       const option = visibleOptions[i];
       const isSelected = actualIndex === this.selectedIndex;
       const tabX = contentX + i * this._tabWidth;
-      if (tabX >= contentX + contentWidth)
-        break;
+      if (tabX >= contentX + contentWidth) break;
       const actualTabWidth = Math.min(this._tabWidth, contentWidth - i * this._tabWidth);
       if (isSelected) {
         this.frameBuffer.fillRect(tabX, contentY, actualTabWidth, 1, this._selectedBackgroundColor);
@@ -11144,7 +9796,7 @@ class TabSelectRenderable extends Renderable {
       if (isSelected && this._showUnderline && contentHeight >= 2) {
         const underlineY = contentY + 1;
         const underlineBg = isSelected ? this._selectedBackgroundColor : bgColor;
-        this.frameBuffer.drawText("▬".repeat(actualTabWidth), tabX, underlineY, nameColor, underlineBg);
+        this.frameBuffer.drawText("\u25AC".repeat(actualTabWidth), tabX, underlineY, nameColor, underlineBg);
       }
     }
     if (this._showDescription && contentHeight >= (this._showUnderline ? 3 : 2)) {
@@ -11161,20 +9813,18 @@ class TabSelectRenderable extends Renderable {
     }
   }
   truncateText(text, maxWidth) {
-    if (text.length <= maxWidth)
-      return text;
-    return text.substring(0, Math.max(0, maxWidth - 1)) + "…";
+    if (text.length <= maxWidth) return text;
+    return text.substring(0, Math.max(0, maxWidth - 1)) + "\u2026";
   }
   renderScrollArrowsToFrameBuffer(contentX, contentY, contentWidth, contentHeight) {
-    if (!this.frameBuffer)
-      return;
+    if (!this.frameBuffer) return;
     const hasMoreLeft = this.scrollOffset > 0;
     const hasMoreRight = this.scrollOffset + this.maxVisibleTabs < this._options.length;
     if (hasMoreLeft) {
-      this.frameBuffer.drawText("‹", contentX, contentY, parseColor("#AAAAAA"));
+      this.frameBuffer.drawText("\u2039", contentX, contentY, parseColor("#AAAAAA"));
     }
     if (hasMoreRight) {
-      this.frameBuffer.drawText("›", contentX + contentWidth - 1, contentY, parseColor("#AAAAAA"));
+      this.frameBuffer.drawText("\u203A", contentX + contentWidth - 1, contentY, parseColor("#AAAAAA"));
     }
   }
   setOptions(options) {
@@ -11229,7 +9879,10 @@ class TabSelectRenderable extends Renderable {
   }
   updateScrollOffset() {
     const halfVisible = Math.floor(this.maxVisibleTabs / 2);
-    const newScrollOffset = Math.max(0, Math.min(this.selectedIndex - halfVisible, this._options.length - this.maxVisibleTabs));
+    const newScrollOffset = Math.max(
+      0,
+      Math.min(this.selectedIndex - halfVisible, this._options.length - this.maxVisibleTabs)
+    );
     if (newScrollOffset !== this.scrollOffset) {
       this.scrollOffset = newScrollOffset;
       this.requestRender();
@@ -11241,8 +9894,7 @@ class TabSelectRenderable extends Renderable {
     this.requestRender();
   }
   setTabWidth(tabWidth) {
-    if (this._tabWidth === tabWidth)
-      return;
+    if (this._tabWidth === tabWidth) return;
     this._tabWidth = tabWidth;
     this.maxVisibleTabs = Math.max(1, Math.floor(this.width / this._tabWidth));
     this.updateScrollOffset();
@@ -11346,8 +9998,7 @@ class TabSelectRenderable extends Renderable {
     return this._tabWidth;
   }
   set tabWidth(tabWidth) {
-    if (this._tabWidth === tabWidth)
-      return;
+    if (this._tabWidth === tabWidth) return;
     this._tabWidth = tabWidth;
     this.maxVisibleTabs = Math.max(1, Math.floor(this.width / this._tabWidth));
     this.updateScrollOffset();
@@ -11363,9 +10014,10 @@ class TabSelectRenderable extends Renderable {
     const mergedBindings = mergeKeyBindings(defaultTabSelectKeybindings, this._keyBindings);
     this._keyBindingsMap = buildKeyBindingsMap(mergedBindings, this._keyAliasMap);
   }
-}
+};
+
 // src/renderables/TimeToFirstDraw.ts
-class TimeToFirstDrawRenderable extends Renderable {
+var TimeToFirstDrawRenderable = class extends Renderable {
   _runtimeMs = null;
   textColor;
   label;
@@ -11427,254 +10079,252 @@ class TimeToFirstDrawRenderable extends Renderable {
     }
     return Math.max(0, Math.floor(value));
   }
-}
-export {
-  yellow,
-  wrapWithDelegates,
-  white,
-  vstyles,
-  visualizeRenderableTree,
-  underline,
-  treeSitterToTextChunks,
-  treeSitterToStyledText,
-  terminalNamedSingleStrokeKeys,
-  t,
-  stripAnsiSequences,
-  stringToStyledText,
-  strikethrough,
-  setupAudio,
-  setRenderLibPath,
-  rgbToHex,
-  reverse,
-  resolveRenderLib,
-  resolveCoreSlot,
-  renderFontToFrameBuffer,
-  registerEnvVar,
-  registerCorePlugin,
-  red,
-  pathToFiletype,
-  parseWrap,
-  parseUnit,
-  parsePositionType,
-  parseOverflow,
-  parseMeasureMode,
-  parseLogLevel,
-  parseKeypress,
-  parseJustify,
-  parseGutter,
-  parseFlexDirection,
-  parseEdge,
-  parseDisplay,
-  parseDirection,
-  parseDimension,
-  parseColor,
-  parseBoxSizing,
-  parseBorderStyle,
-  parseAlignItems,
-  parseAlign,
-  normalizeTerminalPalette,
-  normalizeIndexedColorIndex,
-  normalizeColorValue,
-  nonAlphanumericKeys,
-  measureText,
-  maybeMakeRenderable,
-  magenta,
-  link,
-  italic,
-  isValidBorderStyle,
-  isVNode,
-  isTextNodeRenderable,
-  isStyledText,
-  isRenderable,
-  isEditBufferRenderable,
-  instantiate,
-  infoStringToFiletype,
-  hsvToRgb,
-  hexToRgb,
-  hastToStyledText,
-  h,
-  green,
-  getTreeSitterClient,
-  getLinkId,
-  getDataPaths,
-  getCharacterPositions,
-  getBorderSides,
-  getBorderFromSides,
-  getBaseAttributes,
-  generateEnvMarkdown,
-  generateEnvColored,
-  fonts,
-  fg,
-  extensionToFiletype,
-  extToFiletype,
-  envRegistry,
-  env,
-  engine,
-  dim,
-  detectLinks,
-  destroyTreeSitterClient,
-  delegate,
-  defaultTextareaKeyBindings,
-  decodePasteBytes,
-  cyan,
-  createTimeline,
-  createTextAttributes,
-  createTerminalPalette,
-  createSlotRegistry,
-  createMarkdownCodeBlockRenderer,
-  createExtmarksController,
-  createCoreSlotRegistry,
-  createCliRenderer,
-  coordinateToCharacterIndex,
-  convertThemeToStyles,
-  convertGlobalToLocalSelection,
-  clearEnvCache,
-  capture,
-  buildTerminalPaletteSignature,
-  buildKittyKeyboardFlags,
-  brightYellow,
-  brightWhite,
-  brightRed,
-  brightMagenta,
-  brightGreen,
-  brightCyan,
-  brightBlue,
-  brightBlack,
-  borderCharsToArray,
-  bold,
-  blue,
-  blink,
-  black,
-  bgYellow,
-  bgWhite,
-  bgRed,
-  bgMagenta,
-  bgGreen,
-  bgCyan,
-  bgBlue,
-  bgBlack,
-  bg,
-  basenameToFiletype,
-  attributesWithLink,
-  applyScanlines,
-  applySaturation,
-  applyNoise,
-  applyInvert,
-  applyGain,
-  applyChromaticAberration,
-  applyBrightness,
-  applyAsciiArt,
-  ansi256IndexToRgb,
-  addDefaultParsers,
-  exports_yoga as Yoga,
-  VignetteEffect,
-  VRenderable,
-  TreeSitterClient,
-  Timeline,
-  TimeToFirstDrawRenderable,
-  TextareaRenderable,
-  TextTableRenderable,
-  TextRenderable,
-  TextNodeRenderable,
-  TextBufferView,
-  TextBufferRenderable,
-  TextBuffer,
-  TextAttributes,
-  Text,
-  TerminalPalette,
-  TerminalConsole,
-  TargetChannel,
-  TabSelectRenderableEvents,
-  TabSelectRenderable,
-  TabSelect,
-  TRITANOPIA_SIM_MATRIX,
-  TRITANOPIA_COMP_MATRIX,
-  TECHNICOLOR_MATRIX,
-  SystemClock,
-  SyntaxStyle,
-  StyledText,
-  StdinParser,
-  SlotRenderable,
-  SlotRegistry,
-  SliderRenderable,
-  Selection,
-  SelectRenderableEvents,
-  SelectRenderable,
-  Select,
-  ScrollBoxRenderable,
-  ScrollBox,
-  ScrollBarRenderable,
-  SYNTHWAVE_MATRIX,
-  SOLARIZATION_MATRIX,
-  SEPIA_MATRIX,
-  RootTextNodeRenderable,
-  RootRenderable,
-  RendererControlState,
-  RenderableEvents,
-  Renderable,
-  RainbowTextEffect,
-  RGBA,
-  PasteEvent,
-  PROTANOPIA_SIM_MATRIX,
-  PROTANOPIA_COMP_MATRIX,
-  OptimizedBuffer,
-  NativeSpanFeed,
-  MouseParser,
-  MouseEvent,
-  MouseButton,
-  MarkdownRenderable,
-  MacOSScrollAccel,
-  LogLevel,
-  LinearScrollAccel,
-  LineNumberRenderable,
-  LayoutEvents,
-  KeyHandler,
-  KeyEvent,
-  InternalKeyHandler,
-  InputRenderableEvents,
-  InputRenderable,
-  Input,
-  INVERT_MATRIX,
-  Generic,
-  GREENSCALE_MATRIX,
-  GRAYSCALE_MATRIX,
-  FrameBufferRenderable,
-  FrameBuffer,
-  FlamesEffect,
-  ExtmarksController,
-  EditorView,
-  EditBufferRenderableEvents,
-  EditBufferRenderable,
-  EditBuffer,
-  DistortionEffect,
-  DiffRenderable,
-  DebugOverlayCorner,
-  DataPathsManager,
-  DEUTERANOPIA_SIM_MATRIX,
-  DEUTERANOPIA_COMP_MATRIX,
-  DEFAULT_FOREGROUND_RGB,
-  DEFAULT_BACKGROUND_RGB,
-  ConsolePosition,
-  CodeRenderable,
-  Code,
-  CloudsEffect,
-  CliRenderer,
-  CliRenderEvents,
-  CRTRollingBarEffect,
-  BoxRenderable,
-  Box,
-  BorderChars,
-  BorderCharArrays,
-  BloomEffect,
-  BaseRenderable,
-  Audio,
-  ArrowRenderable,
-  ATTRIBUTE_BASE_MASK,
-  ATTRIBUTE_BASE_BITS,
-  ASCIIFontSelectionHelper,
-  ASCIIFontRenderable,
-  ASCIIFont,
-  ACHROMATOPSIA_MATRIX
 };
-
-//# debugId=0C019ED1790BA7F464756E2164756E21
+export {
+  ACHROMATOPSIA_MATRIX,
+  ASCIIFont,
+  ASCIIFontRenderable,
+  ASCIIFontSelectionHelper,
+  ATTRIBUTE_BASE_BITS,
+  ATTRIBUTE_BASE_MASK,
+  ArrowRenderable,
+  Audio,
+  BaseRenderable,
+  BloomEffect,
+  BorderCharArrays,
+  BorderChars,
+  Box,
+  BoxRenderable,
+  CRTRollingBarEffect,
+  CliRenderEvents,
+  CliRenderer,
+  CloudsEffect,
+  Code,
+  CodeRenderable,
+  ConsolePosition,
+  DEFAULT_BACKGROUND_RGB,
+  DEFAULT_FOREGROUND_RGB,
+  DEUTERANOPIA_COMP_MATRIX,
+  DEUTERANOPIA_SIM_MATRIX,
+  DataPathsManager,
+  DebugOverlayCorner,
+  DiffRenderable,
+  DistortionEffect,
+  EditBuffer,
+  EditBufferRenderable,
+  EditBufferRenderableEvents,
+  EditorView,
+  ExtmarksController,
+  FlamesEffect,
+  FrameBuffer,
+  FrameBufferRenderable,
+  GRAYSCALE_MATRIX,
+  GREENSCALE_MATRIX,
+  Generic,
+  INVERT_MATRIX,
+  Input,
+  InputRenderable,
+  InputRenderableEvents,
+  InternalKeyHandler,
+  KeyEvent,
+  KeyHandler,
+  LayoutEvents,
+  LineNumberRenderable,
+  LinearScrollAccel,
+  LogLevel,
+  MacOSScrollAccel,
+  MarkdownRenderable,
+  MouseButton,
+  MouseEvent,
+  MouseParser,
+  NativeSpanFeed,
+  OptimizedBuffer,
+  PROTANOPIA_COMP_MATRIX,
+  PROTANOPIA_SIM_MATRIX,
+  PasteEvent,
+  RGBA,
+  RainbowTextEffect,
+  Renderable,
+  RenderableEvents,
+  RendererControlState,
+  RootRenderable,
+  RootTextNodeRenderable,
+  SEPIA_MATRIX,
+  SOLARIZATION_MATRIX,
+  SYNTHWAVE_MATRIX,
+  ScrollBarRenderable,
+  ScrollBox,
+  ScrollBoxRenderable,
+  Select,
+  SelectRenderable,
+  SelectRenderableEvents,
+  Selection,
+  SliderRenderable,
+  SlotRegistry,
+  SlotRenderable,
+  StdinParser,
+  StyledText,
+  SyntaxStyle,
+  SystemClock,
+  TECHNICOLOR_MATRIX,
+  TRITANOPIA_COMP_MATRIX,
+  TRITANOPIA_SIM_MATRIX,
+  TabSelect,
+  TabSelectRenderable,
+  TabSelectRenderableEvents,
+  TargetChannel,
+  TerminalConsole,
+  TerminalPalette,
+  Text,
+  TextAttributes,
+  TextBuffer,
+  TextBufferRenderable,
+  TextBufferView,
+  TextNodeRenderable,
+  TextRenderable,
+  TextTableRenderable,
+  TextareaRenderable,
+  TimeToFirstDrawRenderable,
+  Timeline,
+  TreeSitterClient,
+  VRenderable,
+  VignetteEffect,
+  yoga_exports as Yoga,
+  addDefaultParsers,
+  ansi256IndexToRgb,
+  applyAsciiArt,
+  applyBrightness,
+  applyChromaticAberration,
+  applyGain,
+  applyInvert,
+  applyNoise,
+  applySaturation,
+  applyScanlines,
+  attributesWithLink,
+  basenameToFiletype,
+  bg,
+  bgBlack,
+  bgBlue,
+  bgCyan,
+  bgGreen,
+  bgMagenta,
+  bgRed,
+  bgWhite,
+  bgYellow,
+  black,
+  blink,
+  blue,
+  bold,
+  borderCharsToArray,
+  brightBlack,
+  brightBlue,
+  brightCyan,
+  brightGreen,
+  brightMagenta,
+  brightRed,
+  brightWhite,
+  brightYellow,
+  buildKittyKeyboardFlags,
+  buildTerminalPaletteSignature,
+  capture,
+  clearEnvCache,
+  convertGlobalToLocalSelection,
+  convertThemeToStyles,
+  coordinateToCharacterIndex,
+  createCliRenderer,
+  createCoreSlotRegistry,
+  createExtmarksController,
+  createMarkdownCodeBlockRenderer,
+  createSlotRegistry,
+  createTerminalPalette,
+  createTextAttributes,
+  createTimeline,
+  cyan,
+  decodePasteBytes,
+  defaultTextareaKeyBindings,
+  delegate,
+  destroyTreeSitterClient,
+  detectLinks,
+  dim,
+  engine,
+  env,
+  envRegistry,
+  extToFiletype,
+  extensionToFiletype,
+  fg,
+  fonts,
+  generateEnvColored,
+  generateEnvMarkdown,
+  getBaseAttributes,
+  getBorderFromSides,
+  getBorderSides,
+  getCharacterPositions,
+  getDataPaths,
+  getLinkId,
+  getTreeSitterClient,
+  green,
+  h,
+  hastToStyledText,
+  hexToRgb,
+  hsvToRgb,
+  infoStringToFiletype,
+  instantiate,
+  isEditBufferRenderable,
+  isRenderable,
+  isStyledText,
+  isTextNodeRenderable,
+  isVNode,
+  isValidBorderStyle,
+  italic,
+  link,
+  magenta,
+  maybeMakeRenderable,
+  measureText,
+  nonAlphanumericKeys,
+  normalizeColorValue,
+  normalizeIndexedColorIndex,
+  normalizeTerminalPalette,
+  parseAlign,
+  parseAlignItems,
+  parseBorderStyle,
+  parseBoxSizing,
+  parseColor,
+  parseDimension,
+  parseDirection,
+  parseDisplay,
+  parseEdge,
+  parseFlexDirection,
+  parseGutter,
+  parseJustify,
+  parseKeypress,
+  parseLogLevel,
+  parseMeasureMode,
+  parseOverflow,
+  parsePositionType,
+  parseUnit,
+  parseWrap,
+  pathToFiletype,
+  red,
+  registerCorePlugin,
+  registerEnvVar,
+  renderFontToFrameBuffer,
+  resolveCoreSlot,
+  resolveRenderLib,
+  reverse,
+  rgbToHex,
+  setRenderLibPath,
+  setupAudio,
+  strikethrough,
+  stringToStyledText,
+  stripAnsiSequences,
+  t,
+  terminalNamedSingleStrokeKeys,
+  treeSitterToStyledText,
+  treeSitterToTextChunks,
+  underline,
+  visualizeRenderableTree,
+  vstyles,
+  white,
+  wrapWithDelegates,
+  yellow
+};

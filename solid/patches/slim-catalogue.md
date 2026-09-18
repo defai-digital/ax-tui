@@ -5,9 +5,9 @@ widget. Those tags stay off the Solid intrinsic catalogue so a new screen
 cannot accidentally depend on them. `extend()` still registers custom
 renderables (the spinner uses this).
 
-This does **not** tree-shake the corresponding classes out of the pre-bundled
-`ax-tui` chunks. That requires importing the upstream TypeScript
-source and rebuilding — not editing hashed JS.
+The catalogue and JSX types are maintained in `solid/source/`. The core
+classes remain public exports for compatibility; reducing the intrinsic
+catalogue does not remove those classes from `ax-tui`.
 
 ## Contract
 

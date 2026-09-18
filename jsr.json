@@ -71,14 +71,12 @@
       "index-*.js",
       "*.d.ts",
       "lib",
-      "solid",
       "spinner/dist",
       "spinner/src",
       "chart/dist",
       "chart/src",
       "renderables",
       "platform",
-      "native",
       "plugins",
       "post",
       "animation",
@@ -95,7 +93,14 @@
       "DIVERGENCES.md",
       "MAINTENANCE.md",
       "package.json",
-      "jsr.json"
+      "jsr.json",
+      "native/*.js",
+      "native/*.d.ts",
+      "solid/*.js",
+      "solid/*.d.ts",
+      "solid/scripts",
+      "solid/src",
+      "solid/LICENSE"
     ]
   }
 }

@@ -1,128 +1,94 @@
 # AGENTS.md
 
-Guidance for AI coding agents operating in the ax-tui repository. This file is
-the sole project-memory file for this repo.
+Guidance for AI coding agents operating in the ax-tui repository. This is the
+sole project-memory file for this repo.
 
 ## Language
 
-Everything written to disk must be English only: source, documentation,
-comments, configuration, commit messages, tests. Replies to the user follow
-the user's language.
+Everything written to disk must be English: source, documentation, comments,
+configuration, commit messages, and tests. Replies follow the user's language.
 
-## What this project is
+## Ownership and source
 
-**ax-tui** is a standalone, MIT-licensed SolidJS terminal UI framework with a
-native renderer, extracted from the AX Code monorepo (`packages/ax-code-tui`)
-and generalized for open-source use. npm name: `ax-tui`. The renderer and
-native libraries are derived from OpenTUI 0.4.1 (MIT, copyright opentui);
-AX-authored portions are copyright DEFAI Digital. See `LICENSE`,
-`UPSTREAM.md`, and `DIVERGENCES.md`.
+**ax-tui** is an independently maintained, MIT-licensed SolidJS terminal UI
+framework. Its initial renderer, Solid reconciler, and native implementation
+were absorbed from OpenTUI 0.4.1, commit
+`b7e0bb9c3d2a75c2bc267d2af27b7237f734d13b`. This is a source fork, not a
+clean-room implementation. Keep the upstream copyright and DEFAI Digital
+copyright in `LICENSE`, `solid/LICENSE`, and `native/renderer/LICENSE`.
+See `UPSTREAM.md` for provenance and `DIVERGENCES.md` for preserved AX behavior.
+
+Development builds use this repository's sources, never upstream renderer
+bundles or upstream native npm packages. Changes from other projects require
+explicit review, attribution, compatibility tests, and an updated provenance
+record; they are not part of the normal build workflow.
 
 ## Project map
 
-```
-index.js, index-*.js      Pre-bundled renderer snapshot (upstream lineage —
-                          do not hand-edit hashed chunks; use the patch tools)
-*.d.ts                    Type declarations for the renderer surface
-lib/                      Renderer internals (styled text, key parsing, …)
-renderables/              Renderable classes (Box, Text, ScrollBox, Markdown, …)
-solid/                    SolidJS reconciler, JSX runtimes, preload shims,
-                          solid/transform build API, solid/patches/
-spinner/                  TypeScript source plus COMMITTED dist/ output
-chart/                    TypeScript source plus COMMITTED dist/ output
-                          (ratatui-style chart widgets)
-testing/                  Headless test renderer, mock input, frame capture
-platform/, plugins/, post/, animation/
-assets/                   tree-sitter wasm + highlight grammars (zig dropped)
-native/                   Manifest-verified GitHub asset delivery and cache
-vendor/                   Vendored native shared libraries per platform;
-                          vendor/manifest.json is the authoritative record
-patches/                  Named, idempotent divergence patch contracts (docs)
-script/                   Repo maintenance tools (see below)
-```
+- `src/`: TypeScript renderer, renderables, FFI, input, workers, and testing utilities.
+- `solid/source/`: TypeScript/TSX reconciler, JSX runtime, and build integration.
+- `native/source/`: TypeScript native delivery and verified download cache.
+- `native/renderer/`: Zig/C native renderer, Yoga bindings, and native tests.
+- `spinner/src/`, `chart/src/`: TypeScript widgets; their `dist/` output is committed.
+- Root `index*.js`, `*.d.ts`, `lib/`, `renderables/`, `platform/`, `testing/`,
+  `solid/*.js`, `solid/src/`, and `native/*.js`: generated runtime/declaration artifacts.
+- `renderer-artifacts.json`: exact generated renderer artifact inventory.
+- `assets/`: tree-sitter WASM and highlight grammars; the Zig grammar is omitted.
+- `vendor/`: locally compiled native binaries and per-target licenses.
+- `vendor/manifest.json`: authoritative binary hashes and local source build provenance.
+- `script/`: build, verification, packaging, and release staging tools.
+- `patches/`, `solid/patches/`: historical behavior contracts, now implemented in source.
 
-## Maintenance tools (script/)
+## Commands
 
-- `vendor-tui-native.ts` — fetch/verify native libraries from the pinned
-  upstream npm platform packages; `--check` verifies the committed tree
-  against `vendor/manifest.json` fully offline.
-- `tui-patches.ts` — idempotent applier/checker for the required divergence
-  patches (`--apply` / `--check`). Contracts are marker-based, not diffs.
-- `check-tui-spinner-dist.ts` — rebuilds spinner sources to a temp dir and
-  compares against the committed `spinner/dist`.
-- `check-tui-chart-dist.ts` — rebuilds chart sources to a temp dir and
-  compares against the committed `chart/dist`.
-- `tui-dist.ts` — distribution allowlist helpers for downstream consumers
-  that copy this package (e.g. the AX Code CLI).
-- `tui-surface.ts` — the supported SolidJS JSX intrinsic allowlist.
-- `stage-native-assets.ts` — stages verified native libraries and license
-  assets for the matching version's GitHub release before JSR publication.
+Use Node.js >= 24 and pnpm via Corepack. Native rendering on Node requires
+Node 26+ with `--experimental-ffi`. All direct dependency versions are pinned.
+TypeScript 7.0.2 is the development compiler; Solid's JSX transform uses Babel.
 
-Each tool has a colocated `*.test.ts` run by `pnpm test` (vitest).
+- `pnpm install`: install dependencies.
+- `pnpm run build`: regenerate renderer JS/declarations and spinner/chart dist.
+- `pnpm run build:renderer`: regenerate only renderer, Solid, and native-delivery artifacts.
+- `pnpm run typecheck`: check core, Solid, native delivery, spinner, and chart sources.
+- `pnpm run check`: verify native hashes/source provenance, AX contracts, and all generated output.
+- `pnpm test`: Vitest framework and maintenance regressions.
+- `pnpm run build:native`: build the host's library with Zig pinned in `.zig-version`.
+- `pnpm run build:native --all`: build and stage all eight native targets.
+- `pnpm run build:native --target=linux-x64`: build one explicit target.
+- `pnpm run test:native`: run the native Zig suite.
+- `pnpm run check:jsr`: dry-run the JSR publication payload.
 
-## The vendor → patch → check loop
+`AX_CODE_TUI_ZIG` selects the compiler executable. `AX_CODE_TUI_MACOS_SDK`
+selects a macOS SDK for native builds. See `MAINTENANCE.md` for SDK requirements.
+`vendor` is a compatibility alias for the local native build; `apply:patches`
+is an alias for rebuilding source. Neither command fetches OpenTUI packages.
 
-When refreshing the upstream snapshot:
+## Required workflow
 
-1. Pin one exact upstream source/package/native version (`VERSION` in
-   `script/vendor-tui-native.ts`).
-2. `pnpm run vendor` fetches and verifies native artifacts (SRI, binary magic,
-   architecture) and rewrites `vendor/manifest.json`.
-3. `pnpm run apply:patches` applies every divergence contract; review every
-   `DIVERGENCES.md` ledger row instead of overwriting fixes.
-4. `pnpm run build` rebuilds `spinner/dist` and `chart/dist` (both are
-   committed).
-5. `pnpm run check` = vendor integrity + patch contracts + spinner/chart dist
-   freshness. `pnpm test` runs the maintenance tool tests.
-6. Update `UPSTREAM.md`, `DIVERGENCES.md`, and `MAINTENANCE.md` in the same
-   change.
+1. Edit TypeScript/TSX or Zig/C source, never generated JS, declarations, or binary bytes.
+2. Add a behavioral regression for bug fixes.
+3. Run `pnpm run build`, `pnpm run typecheck`, `pnpm run check`, and `pnpm test`.
+4. For native changes, run the native suite and rebuild every supported target.
+   Source hashes intentionally make `check:vendor` fail for stale target builds.
+5. Review changes to generated artifacts, distribution payload, provenance, and public exports.
 
-Rules that must hold at all times:
-
-- Never hand-edit new hashed renderer chunks after an upstream refresh —
-  express changes as named, idempotent patch contracts.
-- JavaScript/declaration artifacts and native libraries are refreshed
-  together; a consolidation must never be an implicit upstream upgrade.
-- Application code uses only the documented package exports (`ax-tui`,
-  `ax-tui/solid`, `ax-tui/solid/*`, `ax-tui/spinner`, `ax-tui/spinner/solid`,
-  `ax-tui/chart`, `ax-tui/chart/solid`, `ax-tui/testing`, `ax-tui/yoga`,
-  `ax-tui/runtime-plugin*`).
-- The native resolver maps `(platform, arch, AX_CODE_TUI_LIBC)` to
-  `vendor/<target>/`; upstream platform package names and
-  `libopentui`/`opentui.dll` filenames are ABI/provenance identifiers only.
-- `ax-tui/native` prepares native assets for downstream staging. Prefer
-  bundled libraries; otherwise verify cached/downloaded library and license
-  hashes. Preserve the signed-bundle exception: native bytes are verified
-  before signing, not against unsigned hashes when loading a signed bundle.
-- JSR self-imports must map to local exports in `jsr.json`, never to an
-  unpublished npm self-package. Publish immutable, verified native release
-  assets before the JSR version. Registry publication needs explicit approval.
-- `AX_CODE_TUI_*` environment variables and `AX_CODE_TUI_` runtime prefixes
-  are the package's public env/identity contract — do not rename them.
-
-## Environment and commands
-
-- Node.js >= 24; pnpm via corepack (`only-allow pnpm` convention). All
-  dependency versions are pinned directly in `package.json` (no catalog).
-- `pnpm install` — install dependencies.
-- `pnpm run build` — rebuild `spinner/dist` and `chart/dist` from their
-  `src/` trees.
-- `pnpm run typecheck` — typecheck spinner and chart sources
-  (`tsc -p spinner/tsconfig.json && tsc -p chart/tsconfig.json`).
-- `pnpm run check` — vendor + patches + spinner/chart-dist verification.
-- `pnpm test` — vitest over `test/*.test.ts` (framework-internal guards) and
-  `script/*.test.ts` (maintenance tools), per `vitest.config.ts`. The config
-  aliases the `ax-tui` self-reference to the package root because vite-node
-  does not apply Node's package self-reference resolution.
-- Formatting: Prettier, `semi: false`, `printWidth: 120` (matching the AX Code
-  style this repo was extracted from); ESM only; `import type` for
-  type-only imports.
+Keep generated JS/declarations and widget dist committed. Rebuild affected
+native artifacts in the same change when the ABI changes. Preserve compatibility
+with the documented package exports; application code must not import source
+or internal generated files.
 
 ## Hard rules
 
-- Keep the renderer snapshot's `import.meta.url`-relative resolution for
-  native and tree-sitter assets intact.
-- Never commit secrets; `vendor/manifest.json` hashes must stay accurate.
-- Keep `spinner/dist` and `chart/dist` committed and in sync with their
-  sources (`check:spinner-dist` and `check:chart-dist` must pass).
-- Keep both copyright lines in `LICENSE` and `solid/LICENSE`.
+- Preserve `import.meta.url`-relative native and tree-sitter asset resolution.
+- Preserve `AX_CODE_TUI_*` public environment variables and runtime identities.
+- Keep `libopentui`/`opentui.dll` and native ABI symbol names for compatibility;
+  these names are not upstream package dependencies.
+- Prefer bundled native libraries; verify downloaded/cached binary and license
+  hashes. Signed downstream bundles are verified before signing, not against
+  unsigned hashes when loaded after signing.
+- Never commit secrets, `.internal/`, Zig caches, or compiler/SDK installations.
+- JSR self-imports map to local exports in `jsr.json`, never to unpublished npm
+  self-packages. Exclude native binaries and development source from JSR payloads.
+- Publish verified, immutable native release assets before the matching JSR
+  version. Registry publication requires explicit user approval.
+- Use ESM and `import type`. Format handwritten TypeScript with Prettier,
+  `semi: false`, `printWidth: 120`.

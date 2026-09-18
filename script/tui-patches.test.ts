@@ -1,171 +1,24 @@
 import { describe, expect, test } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { dirname, join, relative } from "node:path"
-import { fileURLToPath } from "node:url"
-import {
-  applyKittyKeyboardOptOut,
-  applyNativeAssetDelivery,
-  applySlimCatalogue,
-  applyStdinParserTimeout,
-  axRuntimeIdentityApplied,
-  checkTuiPatches,
-  findFfiModule,
-  findRendererModule,
-  geometryGuardApplied,
-  identityFiles,
-  nativeResolverApplied,
-  nativeAssetDeliveryApplied,
-  kittyKeyboardOptOutApplied,
-  pointerPinApplied,
-  slimCatalogueApplied,
-  stdinParserTimeoutApplied,
-  zigParserDropped,
-} from "./tui-patches"
+import { readFileSync } from "node:fs"
+import { checkTuiPatches, axRuntimeIdentityApplied } from "./tui-patches"
 import { AX_TUI_JSX_UNUSED } from "./tui-surface"
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
-
-describe("script.tui-patches", () => {
-  test("required patches are applied to the committed vendor tree", () => {
-    const results = checkTuiPatches()
-    expect(results.filter((item) => !item.ok)).toEqual([])
+describe("owned renderer contracts", () => {
+  test("all inherited AX fixes live in the TypeScript source", () => {
+    expect(checkTuiPatches().filter((item) => !item.ok)).toEqual([])
   })
 
-  test("pointer pin, geometry guard, and native resolver stay reviewable as named contracts", () => {
-    const ffi = readFileSync(findFfiModule(), "utf8")
-    expect(pointerPinApplied(ffi)).toBe(true)
-    expect(geometryGuardApplied(ffi)).toBe(true)
-    expect(nativeResolverApplied(ffi)).toBe(true)
-    expect(zigParserDropped(ffi)).toBe(true)
+  test("legacy runtime identity is rejected while native ABI identifiers remain valid", () => {
+    expect(axRuntimeIdentityApplied('name: "OTUI_DEBUG"')).toBe(false)
+    expect(axRuntimeIdentityApplied('Symbol.for("opentui.solid.transform")')).toBe(false)
+    expect(axRuntimeIdentityApplied('name: "AX_CODE_TUI_DEBUG"')).toBe(true)
+    expect(axRuntimeIdentityApplied('const file = "libopentui.so"')).toBe(true)
   })
 
-  test("apply helpers are idempotent on already-patched source", () => {
-    const ffi = readFileSync(findFfiModule(), "utf8")
-    const renderer = readFileSync(findRendererModule(), "utf8")
-    expect(pointerPinApplied(ffi)).toBe(true)
-    expect(geometryGuardApplied(ffi)).toBe(true)
-    expect(nativeResolverApplied(ffi)).toBe(true)
-    expect(kittyKeyboardOptOutApplied(renderer)).toBe(true)
-    expect(applyKittyKeyboardOptOut(renderer)).toBe(renderer)
-    expect(nativeAssetDeliveryApplied(ffi)).toBe(true)
-    expect(applyNativeAssetDelivery(ffi)).toBe(ffi)
-  })
-
-  test("native delivery replaces only the package-relative path lookup", () => {
-    const fixture = [
-      "function resolveVendoredNativeTarget() {}",
-      "// AX_CODE_TUI_LIBC and ./vendor/ remain the target contract",
-      "var targetLibPath = fileURLToPath(\n  new URL('./vendor/library', import.meta.url)\n);",
-      "const after = true",
-    ].join("\n")
-    const result = applyNativeAssetDelivery(fixture)
-    expect(nativeAssetDeliveryApplied(result)).toBe(true)
-    expect(result).toContain("const after = true")
-    expect(applyNativeAssetDelivery(result)).toBe(result)
-    expect(() => applyNativeAssetDelivery("missing")).toThrow("missing vendored target path anchor")
-  })
-
-  test("Kitty keyboard null opt-out is preserved instead of defaulted back on", () => {
-    const source = "const kittyConfig = config.useKittyKeyboard ?? {};"
-    const next = applyKittyKeyboardOptOut(source)
-    expect(kittyKeyboardOptOutApplied(next)).toBe(true)
-    expect(next).toContain("config.useKittyKeyboard === undefined")
-    expect(next).not.toContain("config.useKittyKeyboard ?? {}")
-  })
-
-  test("stdin parser timeout is raised from 20ms and stays overridable", () => {
-    const source = [
-      "this.stdinParser = new StdinParser({",
-      "  timeoutMs: 20,",
-      "  maxPendingBytes: stdinParserMaxBufferBytes,",
-      "});",
-    ].join("\n")
-    const next = applyStdinParserTimeout(source)
-    expect(stdinParserTimeoutApplied(next)).toBe(true)
-    expect(next).toContain("timeoutMs: config.stdinParserTimeoutMs ?? 100,")
-    expect(next).not.toContain("timeoutMs: 20,")
-    expect(applyStdinParserTimeout(next)).toBe(next)
-    expect(() => applyStdinParserTimeout("no timeout field here")).toThrow(
-      "missing StdinParser timeoutMs anchor",
-    )
-  })
-
-  test("AX-owned runtime configuration and plugin identities use AX names", () => {
-    const sources = [
-      readFileSync(join(ROOT, "index-07zpr2dg.js"), "utf8"),
-      readFileSync(join(ROOT, "index-pcvh9d34.js"), "utf8"),
-      readFileSync(join(ROOT, "runtime-plugin.js"), "utf8"),
-      readFileSync(join(ROOT, "solid", "scripts", "solid-plugin.js"), "utf8"),
-    ]
-    expect(sources.every(axRuntimeIdentityApplied)).toBe(true)
-  })
-
-  test("slim-catalogue apply does not strip SelectRenderableEvents or reconciler aliases", () => {
-    const source = `import {
-  ASCIIFontRenderable,
-  BoxRenderable,
-  SelectRenderable,
-  SelectRenderableEvents,
-  TabSelectRenderable,
-  TabSelectRenderableEvents,
-  TextRenderable
-} from "ax-tui";
-import { SelectRenderable as SelectRenderable2 } from "ax-tui";
-var baseComponents = {
-  box: BoxRenderable,
-  text: TextRenderable,
-  select: SelectRenderable,
-  ascii_font: ASCIIFontRenderable,
-  tab_select: TabSelectRenderable,
-};
-if (node instanceof SelectRenderable2) {
-  event = SelectRenderableEvents.SELECTION_CHANGED;
-}
-`
-    const next = applySlimCatalogue(source)
-    expect(slimCatalogueApplied(next)).toBe(true)
-    expect(next).not.toContain("ascii_font:")
-    expect(next).not.toContain("ASCIIFontRenderable")
-    expect(next).toContain("SelectRenderableEvents")
-    expect(next).toContain("TabSelectRenderableEvents")
-    expect(next).toContain("SelectRenderable as SelectRenderable2")
-    expect(next).toContain("SelectRenderable2")
-  })
-
-  test("identityFiles skips dot-directories, node_modules, vendor, and patches", () => {
-    const fixture = mkdtempSync(join(tmpdir(), "ax-tui-identity-"))
-    try {
-      mkdirSync(join(fixture, ".git", "hooks"), { recursive: true })
-      mkdirSync(join(fixture, ".ax-code"), { recursive: true })
-      mkdirSync(join(fixture, "node_modules", "dep"), { recursive: true })
-      mkdirSync(join(fixture, "vendor", "darwin-arm64"), { recursive: true })
-      mkdirSync(join(fixture, "patches"), { recursive: true })
-      mkdirSync(join(fixture, "solid"), { recursive: true })
-      writeFileSync(join(fixture, "index.js"), "")
-      writeFileSync(join(fixture, "solid", "components.js"), "")
-      writeFileSync(join(fixture, ".git", "hooks", "hook.js"), "")
-      writeFileSync(join(fixture, ".ax-code", "cached.js"), "")
-      writeFileSync(join(fixture, "node_modules", "dep", "index.js"), "")
-      writeFileSync(join(fixture, "vendor", "darwin-arm64", "shim.js"), "")
-      writeFileSync(join(fixture, "patches", "notes.d.ts"), "")
-
-      const found = identityFiles(fixture)
-        .map((file) => relative(fixture, file))
-        .sort()
-      expect(found).toEqual([join("index.js"), join("solid", "components.js")].sort())
-    } finally {
-      rmSync(fixture, { recursive: true, force: true })
-    }
-  })
-
-  test("Solid catalogue does not register unused TUI widgets", () => {
+  test("the generated Solid catalogue omits unsupported intrinsics", () => {
     for (const name of ["index.js", "index.bun.js", "components.js"]) {
-      const source = readFileSync(join(ROOT, "solid", name), "utf8")
-      expect(slimCatalogueApplied(source), name).toBe(true)
-      for (const tag of AX_TUI_JSX_UNUSED) {
-        expect(source, `${name} still mentions ${tag}`).not.toContain(`${tag}:`)
-      }
+      const source = readFileSync(new URL(`../solid/${name}`, import.meta.url), "utf8")
+      for (const tag of AX_TUI_JSX_UNUSED) expect(source, name).not.toContain(`${tag}:`)
     }
   })
 })

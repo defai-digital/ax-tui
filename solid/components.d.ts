@@ -1,7 +1,8 @@
 /**
- * SolidJS component catalogue helpers (`extend`, `getComponentCatalogue`).
+ * Extend the AX TUI SolidJS component catalogue.
  *
  * @module
  */
-export { extend, getComponentCatalogue } from "./src/elements/catalogue.js"
-export type { AxTuiComponents, ExtendedComponentProps, ExtendedIntrinsicElements } from "./src/types/elements.js"
+export {};
+export { extend, getComponentCatalogue } from "./src/elements/catalogue.js";
+export type { ExtendedComponentProps, ExtendedIntrinsicElements, AxTuiComponents } from "./src/types/elements.js";

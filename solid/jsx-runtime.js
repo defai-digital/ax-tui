@@ -1,31 +1,38 @@
 // @ts-self-types="./jsx-runtime.d.ts"
-import { createComponent, createElement, spread } from "ax-tui/solid"
+// solid/source/jsx-runtime.ts
+import { createComponent, createElement, spread } from "ax-tui/solid";
 function normalizeProps(props) {
   if (!props) {
-    return {}
+    return {};
   }
   if (!("key" in props)) {
-    return props
+    return props;
   }
-  const { key: _key, ...rest } = props
-  return rest
+  const { key: _key, ...rest } = props;
+  return rest;
 }
 function createIntrinsicElement(type, props) {
-  const element = createElement(type)
-  spread(element, props)
-  return element
+  const element = createElement(type);
+  spread(element, props);
+  return element;
 }
-export function jsx(type, props = {}) {
-  const normalizedProps = normalizeProps(props)
+function jsx(type, props = {}) {
+  const normalizedProps = normalizeProps(props);
   if (typeof type === "function") {
-    return createComponent(type, normalizedProps)
+    return createComponent(type, normalizedProps);
   }
-  return createIntrinsicElement(type, normalizedProps)
+  return createIntrinsicElement(type, normalizedProps);
 }
-export const jsxs = jsx
-export function jsxDEV(type, props = {}) {
-  return jsx(type, props)
+var jsxs = jsx;
+function jsxDEV(type, props = {}) {
+  return jsx(type, props);
 }
-export function Fragment(props) {
-  return props.children ?? null
+function Fragment(props) {
+  return props.children ?? null;
 }
+export {
+  Fragment,
+  jsx,
+  jsxDEV,
+  jsxs
+};

@@ -2,7 +2,7 @@
 
 Upstream resolves the Zig shared library by dynamically importing
 `@opentui/core-<platform>` npm packages. AX Code vendors the binaries under
-`packages/ax-code-tui/vendor/<target>/` and must load them relative to the
+`vendor/<target>/` and must load them relative to the
 package so enterprise/offline installs do not hit the registry.
 
 ## Contract

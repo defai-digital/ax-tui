@@ -1,7 +1,7 @@
 {
   "name": "ax-tui",
   "version": "0.1.6",
-  "description": "SolidJS terminal UI framework with a native renderer — derived from OpenTUI (MIT)",
+  "description": "SolidJS terminal UI framework with a TypeScript renderer and a locally built native backend",
   "license": "MIT",
   "type": "module",
   "module": "index.js",
@@ -14,12 +14,10 @@
     "index-*.js",
     "*.d.ts",
     "lib",
-    "solid",
     "spinner/dist",
     "chart/dist",
     "renderables",
     "platform",
-    "native",
     "vendor",
     "assets",
     "animation",
@@ -34,7 +32,14 @@
     "README.md",
     "UPSTREAM.md",
     "DIVERGENCES.md",
-    "MAINTENANCE.md"
+    "MAINTENANCE.md",
+    "native/*.js",
+    "native/*.d.ts",
+    "solid/*.js",
+    "solid/*.d.ts",
+    "solid/scripts",
+    "solid/src",
+    "solid/LICENSE"
   ],
   "exports": {
     "./native": {
@@ -43,12 +48,12 @@
       "default": "./native/index.js"
     },
     ".": {
-      "import": "./index.js",
-      "types": "./index.d.ts"
+      "types": "./index.d.ts",
+      "import": "./index.js"
     },
     "./testing": {
-      "import": "./testing.js",
-      "types": "./testing.d.ts"
+      "types": "./testing.d.ts",
+      "import": "./testing.js"
     },
     "./runtime-plugin": {
       "types": "./runtime-plugin.d.ts",
@@ -78,9 +83,9 @@
       "import": "./lib/tree-sitter/update-assets.js"
     },
     "./parser.worker": {
+      "types": "./lib/tree-sitter/parser.worker.d.ts",
       "import": "./parser.worker.js",
-      "require": "./parser.worker.js",
-      "types": "./lib/tree-sitter/parser.worker.d.ts"
+      "require": "./parser.worker.js"
     },
     "./solid": {
       "types": "./solid/index.d.ts",
@@ -157,18 +162,23 @@
     }
   },
   "scripts": {
-    "build": "node -e \"const fs = require('node:fs'); fs.rmSync('spinner/dist', { recursive: true, force: true }); fs.rmSync('chart/dist', { recursive: true, force: true })\" && tsc -p spinner/tsconfig.build.json && tsc -p chart/tsconfig.build.json",
-    "typecheck": "tsc -p spinner/tsconfig.json && tsc -p chart/tsconfig.json",
-    "vendor": "tsx script/vendor-tui-native.ts",
-    "apply:patches": "tsx script/tui-patches.ts --apply",
+    "build": "pnpm run build:renderer && pnpm run build:widgets",
+    "typecheck": "tsc -p tsconfig.json && tsc -p solid/tsconfig.json && tsc -p native/tsconfig.json && tsc -p spinner/tsconfig.json && tsc -p chart/tsconfig.json && tsc -p script/tsconfig.json",
+    "vendor": "pnpm run build:native --all",
+    "apply:patches": "pnpm run build:renderer",
     "check:vendor": "tsx script/vendor-tui-native.ts --check",
     "check:patches": "tsx script/tui-patches.ts --check",
     "check:spinner-dist": "tsx script/check-tui-spinner-dist.ts",
     "check:chart-dist": "tsx script/check-tui-chart-dist.ts",
-    "check": "pnpm run check:vendor && pnpm run check:patches && pnpm run check:spinner-dist && pnpm run check:chart-dist",
+    "check": "pnpm run check:vendor && pnpm run check:patches && pnpm run check:renderer-dist && pnpm run check:spinner-dist && pnpm run check:chart-dist",
     "check:jsr": "jsr publish --dry-run",
     "publish:jsr": "jsr publish",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:widgets": "node -e \"const fs = require('node:fs'); fs.rmSync('spinner/dist', { recursive: true, force: true }); fs.rmSync('chart/dist', { recursive: true, force: true })\" && tsc -p spinner/tsconfig.build.json && tsc -p chart/tsconfig.build.json",
+    "build:renderer": "tsx script/sync-renderer.ts",
+    "check:renderer-dist": "tsx script/sync-renderer.ts --check",
+    "build:native": "tsx script/build-native.ts",
+    "test:native": "tsx script/build-native.ts --test"
   },
   "dependencies": {
     "@babel/core": "7.29.6",
@@ -183,7 +193,10 @@
     "strip-ansi": "7.1.2"
   },
   "devDependencies": {
+    "@types/babel__core": "7.20.5",
+    "@types/bun": "1.4.1",
     "@types/node": "24.13.2",
+    "esbuild": "0.28.2",
     "jsr": "0.14.3",
     "tsx": "4.22.4",
     "typescript": "7.0.2",

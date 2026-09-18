@@ -7,7 +7,7 @@ highlight call throws.
 
 ## Contract
 
-1. `packages/ax-code-tui/assets/zig/` does not exist.
+1. `assets/zig/` does not exist.
 2. The FFI/default-parser module does not call `resolveBundledFilePath` for
    `./assets/zig/`.
 3. The default parser list has no `filetype: "zig"` entry.

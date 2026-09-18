@@ -1,145 +1,114 @@
-# ax-tui maintenance
+# AX TUI maintenance
 
-`ax-tui` is a standalone, AX-owned terminal UI package extracted from the AX Code monorepo. Its supported product
-surface is:
+AX TUI owns and builds its TypeScript, SolidJS, and native renderer sources.
+The source origin and licenses are documented in `UPSTREAM.md`; preserved
+behavior is tracked in `DIVERGENCES.md`. There is no upstream bundle-refresh
+step in the development workflow.
 
-- `ax-tui` for the native renderer and renderables;
-- `ax-tui/solid` for the SolidJS reconciler and JSX runtime;
-- `ax-tui/spinner` and `ax-tui/spinner/solid` for the AX spinner;
-- `ax-tui/chart` and `ax-tui/chart/solid` for the ratatui-style chart widgets.
+## TypeScript and SolidJS
 
-Application code must use these exports only.
-
-## Ownership boundary
-
-AX (DEFAI Digital) owns package identity, exports, integration, release staging, regression policy, and local fixes.
-The current renderer snapshot and native libraries retain their upstream MIT lineage; see
-[UPSTREAM.md](./UPSTREAM.md), [DIVERGENCES.md](./DIVERGENCES.md), [LICENSE](./LICENSE), and
-[`vendor/manifest.json`](./vendor/manifest.json).
-
-The root contains the renderer JavaScript, declarations, runtime-plugin glue, tree-sitter assets, and native libraries.
-`solid/` contains the reconciler, JSX runtimes, preload shims, and the supported `./solid/transform` build API.
-`spinner/` and `chart/` contain TypeScript source plus committed `dist/` output. `script/` contains the repo's own
-maintenance tools (native vendoring, patch contracts, dist freshness, distribution allowlist, JSX surface). These are
-subpaths of one package, not independent packages.
-
-The root contains the renderer JavaScript, declarations, runtime-plugin glue, tree-sitter assets, and native libraries.
-`solid/` contains the reconciler, JSX runtimes, preload shims, and the supported `./solid/transform` build API.
-`spinner/` and `chart/` contain TypeScript source plus committed `dist/` output. These are subpaths of one package, not
-independent workspace packages.
-
-The native resolver maps `(platform, arch, AX_CODE_TUI_LIBC)` to `vendor/<target>/` relative to the package root.
-Upstream platform package names and `libopentui`/`opentui.dll` filenames remain only as ABI and provenance identifiers.
-
-If bundled native files are absent, `ax-tui/native` prepares version-pinned GitHub release assets in a private cache.
-Binary size/SHA-256 and license SHA-256 must match `vendor/manifest.json` before an entry is committed or reused.
-`AX_CODE_TUI_NATIVE_CACHE_DIR` overrides the cache location; `AX_CODE_TUI_NATIVE_OFFLINE=1` forbids downloads.
-Invalid cache entries fail closed. Remove only the reported cache entry to prepare it again.
-Bundled files remain loadable after platform signing changes their bytes; build tooling verifies before signing.
-
-## Required AX divergences
-
-Named, idempotent patch contracts live under `patches/` and `solid/patches/`. They preserve:
-
-- Node FFI pointer liveness;
-- safe native draw geometry;
-- a working Kitty keyboard protocol opt-out;
-- a realistic pending-escape-sequence assembly timeout;
-- deterministic, offline native resolution;
-- omission of the unused Zig parser;
-- the reduced Solid intrinsic catalogue; and
-- removal of upstream-only test remnants; and
-- AX-owned runtime flags and plugin/worker identities.
-
-Do not hand-edit new hashed renderer chunks after an upstream refresh. Apply and verify the contracts:
+The official TypeScript 7.0.2 compiler checks the renderer (`src/`), Solid
+integration (`solid/source/`), native delivery (`native/source/`), and widgets.
+Solid TSX uses the Babel universal transform through `ax-tui/solid/transform`.
+The Node bundle selects Solid's reactive runtime; Bun retains its own entry.
 
 ```sh
-pnpm run apply:patches
-pnpm run check:patches
+pnpm install
+pnpm run build
+pnpm run typecheck
+pnpm run check
+pnpm test
+pnpm run check:jsr
 ```
 
-The current renderer is a pre-bundled JavaScript snapshot. Converting it to owned, narrow source modules is a separate
-compatibility phase: preserve `import.meta.url` resolution for native and tree-sitter assets, and prove native/JS ABI
-compatibility before changing the source baseline.
+`build:renderer` compiles the local source to a temporary directory, emits
+declarations, and synchronizes only the generated files listed in
+`renderer-artifacts.json`. `check:renderer-dist` rebuilds and compares every
+artifact byte. Root JavaScript and declarations are distribution products;
+edit their TypeScript source instead. Spinner/chart `dist/` output is also
+committed and verified against source.
 
-## Upstream refresh
+`check:patches` retains its historical command name but now verifies AX
+contracts in source. `apply:patches` is a compatibility alias for
+`build:renderer`; there is no JavaScript bundle patcher. The historical
+contract documents remain under `patches/` and `solid/patches/`.
 
-1. Pin one exact upstream source/package/native version.
-2. Refresh renderer and Solid artifacts together at the repository root.
-3. If the native ABI changed, update `VERSION` in `script/vendor-tui-native.ts` and run `pnpm run vendor`.
-4. Run `pnpm run apply:patches`; review every ledger entry instead of overwriting AX fixes.
-5. Rebuild the spinner and chart outputs with `pnpm run build`.
-6. Run all verification below and update provenance, hashes, and divergences in the same change.
+## Native builds
 
-## Verification
+Install Zig 0.15.2 (pinned in `.zig-version`), or set `AX_CODE_TUI_ZIG` to that
+executable. Yoga and uucode are downloaded by Zig using content hashes from
+`native/renderer/build.zig.zon`; populated Zig caches allow offline rebuilding.
 
 ```sh
-pnpm run check            # vendor + patches + spinner/chart dist
-pnpm run typecheck        # spinner and chart sources
-pnpm test                 # maintenance tool tests (vitest, script/*.test.ts)
+pnpm run test:native
+pnpm run build:native                    # current host
+pnpm run build:native --target=linux-x64  # one exact target
+pnpm run build:native --all              # all eight release targets
+pnpm run check:vendor
 ```
 
-Downstream consumers (for example the AX Code monorepo) additionally run their own renderer, layering, and
-startup-smoke suites against this package.
+`vendor` is a compatibility alias for `build:native --all`. It never downloads
+OpenTUI binaries. The builder checks the compiler version, compiles local
+source, validates binary format and architecture, and stages libraries plus
+licenses in `vendor/`. It records source hashes and build configuration in
+`vendor/manifest.json`. After native source edits, all target builds must be
+refreshed; building only the host deliberately leaves other targets stale.
 
-## Runtime invariants
+macOS targets require an Apple SDK containing CoreAudio, AudioToolbox, and
+CoreFoundation. `AX_CODE_TUI_MACOS_SDK=/path/to/MacOSX.sdk` passes an explicit
+SDK to the renderer build; ensure Zig's host SDK discovery uses a compatible
+SDK too. Zig 0.15.2 can fail to link with recent Apple SDKs whose `.tbd` stubs
+only advertise `arm64e-macos`. Prefer an SDK supported by the pinned compiler.
+The initial local validation used a task-local copy of the SDK with arm64
+aliases added to those stubs; no system SDK was modified. Other platforms
+were cross-compiled; their runtime acceptance must be verified on those hosts.
 
-The compatible terminal profile is the default. The advanced profile is opt-in through
-`AX_CODE_TUI_ADVANCED_TERMINAL=1` and enables alternate-screen plus the render thread. Kitty keyboard negotiation is
-enabled in both profiles unless `AX_CODE_TUI_KITTY_KEYBOARD=0` explicitly disables it.
+The native ABI names and `libopentui`/`opentui.dll` filenames remain compatible.
+Changes to the TypeScript FFI and native ABI must be built and tested together.
+Native source, Zig caches, and SDKs are excluded from runtime distributions.
 
-Terminal teardown is ordered and best-effort: title cleanup, renderer destruction, mouse reset, main-screen clearing,
-and output flushing are separate failure domains. Deferred work, timers, subscriptions, process handlers, and renderable
-access must use the named TUI lifecycle and safety helpers so route changes and shutdown cannot leave stale work behind.
+## Runtime and packaging invariants
 
-## Releasing to JSR
+Use documented package exports (`ax-tui`, `ax-tui/solid`, widget, native,
+testing, Yoga, and runtime-plugin subpaths). Keep `import.meta.url`-relative
+native, worker, and tree-sitter asset resolution intact. Preserve the
+`AX_CODE_TUI_*` public environment and runtime identity contracts.
 
-The package is published to JSR as [`@defai-digital/ax-tui`](https://jsr.io/@defai-digital/ax-tui) from the
-`.github/workflows/jsr.yml` workflow using GitHub OIDC trusted publishing (no long-lived tokens).
+Native resolution maps platform, architecture, and `AX_CODE_TUI_LIBC` to a
+bundled library. When absent, `ax-tui/native` prepares a verified private cache
+from AX TUI's version-matched GitHub release. Binary size/SHA-256 and license
+SHA-256 must match the manifest. `AX_CODE_TUI_NATIVE_CACHE_DIR` overrides the
+cache; `AX_CODE_TUI_NATIVE_OFFLINE=1` forbids downloads. Invalid caches fail
+closed. Signed downstream bundles verify their inputs before signing; the
+runtime must not reject signed bytes using the unsigned manifest hash.
 
-1. Update `CHANGELOG.md`: move the version's changes under a new `## [<version>] - <date>` heading. The GitHub
-   release body is generated from this section by `script/build-release-notes.ts`, so a release without a CHANGELOG
-   section fails.
-2. Bump `version` in both `package.json` and `jsr.json` (they must match).
-3. Commit, push `main`, then create the matching tag (`v<version>`) and push it.
-4. The workflow validates the tag against `jsr.json`, rebuilds the spinner and chart dists, runs `check` and the test
-   suite, dry-runs the JSR publish, and then publishes with provenance.
-   The native-assets job stages all libraries and licenses, builds the GitHub release notes from `CHANGELOG.md`
-   (linking the matching JSR package and summarizing the version's changes), publishes the assets under the matching
-   GitHub tag, and verifies downloaded bytes against the staged artifacts. Existing assets are never overwritten.
+Node 26+ with `--experimental-ffi` is required for Node native rendering.
+Node 24 supports maintenance tools but skips native rendering integration
+checks. Vitest runs the framework and maintenance regressions; `test:native`
+runs the Zig suite separately. Downstream applications should additionally
+run their own input, rendering, startup, and teardown acceptance tests.
 
-Keep every `ax-tui` self-import mapped to its local export in `jsr.json`; otherwise JSR's npm-compatible manifest
-can accidentally depend on an unpublished npm package. The native-cache rendering test runs under Node 26 in
-the publish job; Node 24 retains non-rendering maintenance support.
+## Releases
 
-Downstream bundlers import `prepareNativeLibrary` from `ax-tui/native`, copy its `libraryPath` and `licensePath`
-into their own `vendor/<target>/`, and verify against the manifest before platform signing. They must not
-duplicate the framework's downloader or assume that JSR contains the native files.
+Registry publication requires explicit approval. Changes to native bytes
+require a new package version and new immutable release assets; do not
+replace assets attached to a previously published version.
 
-The JSR tarball ships JavaScript, type declarations, tree-sitter assets, and `vendor/manifest.json` only — the
-native renderer libraries exceed JSR size limits and are distributed out-of-band (GitHub Releases), with the
-manifest recording the expected artifacts. See `UPSTREAM.md` and the extraction PRD/ADR in the AX Code monorepo
-(`.internal/prd/PRD-2026-09-05-ax-tui-extraction.md`, `ADR-074`).
+1. Add a version section to `CHANGELOG.md`; release notes are generated from it.
+2. Bump `package.json` and `jsr.json` together.
+3. Run all verification above, including native builds/tests when affected.
+4. After approval, push the release commit and matching `v<version>` tag.
+5. `.github/workflows/jsr.yml` stages verified native libraries and licenses,
+   creates the release, checks existing assets byte-for-byte, and publishes
+   the JSR package only after native assets are available.
 
-```sh
-pnpm run check:jsr        # local dry run of the exact publish payload
-```
+JSR exports JavaScript/declarations, widget source, tree-sitter assets, and
+`vendor/manifest.json`. Native binaries are delivered through GitHub Releases
+to stay within JSR size limits. Every `ax-tui` self-import must map to its local
+export in `jsr.json`; never introduce an unpublished npm self-dependency.
+Downstream bundlers should use `prepareNativeLibrary` from `ax-tui/native`
+and preserve the verified library/license pair.
 
-The JSR score and package page also use settings that are not in `jsr.json`.
-After publishing, open https://jsr.io/@defai-digital/ax-tui/settings and set:
-
-- **Readme Source** to **Readme**, so the Overview tab shows `README.md`
-  instead of only the main entrypoint `@module` JSDoc.
-- **Description** to the package.json description (max 250 characters).
-- **Runtime compatibility:** Node.js and Bun supported; Deno unknown;
-  Cloudflare Workers and browsers unsupported (native terminal renderer).
-
-## TypeScript compiler
-
-Development type checks and spinner/chart emission use the official Go-based
-TypeScript 7.0.2 compiler, pinned in `package.json` and `pnpm-lock.yaml`.
-Install with `pnpm install` including optional platform dependencies, then run
-`pnpm run build`, `pnpm run check`, and `pnpm test`. No Go toolchain is required.
-The Solid transform still uses Babel; upgrading the type checker does not
-replace the renderer or native ABI. This repository does not use the legacy
-TypeScript JavaScript Compiler API.
+The JSR page settings remain external to `jsr.json`: select the README as the
+readme source and use the package description. Runtime support is Node and
+Bun; the native renderer does not target web browsers or Cloudflare Workers.

@@ -27,6 +27,6 @@ of an abandoned escape sequence typed in as text.
    jitter under load, while staying under the threshold where a standalone
    Escape keypress would feel laggy.
 2. `CliRendererConfig.stdinParserTimeoutMs` overrides the default without
-   requiring another vendor patch.
+   editing generated output.
 
-Regression: `script/tui-patches.test.ts` and `pnpm check:tui-patches`.
+Regression: `script/tui-patches.test.ts` and `pnpm run check:patches`.

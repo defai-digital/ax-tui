@@ -22,5 +22,10 @@ tmp/
 # Local agent working memory; never published to the public repo
 .ax-code/
 
-# The spinner dist is committed; nothing else built is
+# Runtime output is committed; source-adjacent compiler output is not
 spinner/src/**/*.js
+
+# Native compiler outputs and caches
+native/renderer/.zig-cache/
+native/renderer/zig-out/
+native/renderer/lib/

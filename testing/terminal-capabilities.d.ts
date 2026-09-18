@@ -1,13 +1,7 @@
-import type { CliRenderer } from "../renderer.js"
-import type { TerminalCapabilities, TerminalInfo } from "../types.js"
-/** Terminal capabilities overrides. */
+import type { CliRenderer } from "../renderer.js";
+import type { TerminalCapabilities, TerminalInfo } from "../types.js";
 export interface TerminalCapabilitiesOverrides extends Partial<Omit<TerminalCapabilities, "terminal">> {
-  terminal?: Partial<TerminalInfo>
+    terminal?: Partial<TerminalInfo>;
 }
-/** Create terminal capabilities. */
-export declare function createTerminalCapabilities(overrides?: TerminalCapabilitiesOverrides): TerminalCapabilities
-/** Set renderer capabilities. */
-export declare function setRendererCapabilities(
-  renderer: CliRenderer,
-  overrides?: TerminalCapabilitiesOverrides,
-): TerminalCapabilities
+export declare function createTerminalCapabilities(overrides?: TerminalCapabilitiesOverrides): TerminalCapabilities;
+export declare function setRendererCapabilities(renderer: CliRenderer, overrides?: TerminalCapabilitiesOverrides): TerminalCapabilities;

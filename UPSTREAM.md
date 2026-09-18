@@ -1,35 +1,53 @@
-# Upstream provenance
+# Source provenance
 
-`ax-tui` is an AX-owned package containing a derived renderer snapshot originally published by the OpenTUI
-project under the MIT license. Public package identity, release staging, patches, and product integration are maintained
-by DEFAI Digital; derivation and copyright notices remain intact.
+AX TUI is an independently maintained source fork. DEFAI Digital maintains
+its TypeScript renderer, SolidJS integration, native implementation, public
+API, builds, and releases in this repository.
 
-Design input (read-only, no code extraction) also comes from other coding-agent CLIs, notably Kimi Code and
-Grok Build, as documented in the README's design-influences section.
+The initial implementation was absorbed from [OpenTUI](https://github.com/anomalyco/opentui)
+under MIT at tag `v0.4.1`, commit
+`b7e0bb9c3d2a75c2bc267d2af27b7237f734d13b`:
 
-## Pinned native baseline
+| Imported source                                     | AX TUI location    |
+| --------------------------------------------------- | ------------------ |
+| `packages/core/src` (runtime TypeScript)            | `src/`             |
+| `packages/solid` (reconciler and build integration) | `solid/source/`    |
+| `packages/core/src/zig` (native source and tests)   | `native/renderer/` |
 
-The authoritative native record is [`vendor/manifest.json`](./vendor/manifest.json). It records:
+AX's existing fixes, public exports, runtime identities, native delivery, and
+reduced JSX catalogue are maintained directly in those sources. Default
+configuration/data paths now use `ax-tui`, avoiding the OpenTUI application
+namespace; callers can still set an explicit application name. The Solid
+universal reconciler's JavaScript was converted to TypeScript. Generated
+JavaScript and declarations are built locally; native libraries are compiled
+locally with Zig 0.15.2. No OpenTUI npm package is used to build or run AX TUI.
+This is a derivative implementation, not a clean-room rewrite. Original MIT
+copyright and license notices remain in the source and distributed licenses.
 
-- upstream version and repository;
-- retrieval timestamp;
-- platform package and target metadata;
-- registry integrity;
-- native library size and SHA-256; and
-- license hash.
+`vendor/manifest.json` records each target's source-tree SHA-256, Zig version,
+target triple, optimization mode, binary size/hash, and license hash. Its
+`origin` field identifies historical source provenance, not a binary download
+location. `renderer-artifacts.json` records generated TypeScript artifacts.
+The `libopentui`/`opentui.dll` filenames and native ABI identifiers remain for
+compatibility; they do not require OpenTUI platform packages.
 
-JavaScript/declaration artifacts and native libraries must be refreshed together unless ABI compatibility is proven by
-the packed Node distribution and renderer test suite. A package consolidation must never be used as an implicit upstream
-version upgrade.
+Future fixes are developed here. Adopting external changes is a deliberate
+source review, with attribution and regression coverage, rather than a bundle
+refresh. There is no automatic upstream sync or native-package download step.
 
-JSR native delivery does not change this baseline: GitHub release assets are byte-identical to the manifest-verified
-vendored libraries and licenses. Runtime downloads and cache reuse verify those hashes; signed downstream bundles
-verify their native inputs before signing rewrites bytes.
+## Other dependencies and influences
 
-## Refresh policy
+Native build dependencies remain hash-pinned in `native/renderer/build.zig.zon`:
+Yoga (MIT) and uucode (MIT). The vendored miniaudio header retains its embedded
+license. `native/renderer/THIRD_PARTY_LICENSES.txt` preserves the dependency
+notices, including Unicode data and UTF-8 decoding notices; each distributed
+native `LICENSE` includes them. TypeScript dependencies remain pinned in `package.json` and the pnpm
+lockfile. Independence from OpenTUI does not remove these dependencies.
 
-1. Pin the exact upstream source/package/native version.
-2. Fetch native artifacts through `pnpm run vendor`.
-3. Apply AX divergences through `pnpm run apply:patches`.
-4. Run all checks listed in `MAINTENANCE.md`.
-5. Update the manifest, this record when necessary, and `DIVERGENCES.md` in the same change.
+Chart behavior is informed by ratatui 0.30.2, and spinner presets derive from
+cli-spinners; their source attribution remains in the widget modules. Kimi
+Code and Grok Build are read-only design influences with no code extraction.
+
+JSR native assets come from AX TUI's matching GitHub release, are verified
+against the manifest, and are immutable. Signed downstream bundles verify
+native inputs before signing changes the bytes. See `MAINTENANCE.md`.
