@@ -7,6 +7,9 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ### Changed
 
+- Move the remaining inline widget-build and release-validation JavaScript
+  into TypeScript maintenance scripts checked by TypeScript 7.
+
 - Complete native interface separation: AX-owned library filenames, ABI
   version verification, native Yoga creation, notifications, diagnostics,
   and debug tool names. No OpenTUI native library is loaded or accepted.

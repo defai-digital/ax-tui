@@ -174,7 +174,7 @@
     "check:jsr": "jsr publish --dry-run",
     "publish:jsr": "jsr publish",
     "test": "vitest run",
-    "build:widgets": "node -e \"const fs = require('node:fs'); fs.rmSync('spinner/dist', { recursive: true, force: true }); fs.rmSync('chart/dist', { recursive: true, force: true })\" && tsc -p spinner/tsconfig.build.json && tsc -p chart/tsconfig.build.json",
+    "build:widgets": "tsx script/build-widgets.ts",
     "build:renderer": "tsx script/sync-renderer.ts",
     "check:renderer-dist": "tsx script/sync-renderer.ts --check",
     "build:native": "tsx script/build-native.ts",

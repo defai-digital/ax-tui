@@ -42,12 +42,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Validate native release tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          TUI_VERSION="$(node -p "require('./jsr.json').version")"
-          test "$AX_TUI_RELEASE_TAG" = "v${TUI_VERSION}"
-          test "$(node -p "require('./package.json').version")" = "$TUI_VERSION"
+        run: pnpm exec tsx script/validate-release-tag.ts "$AX_TUI_RELEASE_TAG"
 
       - name: Stage verified native assets
         run: pnpm exec tsx script/stage-native-assets.ts .tmp/native-assets
@@ -99,15 +94,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Validate release tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          TUI_VERSION="$(node -p "require('./jsr.json').version")"
-          EXPECTED_TAG="v${TUI_VERSION}"
-          if [ "$AX_TUI_RELEASE_TAG" != "$EXPECTED_TAG" ]; then
-            echo "::error::Release tag must be $EXPECTED_TAG, received $AX_TUI_RELEASE_TAG"
-            exit 1
-          fi
+        run: pnpm exec tsx script/validate-release-tag.ts "$AX_TUI_RELEASE_TAG"
 
       - name: Build
         run: pnpm run build
