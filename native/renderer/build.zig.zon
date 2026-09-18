@@ -1,6 +1,6 @@
 .{
     .name = .ax_tui,
-    .version = "0.1.6",
+    .version = "1.0.0",
     .fingerprint = 0x1d785d6553f08b3a,
     .minimum_zig_version = "0.15.2",
     .dependencies = .{
