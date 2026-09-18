@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest"
+import { spawnSync } from "node:child_process"
 import { BAR_LEVELS, BLOCK_EIGHTHS, BRAILLE_BASE, symbolForHeight } from "../chart/src/symbols"
 import { cellsToFrame, compositeCells, mergeCell, paintText, type Cell } from "../chart/src/cells"
 import { BrailleGrid, CharGrid, createGrid } from "../chart/src/grid"
@@ -172,6 +173,23 @@ describe("getPoint", () => {
     expect(getPoint(5, 5, { x: [10, 0], y: [0, 10] }, res)).toBeNull() // reversed
     expect(getPoint(5, 5, { x: [5, 5], y: [0, 10] }, res)).toBeNull() // degenerate
   })
+
+  test("maps large finite coordinates without overflowing intermediate arithmetic", () => {
+    const bounds: Bounds = { x: [-1e308, 1e308], y: [-1e308, 1e308] }
+    const res = { x: 5, y: 5 }
+    expect(getPoint(-1e308, -1e308, bounds, res)).toEqual({ px: 0, py: 4 })
+    expect(getPoint(0, 0, bounds, res)).toEqual({ px: 2, py: 2 })
+    expect(getPoint(1e308, 1e308, bounds, res)).toEqual({ px: 4, py: 0 })
+    expect(getPoint(1e308, 1e308, { x: [0, 1e308], y: [0, 1e308] }, res)).toEqual({ px: 4, py: 0 })
+  })
+
+  test("rejects invalid bounds and grid resolutions", () => {
+    expect(getPoint(0, 0, { x: [-Infinity, Infinity], y: [0, 1] }, { x: 5, y: 5 })).toBeNull()
+    for (const invalid of [0, -1, NaN, Infinity, 1.5]) {
+      expect(getPoint(0, 0, UNIT, { x: invalid, y: 5 })).toBeNull()
+      expect(getPoint(0, 0, UNIT, { x: 5, y: invalid })).toBeNull()
+    }
+  })
 })
 
 describe("clipLine", () => {
@@ -191,6 +209,12 @@ describe("clipLine", () => {
   test("rejects non-finite coordinates", () => {
     expect(clipLine(NaN, 0, 5, 5, UNIT)).toBeNull()
   })
+
+  test("clips large finite segments without overflowing the intersection", () => {
+    expect(clipLine(-1e308, 5, 1e308, 5, UNIT)).toEqual([0, 5, 10, 5])
+    expect(clipLine(5, -1e308, 5, 1e308, UNIT)).toEqual([5, 0, 5, 10])
+    expect(clipLine(-1e308, -1e308, 1e308, 1e308, UNIT)).toEqual([0, 0, 10, 10])
+  })
 })
 
 describe("forEachLinePoint", () => {
@@ -209,6 +233,17 @@ describe("forEachLinePoint", () => {
   test("steep lines emit max(dx, dy) + 1 points", () => {
     expect(collect(0, 0, 2, 4)).toHaveLength(5)
   })
+
+  test.each([NaN, Infinity, -Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    "ignores invalid pixel endpoints (%s) without entering the raster loop",
+    (invalid) => {
+      const paint = () => { throw new Error("Invalid pixels must not be painted") }
+      forEachLinePoint(0, 0, invalid, 1, paint)
+      forEachLinePoint(invalid, 0, 1, 1, paint)
+      forEachLinePoint(0, invalid, 1, 1, paint)
+      forEachLinePoint(0, 0, 1, invalid, paint)
+    },
+  )
 })
 
 // ---------------------------------------------------------------------------
@@ -365,6 +400,22 @@ describe("layoutBarChart", () => {
 // ---------------------------------------------------------------------------
 
 describe("layoutChart", () => {
+  test("large finite line data renders without blocking the event loop", () => {
+    // Run separately so a regression in a synchronous raster loop times out
+    // without hanging the entire test runner.
+    const source = new URL("../chart/src/chart.ts", import.meta.url).href
+    const result = spawnSync(process.execPath, ["--import", "tsx/esm", "--input-type=module", "-e", `
+      import { layoutChart } from ${JSON.stringify(source)}
+      const cells = layoutChart({ datasets: [{
+        data: [[-1e308, -1e308], [1e308, 1e308]], graphType: "line", marker: "dot"
+      }] }, 5, 5)
+      console.log(JSON.stringify(cells.map(({ x, y }) => [x, y])))
+    `], { encoding: "utf8", timeout: 3000 })
+    expect(result.error).toBeUndefined()
+    expect(result.status, result.stderr).toBe(0)
+    expect(JSON.parse(result.stdout)).toEqual([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]])
+  })
+
   test("zero size renders nothing", () => {
     expect(layoutChart({ datasets: [{ data: [[0, 0]] }] }, 0, 5)).toEqual([])
     expect(layoutChart({ datasets: [{ data: [[0, 0]] }] }, 5, 0)).toEqual([])
@@ -409,6 +460,17 @@ describe("layoutChart", () => {
       "  └─────────────────",
       "  0       5       10",
     ])
+  })
+
+  test("axis colors apply to lines as well as their labels and titles", () => {
+    const cells = layoutChart({
+      color: "green",
+      xAxis: { bounds: [0, 1], labels: ["0", "1"], title: "x", color: "red" },
+      yAxis: { bounds: [0, 1], labels: ["0", "1"], title: "y", color: "blue" },
+    }, 10, 6)
+    expect(cells.filter((cell) => cell.char === "─").every((cell) => cell.fg === "red")).toBe(true)
+    expect(cells.filter((cell) => cell.char === "│").every((cell) => cell.fg === "blue")).toBe(true)
+    expect(cells.find((cell) => cell.char === "└")?.fg).toBe("green")
   })
 
   test("a single y label draws the axis line but no label text (ratatui parity)", () => {

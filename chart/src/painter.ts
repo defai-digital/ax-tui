@@ -12,6 +12,22 @@ export interface PixelPoint {
   readonly py: number
 }
 
+function validBounds(bounds: Bounds): boolean {
+  return [...bounds.x, ...bounds.y].every(Number.isFinite) && bounds.x[0] < bounds.x[1] && bounds.y[0] < bounds.y[1]
+}
+
+// Divide before scaling to pixels. Halving first also handles finite endpoints
+// whose difference exceeds Number.MAX_VALUE.
+function fraction(value: number, start: number, end: number): number {
+  if (value === start) return 0
+  const span = end - start
+  return Number.isFinite(span) ? (value - start) / span : (value / 2 - start / 2) / (end / 2 - start / 2)
+}
+
+function interpolate(start: number, end: number, ratio: number): number {
+  return start * (1 - ratio) + end * ratio
+}
+
 /**
  * World-to-pixel mapping (faithful port of ratatui `Painter::get_point`).
  *
@@ -26,16 +42,15 @@ export function getPoint(
   bounds: Bounds,
   resolution: GridResolution,
 ): PixelPoint | null {
-  if (!Number.isFinite(wx) || !Number.isFinite(wy)) return null
+  if (!Number.isFinite(wx) || !Number.isFinite(wy) || !validBounds(bounds)) return null
+  if (!Number.isSafeInteger(resolution.x) || !Number.isSafeInteger(resolution.y)) return null
+  if (resolution.x <= 0 || resolution.y <= 0) return null
   const [left, right] = bounds.x
   const [bottom, top] = bounds.y
   if (wx < left || wx > right || wy < bottom || wy > top) return null
-  const width = right - left
-  const height = top - bottom
-  if (!(width > 0) || !(height > 0)) return null
   return {
-    px: Math.round(((wx - left) * (resolution.x - 1)) / width),
-    py: Math.round(((top - wy) * (resolution.y - 1)) / height),
+    px: Math.round(fraction(wx, left, right) * (resolution.x - 1)),
+    py: Math.round(fraction(wy, top, bottom) * (resolution.y - 1)),
   }
 }
 
@@ -69,7 +84,7 @@ export function clipLine(
   y2: number,
   bounds: Bounds,
 ): [number, number, number, number] | null {
-  if (![x1, y1, x2, y2].every(Number.isFinite)) return null
+  if (![x1, y1, x2, y2].every(Number.isFinite) || !validBounds(bounds)) return null
   const [left, right] = bounds.x
   const [bottom, top] = bounds.y
   let out1 = outcode(x1, y1, bounds)
@@ -82,16 +97,16 @@ export function clipLine(
     let x = 0
     let y = 0
     if ((out & TOP) !== 0) {
-      x = x1 + ((x2 - x1) * (top - y1)) / (y2 - y1)
+      x = interpolate(x1, x2, fraction(top, y1, y2))
       y = top
     } else if ((out & BOTTOM) !== 0) {
-      x = x1 + ((x2 - x1) * (bottom - y1)) / (y2 - y1)
+      x = interpolate(x1, x2, fraction(bottom, y1, y2))
       y = bottom
     } else if ((out & RIGHT) !== 0) {
-      y = y1 + ((y2 - y1) * (right - x1)) / (x2 - x1)
+      y = interpolate(y1, y2, fraction(right, x1, x2))
       x = right
     } else {
-      y = y1 + ((y2 - y1) * (left - x1)) / (x2 - x1)
+      y = interpolate(y1, y2, fraction(left, x1, x2))
       x = left
     }
     if (out === out1) {
@@ -110,7 +125,8 @@ export function clipLine(
  * Integer Bresenham over pixel space (port of ratatui `for_each_line_point`;
  * the all-octant error-doubling variant produces the same rasterization).
  * Chart line interpolation projects the clipped endpoints first and then
- * rasterizes — never float-step between data points.
+ * rasterizes — never float-step between data points. Invalid or unsafe integer
+ * coordinates are ignored so an unreachable endpoint cannot trap the loop.
  */
 export function forEachLinePoint(
   x0: number,
@@ -119,6 +135,7 @@ export function forEachLinePoint(
   y1: number,
   paint: (px: number, py: number) => void,
 ): void {
+  if (![x0, y0, x1, y1, x1 - x0, y1 - y0].every(Number.isSafeInteger)) return
   const dx = Math.abs(x1 - x0)
   const sx = x0 < x1 ? 1 : -1
   const dy = -Math.abs(y1 - y0)

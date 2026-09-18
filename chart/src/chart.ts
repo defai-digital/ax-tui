@@ -193,7 +193,9 @@ export function layoutChartInternal(options: ChartLayoutOptions, width: number, 
   // --- Axis lines (only when the corresponding axis has labels) ----------
   if (axisRowX !== null) {
     const from = axisColY !== null ? axisColY + 1 : graphLeft
-    for (let x = from; x < width; x++) cells.push({ x, y: axisRowX, char: LINE_HORIZONTAL, fg: axisColor })
+    for (let x = from; x < width; x++) {
+      cells.push({ x, y: axisRowX, char: LINE_HORIZONTAL, fg: xAxis?.color ?? axisColor })
+    }
     if (axisColY !== null)
       cells.push({
         x: axisColY,
@@ -204,7 +206,9 @@ export function layoutChartInternal(options: ChartLayoutOptions, width: number, 
   }
   if (axisColY !== null) {
     const bottom = axisRowX !== null ? axisRowX : graphHeight
-    for (let row = 0; row < bottom; row++) cells.push({ x: axisColY, y: row, char: LINE_VERTICAL, fg: axisColor })
+    for (let row = 0; row < bottom; row++) {
+      cells.push({ x: axisColY, y: row, char: LINE_VERTICAL, fg: yAxis?.color ?? axisColor })
+    }
   }
 
   // --- Axis labels --------------------------------------------------------
