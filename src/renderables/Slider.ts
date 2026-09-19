@@ -1,4 +1,5 @@
 import { type RenderableOptions, Renderable } from "../Renderable.js"
+import { clamp } from "../lib/clamp.js"
 import { type RenderContext } from "../types.js"
 import { type ColorInput, RGBA, parseColor } from "../lib/RGBA.js"
 import { OptimizedBuffer } from "../buffer.js"
@@ -46,7 +47,7 @@ export class SliderRenderable extends Renderable {
   }
 
   set value(newValue: number) {
-    const clamped = Math.max(this._min, Math.min(this._max, newValue))
+    const clamped = clamp(newValue, this._min, this._max)
     if (clamped !== this._value) {
       this._value = clamped
       this._onChange?.(clamped)
@@ -84,7 +85,7 @@ export class SliderRenderable extends Renderable {
   }
 
   set viewPortSize(size: number) {
-    const clampedSize = Math.max(0.01, Math.min(size, this._max - this._min))
+    const clampedSize = clamp(size, 0.01, this._max - this._min)
     if (clampedSize !== this._viewPortSize) {
       this._viewPortSize = clampedSize
       this.requestRender()
@@ -116,14 +117,15 @@ export class SliderRenderable extends Renderable {
   private calculateDragOffsetVirtual(event: any): number {
     const trackStart = this.orientation === "vertical" ? this.y : this.x
     const mousePos = (this.orientation === "vertical" ? event.y : event.x) - trackStart
-    const virtualMousePos = Math.max(
+    const virtualMousePos = clamp(
+      mousePos * 2,
       0,
-      Math.min((this.orientation === "vertical" ? this.height : this.width) * 2, mousePos * 2),
+      (this.orientation === "vertical" ? this.height : this.width) * 2,
     )
     const virtualThumbStart = this.getVirtualThumbStart()
     const virtualThumbSize = this.getVirtualThumbSize()
 
-    return Math.max(0, Math.min(virtualThumbSize, virtualMousePos - virtualThumbStart))
+    return clamp(virtualMousePos - virtualThumbStart, 0, virtualThumbSize)
   }
 
   private setupMouseHandling(): void {
@@ -170,7 +172,7 @@ export class SliderRenderable extends Renderable {
     const mousePos = this.orientation === "vertical" ? event.y : event.x
 
     const relativeMousePos = mousePos - trackStart
-    const clampedMousePos = Math.max(0, Math.min(trackSize, relativeMousePos))
+    const clampedMousePos = clamp(relativeMousePos, 0, trackSize)
     const ratio = trackSize === 0 ? 0 : clampedMousePos / trackSize
     const range = this._max - this._min
     const newValue = this._min + ratio * range
@@ -185,14 +187,14 @@ export class SliderRenderable extends Renderable {
 
     const virtualTrackSize = trackSize * 2
     const relativeMousePos = mousePos - trackStart
-    const clampedMousePos = Math.max(0, Math.min(trackSize, relativeMousePos))
+    const clampedMousePos = clamp(relativeMousePos, 0, trackSize)
     const virtualMousePos = clampedMousePos * 2
 
     const virtualThumbSize = this.getVirtualThumbSize()
     const maxThumbStart = Math.max(0, virtualTrackSize - virtualThumbSize)
 
     let desiredThumbStart = virtualMousePos - offsetVirtual
-    desiredThumbStart = Math.max(0, Math.min(maxThumbStart, desiredThumbStart))
+    desiredThumbStart = clamp(desiredThumbStart, 0, maxThumbStart)
 
     const ratio = maxThumbStart === 0 ? 0 : desiredThumbStart / maxThumbStart
     const range = this._max - this._min

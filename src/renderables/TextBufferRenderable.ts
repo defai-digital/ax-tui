@@ -1,4 +1,5 @@
 import { Renderable, type RenderableOptions } from "../Renderable.js"
+import { clamp } from "../lib/clamp.js"
 import { convertGlobalToLocalSelection, Selection, type LocalSelectionBounds } from "../lib/selection.js"
 import { TextBuffer, type TextChunk } from "../text-buffer.js"
 import { TextBufferView } from "../text-buffer-view.js"
@@ -151,7 +152,7 @@ export abstract class TextBufferRenderable extends Renderable implements LineInf
 
   public set scrollY(value: number) {
     const maxScrollY = Math.max(0, this.scrollHeight - this.height)
-    const clamped = Math.max(0, Math.min(value, maxScrollY))
+    const clamped = clamp(value, 0, maxScrollY)
     if (this._scrollY !== clamped) {
       this._scrollY = clamped
       this.updateViewportOffset()
@@ -165,7 +166,7 @@ export abstract class TextBufferRenderable extends Renderable implements LineInf
 
   public set scrollX(value: number) {
     const maxScrollX = Math.max(0, this.scrollWidth - this.width)
-    const clamped = Math.max(0, Math.min(value, maxScrollX))
+    const clamped = clamp(value, 0, maxScrollX)
     if (this._scrollX !== clamped) {
       this._scrollX = clamped
       this.updateViewportOffset()

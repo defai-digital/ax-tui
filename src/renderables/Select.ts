@@ -3,6 +3,7 @@ import { fonts, measureText, renderFontToFrameBuffer } from "../lib/ascii.font.j
 import type { KeyEvent } from "../lib/KeyHandler.js"
 import { RGBA, parseColor, type ColorInput } from "../lib/RGBA.js"
 import { Renderable, type RenderableOptions } from "../Renderable.js"
+import { clamp } from "../lib/clamp.js"
 import type { RenderContext } from "../types.js"
 import {
   type KeyBinding as BaseKeyBinding,
@@ -506,7 +507,7 @@ export class SelectRenderable extends Renderable {
 
   public set selectedIndex(value: number) {
     const newIndex = value ?? this._defaultOptions.selectedIndex
-    const clampedIndex = this._options.length > 0 ? Math.min(Math.max(0, newIndex), this._options.length - 1) : 0
+    const clampedIndex = this._options.length > 0 ? clamp(newIndex, 0, this._options.length - 1) : 0
     if (this._selectedIndex !== clampedIndex) {
       this._selectedIndex = clampedIndex
       this.updateScrollOffset()

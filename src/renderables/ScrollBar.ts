@@ -1,5 +1,6 @@
 import type { OptimizedBuffer } from "../buffer.js"
 import { parseColor, RGBA, type ColorInput } from "../lib/index.js"
+import { clamp } from "../lib/clamp.js"
 import type { KeyEvent } from "../lib/KeyHandler.js"
 import { stringWidth } from "../platform/runtime.js"
 import { Renderable, type RenderableOptions } from "../Renderable.js"
@@ -70,7 +71,10 @@ export class ScrollBarRenderable extends Renderable {
   }
 
   set scrollPosition(value: number) {
-    const newPosition = Math.round(Math.min(Math.max(0, value), this.scrollSize - this.viewportSize))
+    // Upper bound is floored at 0 so a viewport larger than the content can
+    // never push the stored position negative (previously the raw
+    // `scrollSize - viewportSize` upper bound could).
+    const newPosition = Math.round(clamp(value, 0, Math.max(0, this.scrollSize - this.viewportSize)))
     if (newPosition !== this._scrollPosition) {
       this._scrollPosition = newPosition
       this.updateSliderFromScrollState()

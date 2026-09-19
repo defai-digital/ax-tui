@@ -115,9 +115,6 @@ export declare class TextTableRenderable extends Renderable {
     private computeColumnWidths;
     private expandColumnWidths;
     private fitColumnWidths;
-    private fitColumnWidthsProportional;
-    private fitColumnWidthsBalanced;
-    private allocateShrinkByWeight;
     private computeRowHeights;
     private computeOffsets;
     private getInterColumnGap;

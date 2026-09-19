@@ -1,4 +1,5 @@
 import { validateBufferDimensions } from "./lib/buffer.validations.js"
+import { clamp } from "./lib/clamp.js"
 import { ANSI } from "./ansi.js"
 import { Renderable, RootRenderable } from "./Renderable.js"
 import { BoxRenderable } from "./renderables/Box.js"
@@ -394,9 +395,12 @@ class ExternalOutputQueue {
     this.commits.push(commit)
   }
 
+  private resolveLimit(limit: number, total: number): number {
+    return Number.isFinite(limit) ? clamp(Math.trunc(limit), 1, total) : total
+  }
+
   peek(limit: number = Number.POSITIVE_INFINITY): readonly ExternalOutputCommit[] {
-    const clampedLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : this.commits.length
-    return this.commits.slice(0, clampedLimit)
+    return this.commits.slice(0, this.resolveLimit(limit, this.commits.length))
   }
 
   claim(limit: number = Number.POSITIVE_INFINITY): ExternalOutputCommit[] {
@@ -408,7 +412,7 @@ class ExternalOutputQueue {
     // simulated Ctrl+R hold). Taking everything at once creates very large native
     // frames that increase visible churn. We keep claim() bounded so one render tick
     // produces one modest frame and schedules another tick if work remains.
-    const clampedLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : this.commits.length
+    const clampedLimit = this.resolveLimit(limit, this.commits.length)
     if (clampedLimit >= this.commits.length) {
       const output = this.commits
       this.commits = []
@@ -2328,7 +2332,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
       throw new Error("writeToScrollback produced a non-finite width")
     }
 
-    return Math.min(Math.max(Math.trunc(rawValue), 1), Math.max(this.width, 1))
+    return clamp(Math.trunc(rawValue), 1, Math.max(this.width, 1))
   }
 
   private getSnapshotHeight(value: number | undefined, fallback: number): number {
@@ -2343,7 +2347,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
 
   private getSnapshotRowWidths(snapshot: OptimizedBuffer, rowColumns: number): number[] {
     const widths: number[] = []
-    const limit = Math.min(Math.max(Math.trunc(rowColumns), 0), snapshot.width)
+    const limit = clamp(Math.trunc(rowColumns), 0, snapshot.width)
     const chars = snapshot.buffers.char
 
     for (let y = 0; y < snapshot.height; y += 1) {

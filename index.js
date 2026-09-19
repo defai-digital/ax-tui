@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-4CLH37C6.js";
+} from "./index-BVA3MBM5.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -94,6 +94,7 @@ import {
   brightWhite,
   brightYellow,
   buildTerminalPaletteSignature,
+  clamp,
   clearEnvCache,
   convertGlobalToLocalSelection,
   convertThemeToStyles,
@@ -183,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-C65X6BOM.js";
+} from "./index-SJUAZG55.js";
 
 // src/post/effects.ts
 function toU8(value) {
@@ -5403,6 +5404,134 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
 // src/renderables/Markdown.ts
 import { Lexer as Lexer2 } from "marked";
 
+// src/lib/table-columns.ts
+function normalizeColumnWidth(width) {
+  return Number.isFinite(width) ? Math.max(1, Math.floor(width)) : 1;
+}
+function sumWidths(widths) {
+  let total = 0;
+  for (const width of widths) total += width;
+  return total;
+}
+function allocateShrinkByWeight(shrinkable, targetShrink, mode) {
+  const shrink = new Array(shrinkable.length).fill(0);
+  if (targetShrink <= 0) {
+    return shrink;
+  }
+  const weights = shrinkable.map((value) => {
+    if (value <= 0) {
+      return 0;
+    }
+    return mode === "sqrt" ? Math.sqrt(value) : value;
+  });
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
+  if (totalWeight <= 0) {
+    return shrink;
+  }
+  const fractions = new Array(shrinkable.length).fill(0);
+  let usedShrink = 0;
+  for (let idx = 0; idx < shrinkable.length; idx++) {
+    if (shrinkable[idx] <= 0 || weights[idx] <= 0) continue;
+    const exact = weights[idx] / totalWeight * targetShrink;
+    const whole = Math.min(shrinkable[idx], Math.floor(exact));
+    shrink[idx] = whole;
+    fractions[idx] = exact - whole;
+    usedShrink += whole;
+  }
+  let remainingShrink = targetShrink - usedShrink;
+  while (remainingShrink > 0) {
+    let bestIdx = -1;
+    let bestFraction = -1;
+    for (let idx = 0; idx < shrinkable.length; idx++) {
+      if (shrinkable[idx] - shrink[idx] <= 0) continue;
+      if (bestIdx === -1 || fractions[idx] > bestFraction || fractions[idx] === bestFraction && shrinkable[idx] > shrinkable[bestIdx]) {
+        bestIdx = idx;
+        bestFraction = fractions[idx];
+      }
+    }
+    if (bestIdx === -1) {
+      break;
+    }
+    shrink[bestIdx] += 1;
+    fractions[bestIdx] = 0;
+    remainingShrink -= 1;
+  }
+  return shrink;
+}
+function fitColumnWidthsProportional(widths, targetContentWidth, minWidth) {
+  const hardMinWidths = new Array(widths.length).fill(minWidth);
+  const baseWidths = widths.map(normalizeColumnWidth);
+  const preferredMinWidths = baseWidths.map((width) => Math.min(width, minWidth + 1));
+  const preferredMinTotal = sumWidths(preferredMinWidths);
+  const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths;
+  const floorTotal = sumWidths(floorWidths);
+  const clampedTarget = Math.max(floorTotal, targetContentWidth);
+  const totalBaseWidth = sumWidths(baseWidths);
+  if (totalBaseWidth <= clampedTarget) {
+    return baseWidths;
+  }
+  const shrinkable = baseWidths.map((width, idx) => width - floorWidths[idx]);
+  const totalShrinkable = sumWidths(shrinkable);
+  if (totalShrinkable <= 0) {
+    return [...floorWidths];
+  }
+  const targetShrink = totalBaseWidth - clampedTarget;
+  const integerShrink = new Array(baseWidths.length).fill(0);
+  const fractions = new Array(baseWidths.length).fill(0);
+  let usedShrink = 0;
+  for (let idx = 0; idx < baseWidths.length; idx++) {
+    if (shrinkable[idx] <= 0) continue;
+    const exact = shrinkable[idx] / totalShrinkable * targetShrink;
+    const whole = Math.min(shrinkable[idx], Math.floor(exact));
+    integerShrink[idx] = whole;
+    fractions[idx] = exact - whole;
+    usedShrink += whole;
+  }
+  let remainingShrink = targetShrink - usedShrink;
+  while (remainingShrink > 0) {
+    let bestIdx = -1;
+    let bestFraction = -1;
+    for (let idx = 0; idx < baseWidths.length; idx++) {
+      if (shrinkable[idx] - integerShrink[idx] <= 0) continue;
+      if (fractions[idx] > bestFraction) {
+        bestFraction = fractions[idx];
+        bestIdx = idx;
+      }
+    }
+    if (bestIdx === -1) break;
+    integerShrink[bestIdx] += 1;
+    fractions[bestIdx] = 0;
+    remainingShrink -= 1;
+  }
+  return baseWidths.map((width, idx) => Math.max(floorWidths[idx], width - integerShrink[idx]));
+}
+function fitColumnWidthsBalanced(widths, targetContentWidth, minWidth) {
+  const hardMinWidths = new Array(widths.length).fill(minWidth);
+  const baseWidths = widths.map(normalizeColumnWidth);
+  const totalBaseWidth = sumWidths(baseWidths);
+  const columns = baseWidths.length;
+  if (columns === 0 || totalBaseWidth <= targetContentWidth) {
+    return baseWidths;
+  }
+  const evenShare = Math.max(minWidth, Math.floor(targetContentWidth / columns));
+  const preferredMinWidths = baseWidths.map((width) => Math.min(width, evenShare));
+  const preferredMinTotal = sumWidths(preferredMinWidths);
+  const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths;
+  const floorTotal = sumWidths(floorWidths);
+  const clampedTarget = Math.max(floorTotal, targetContentWidth);
+  if (totalBaseWidth <= clampedTarget) {
+    return baseWidths;
+  }
+  const shrinkable = baseWidths.map((width, idx) => width - floorWidths[idx]);
+  const totalShrinkable = sumWidths(shrinkable);
+  if (totalShrinkable <= 0) {
+    return [...floorWidths];
+  }
+  const targetShrink = totalBaseWidth - clampedTarget;
+  const shrink = allocateShrinkByWeight(shrinkable, targetShrink, "sqrt");
+  return baseWidths.map((width, idx) => Math.max(floorWidths[idx], width - shrink[idx]));
+}
+
 // src/renderables/TextTable.ts
 var MEASURE_HEIGHT = 1e4;
 var TextTableRenderable = class extends Renderable {
@@ -5926,7 +6055,7 @@ var TextTableRenderable = class extends Renderable {
     return this.fitColumnWidths(intrinsicWidths, maxContentWidth);
   }
   expandColumnWidths(widths, targetContentWidth) {
-    const baseWidths = widths.map((width) => Math.max(1, Math.floor(width)));
+    const baseWidths = widths.map(normalizeColumnWidth);
     const totalBaseWidth = baseWidths.reduce((sum, width) => sum + width, 0);
     if (totalBaseWidth >= targetContentWidth) {
       return baseWidths;
@@ -5945,130 +6074,11 @@ var TextTableRenderable = class extends Renderable {
     return expanded;
   }
   fitColumnWidths(widths, targetContentWidth) {
+    const minWidth = 1 + this.getHorizontalCellPadding();
     if (this._columnFitter === "balanced") {
-      return this.fitColumnWidthsBalanced(widths, targetContentWidth);
+      return fitColumnWidthsBalanced(widths, targetContentWidth, minWidth);
     }
-    return this.fitColumnWidthsProportional(widths, targetContentWidth);
-  }
-  fitColumnWidthsProportional(widths, targetContentWidth) {
-    const minWidth = 1 + this.getHorizontalCellPadding();
-    const hardMinWidths = new Array(widths.length).fill(minWidth);
-    const baseWidths = widths.map((width) => Math.max(1, Math.floor(width)));
-    const preferredMinWidths = baseWidths.map((width) => Math.min(width, minWidth + 1));
-    const preferredMinTotal = preferredMinWidths.reduce((sum, width) => sum + width, 0);
-    const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths;
-    const floorTotal = floorWidths.reduce((sum, width) => sum + width, 0);
-    const clampedTarget = Math.max(floorTotal, targetContentWidth);
-    const totalBaseWidth = baseWidths.reduce((sum, width) => sum + width, 0);
-    if (totalBaseWidth <= clampedTarget) {
-      return baseWidths;
-    }
-    const shrinkable = baseWidths.map((width, idx) => width - floorWidths[idx]);
-    const totalShrinkable = shrinkable.reduce((sum, value) => sum + value, 0);
-    if (totalShrinkable <= 0) {
-      return [...floorWidths];
-    }
-    const targetShrink = totalBaseWidth - clampedTarget;
-    const integerShrink = new Array(baseWidths.length).fill(0);
-    const fractions = new Array(baseWidths.length).fill(0);
-    let usedShrink = 0;
-    for (let idx = 0; idx < baseWidths.length; idx++) {
-      if (shrinkable[idx] <= 0) continue;
-      const exact = shrinkable[idx] / totalShrinkable * targetShrink;
-      const whole = Math.min(shrinkable[idx], Math.floor(exact));
-      integerShrink[idx] = whole;
-      fractions[idx] = exact - whole;
-      usedShrink += whole;
-    }
-    let remainingShrink = targetShrink - usedShrink;
-    while (remainingShrink > 0) {
-      let bestIdx = -1;
-      let bestFraction = -1;
-      for (let idx = 0; idx < baseWidths.length; idx++) {
-        if (shrinkable[idx] - integerShrink[idx] <= 0) continue;
-        if (fractions[idx] > bestFraction) {
-          bestFraction = fractions[idx];
-          bestIdx = idx;
-        }
-      }
-      if (bestIdx === -1) break;
-      integerShrink[bestIdx] += 1;
-      fractions[bestIdx] = 0;
-      remainingShrink -= 1;
-    }
-    return baseWidths.map((width, idx) => Math.max(floorWidths[idx], width - integerShrink[idx]));
-  }
-  fitColumnWidthsBalanced(widths, targetContentWidth) {
-    const minWidth = 1 + this.getHorizontalCellPadding();
-    const hardMinWidths = new Array(widths.length).fill(minWidth);
-    const baseWidths = widths.map((width) => Math.max(1, Math.floor(width)));
-    const totalBaseWidth = baseWidths.reduce((sum, width) => sum + width, 0);
-    const columns = baseWidths.length;
-    if (columns === 0 || totalBaseWidth <= targetContentWidth) {
-      return baseWidths;
-    }
-    const evenShare = Math.max(minWidth, Math.floor(targetContentWidth / columns));
-    const preferredMinWidths = baseWidths.map((width) => Math.min(width, evenShare));
-    const preferredMinTotal = preferredMinWidths.reduce((sum, width) => sum + width, 0);
-    const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths;
-    const floorTotal = floorWidths.reduce((sum, width) => sum + width, 0);
-    const clampedTarget = Math.max(floorTotal, targetContentWidth);
-    if (totalBaseWidth <= clampedTarget) {
-      return baseWidths;
-    }
-    const shrinkable = baseWidths.map((width, idx) => width - floorWidths[idx]);
-    const totalShrinkable = shrinkable.reduce((sum, value) => sum + value, 0);
-    if (totalShrinkable <= 0) {
-      return [...floorWidths];
-    }
-    const targetShrink = totalBaseWidth - clampedTarget;
-    const shrink = this.allocateShrinkByWeight(shrinkable, targetShrink, "sqrt");
-    return baseWidths.map((width, idx) => Math.max(floorWidths[idx], width - shrink[idx]));
-  }
-  allocateShrinkByWeight(shrinkable, targetShrink, mode) {
-    const shrink = new Array(shrinkable.length).fill(0);
-    if (targetShrink <= 0) {
-      return shrink;
-    }
-    const weights = shrinkable.map((value) => {
-      if (value <= 0) {
-        return 0;
-      }
-      return mode === "sqrt" ? Math.sqrt(value) : value;
-    });
-    const totalWeight = weights.reduce((sum, value) => sum + value, 0);
-    if (totalWeight <= 0) {
-      return shrink;
-    }
-    const fractions = new Array(shrinkable.length).fill(0);
-    let usedShrink = 0;
-    for (let idx = 0; idx < shrinkable.length; idx++) {
-      if (shrinkable[idx] <= 0 || weights[idx] <= 0) continue;
-      const exact = weights[idx] / totalWeight * targetShrink;
-      const whole = Math.min(shrinkable[idx], Math.floor(exact));
-      shrink[idx] = whole;
-      fractions[idx] = exact - whole;
-      usedShrink += whole;
-    }
-    let remainingShrink = targetShrink - usedShrink;
-    while (remainingShrink > 0) {
-      let bestIdx = -1;
-      let bestFraction = -1;
-      for (let idx = 0; idx < shrinkable.length; idx++) {
-        if (shrinkable[idx] - shrink[idx] <= 0) continue;
-        if (bestIdx === -1 || fractions[idx] > bestFraction || fractions[idx] === bestFraction && shrinkable[idx] > shrinkable[bestIdx]) {
-          bestIdx = idx;
-          bestFraction = fractions[idx];
-        }
-      }
-      if (bestIdx === -1) {
-        break;
-      }
-      shrink[bestIdx] += 1;
-      fractions[bestIdx] = 0;
-      remainingShrink -= 1;
-    }
-    return shrink;
+    return fitColumnWidthsProportional(widths, targetContentWidth, minWidth);
   }
   computeRowHeights(columnWidths) {
     const horizontalPadding = this.getHorizontalCellPadding();
@@ -8094,7 +8104,7 @@ var SliderRenderable = class extends Renderable {
     return this._value;
   }
   set value(newValue) {
-    const clamped = Math.max(this._min, Math.min(this._max, newValue));
+    const clamped = clamp(newValue, this._min, this._max);
     if (clamped !== this._value) {
       this._value = clamped;
       this._onChange?.(clamped);
@@ -8127,7 +8137,7 @@ var SliderRenderable = class extends Renderable {
     }
   }
   set viewPortSize(size) {
-    const clampedSize = Math.max(0.01, Math.min(size, this._max - this._min));
+    const clampedSize = clamp(size, 0.01, this._max - this._min);
     if (clampedSize !== this._viewPortSize) {
       this._viewPortSize = clampedSize;
       this.requestRender();
@@ -8153,13 +8163,14 @@ var SliderRenderable = class extends Renderable {
   calculateDragOffsetVirtual(event) {
     const trackStart = this.orientation === "vertical" ? this.y : this.x;
     const mousePos = (this.orientation === "vertical" ? event.y : event.x) - trackStart;
-    const virtualMousePos = Math.max(
+    const virtualMousePos = clamp(
+      mousePos * 2,
       0,
-      Math.min((this.orientation === "vertical" ? this.height : this.width) * 2, mousePos * 2)
+      (this.orientation === "vertical" ? this.height : this.width) * 2
     );
     const virtualThumbStart = this.getVirtualThumbStart();
     const virtualThumbSize = this.getVirtualThumbSize();
-    return Math.max(0, Math.min(virtualThumbSize, virtualMousePos - virtualThumbStart));
+    return clamp(virtualMousePos - virtualThumbStart, 0, virtualThumbSize);
   }
   setupMouseHandling() {
     let isDragging = false;
@@ -8195,7 +8206,7 @@ var SliderRenderable = class extends Renderable {
     const trackSize = this.orientation === "vertical" ? this.height : this.width;
     const mousePos = this.orientation === "vertical" ? event.y : event.x;
     const relativeMousePos = mousePos - trackStart;
-    const clampedMousePos = Math.max(0, Math.min(trackSize, relativeMousePos));
+    const clampedMousePos = clamp(relativeMousePos, 0, trackSize);
     const ratio = trackSize === 0 ? 0 : clampedMousePos / trackSize;
     const range = this._max - this._min;
     const newValue = this._min + ratio * range;
@@ -8207,12 +8218,12 @@ var SliderRenderable = class extends Renderable {
     const mousePos = this.orientation === "vertical" ? event.y : event.x;
     const virtualTrackSize = trackSize * 2;
     const relativeMousePos = mousePos - trackStart;
-    const clampedMousePos = Math.max(0, Math.min(trackSize, relativeMousePos));
+    const clampedMousePos = clamp(relativeMousePos, 0, trackSize);
     const virtualMousePos = clampedMousePos * 2;
     const virtualThumbSize = this.getVirtualThumbSize();
     const maxThumbStart = Math.max(0, virtualTrackSize - virtualThumbSize);
     let desiredThumbStart = virtualMousePos - offsetVirtual;
-    desiredThumbStart = Math.max(0, Math.min(maxThumbStart, desiredThumbStart));
+    desiredThumbStart = clamp(desiredThumbStart, 0, maxThumbStart);
     const ratio = maxThumbStart === 0 ? 0 : desiredThumbStart / maxThumbStart;
     const range = this._max - this._min;
     const newValue = this._min + ratio * range;
@@ -8371,7 +8382,7 @@ var ScrollBarRenderable = class extends Renderable {
     this.scrollPosition = this.scrollPosition;
   }
   set scrollPosition(value) {
-    const newPosition = Math.round(Math.min(Math.max(0, value), this.scrollSize - this.viewportSize));
+    const newPosition = Math.round(clamp(value, 0, Math.max(0, this.scrollSize - this.viewportSize)));
     if (newPosition !== this._scrollPosition) {
       this._scrollPosition = newPosition;
       this.updateSliderFromScrollState();
@@ -9698,7 +9709,7 @@ var SelectRenderable = class extends Renderable {
   }
   set selectedIndex(value) {
     const newIndex = value ?? this._defaultOptions.selectedIndex;
-    const clampedIndex = this._options.length > 0 ? Math.min(Math.max(0, newIndex), this._options.length - 1) : 0;
+    const clampedIndex = this._options.length > 0 ? clamp(newIndex, 0, this._options.length - 1) : 0;
     if (this._selectedIndex !== clampedIndex) {
       this._selectedIndex = clampedIndex;
       this.updateScrollOffset();

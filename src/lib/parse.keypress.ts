@@ -1,6 +1,6 @@
 // Copied from https://github.com/enquirer/enquirer/blob/36785f3399a41cd61e9d28d1eb9c2fcd73d69b4c/lib/keypress.js
 import { Buffer } from "node:buffer"
-import { kittyNamedSingleStrokeKeys, parseKittyKeyboard } from "./parse.keypress-kitty.js"
+import { fromKittyMods, kittyNamedSingleStrokeKeys, parseKittyKeyboard } from "./parse.keypress-kitty.js"
 
 const metaKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/
 
@@ -326,12 +326,13 @@ export const parseKeypress = (s: Buffer | string = "", options: ParseKeypressOpt
     const modifier = parseInt(modifyOtherKeysMatch[1]!, 10) - 1
     const charCode = parseInt(modifyOtherKeysMatch[2]!, 10)
 
-    key.ctrl = !!(modifier & 4)
-    key.meta = !!(modifier & 2) // Alt/Option sets meta
-    key.shift = !!(modifier & 1)
-    key.option = !!(modifier & 2)
-    key.super = !!(modifier & 8)
-    key.hyper = !!(modifier & 16)
+    const mods = fromKittyMods(modifier)
+    key.ctrl = mods.ctrl
+    key.meta = mods.alt // Alt/Option sets meta
+    key.shift = mods.shift
+    key.option = mods.alt
+    key.super = mods.super
+    key.hyper = mods.hyper
 
     // Handle common keys by their ASCII codes
     if (charCode === 13) {

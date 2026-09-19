@@ -162,7 +162,12 @@ function getPrintableKittyKeyText(key: ParsedKey): string | undefined {
   return printableKeypadText[key.name]
 }
 
-function fromKittyMods(mod: number): {
+/**
+ * Decode a Kitty-protocol modifier mask (with the conventional `+1` bias
+ * already removed) into individual modifier flags. Shared with the
+ * modifyOtherKeys (CSI 27;mod;code~) decode path in parse.keypress.ts.
+ */
+export function fromKittyMods(mod: number): {
   shift: boolean
   alt: boolean
   ctrl: boolean

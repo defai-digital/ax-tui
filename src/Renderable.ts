@@ -2,6 +2,7 @@ import { EventEmitter } from "events"
 import Yoga, { Direction, Display, Edge, FlexDirection, type Node as YogaNode } from "./yoga.js"
 import { OptimizedBuffer } from "./buffer.js"
 import type { KeyEvent, PasteEvent } from "./lib/KeyHandler.js"
+import { clamp } from "./lib/clamp.js"
 import type { MouseEventType } from "./lib/parse.mouse.js"
 import type { Selection } from "./lib/selection.js"
 import {
@@ -312,7 +313,7 @@ export abstract class Renderable extends BaseRenderable {
     this.buffered = options.buffered ?? false
     this._live = options.live ?? false
     this._liveCount = this._live && this._visible ? 1 : 0
-    this._opacity = options.opacity !== undefined ? Math.max(0, Math.min(1, options.opacity)) : 1.0
+    this._opacity = options.opacity !== undefined ? clamp(options.opacity, 0, 1) : 1.0
 
     this.yogaNode = Yoga.Node.createForAxTui()
     this.yogaNode.setDisplay(this._visible ? Display.Flex : Display.None)
@@ -385,7 +386,7 @@ export abstract class Renderable extends BaseRenderable {
   }
 
   public set opacity(value: number) {
-    const clamped = Math.max(0, Math.min(1, value))
+    const clamped = clamp(value, 0, 1)
     if (this._opacity !== clamped) {
       this._opacity = clamped
       bumpRenderListRevision(this._ctx)

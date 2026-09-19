@@ -2,6 +2,11 @@ import { MeasureMode } from "../yoga.js"
 import { type RenderableOptions, Renderable } from "../Renderable.js"
 import type { OptimizedBuffer } from "../buffer.js"
 import { type BorderStyle, BorderCharArrays, parseBorderStyle } from "../lib/border.js"
+import {
+  fitColumnWidthsBalanced,
+  fitColumnWidthsProportional,
+  normalizeColumnWidth,
+} from "../lib/table-columns.js"
 import { convertGlobalToLocalSelection, type Selection, type LocalSelectionBounds } from "../lib/selection.js"
 import { StyledText, stringToStyledText } from "../lib/styled-text.js"
 import { RGBA, parseColor, type ColorInput } from "../lib/RGBA.js"
@@ -736,7 +741,7 @@ export class TextTableRenderable extends Renderable {
   }
 
   private expandColumnWidths(widths: number[], targetContentWidth: number): number[] {
-    const baseWidths = widths.map((width) => Math.max(1, Math.floor(width)))
+    const baseWidths = widths.map(normalizeColumnWidth)
     const totalBaseWidth = baseWidths.reduce((sum, width) => sum + width, 0)
 
     if (totalBaseWidth >= targetContentWidth) {
@@ -760,172 +765,13 @@ export class TextTableRenderable extends Renderable {
   }
 
   private fitColumnWidths(widths: number[], targetContentWidth: number): number[] {
+    const minWidth = 1 + this.getHorizontalCellPadding()
+
     if (this._columnFitter === "balanced") {
-      return this.fitColumnWidthsBalanced(widths, targetContentWidth)
+      return fitColumnWidthsBalanced(widths, targetContentWidth, minWidth)
     }
 
-    return this.fitColumnWidthsProportional(widths, targetContentWidth)
-  }
-
-  private fitColumnWidthsProportional(widths: number[], targetContentWidth: number): number[] {
-    const minWidth = 1 + this.getHorizontalCellPadding()
-    const hardMinWidths = new Array(widths.length).fill(minWidth)
-    const baseWidths = widths.map((width) => Math.max(1, Math.floor(width)))
-
-    const preferredMinWidths = baseWidths.map((width) => Math.min(width, minWidth + 1))
-    const preferredMinTotal = preferredMinWidths.reduce((sum, width) => sum + width, 0)
-
-    const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths
-    const floorTotal = floorWidths.reduce((sum, width) => sum + width, 0)
-    const clampedTarget = Math.max(floorTotal, targetContentWidth)
-
-    const totalBaseWidth = baseWidths.reduce((sum, width) => sum + width, 0)
-
-    if (totalBaseWidth <= clampedTarget) {
-      return baseWidths
-    }
-
-    const shrinkable = baseWidths.map((width, idx) => width - floorWidths[idx])
-    const totalShrinkable = shrinkable.reduce((sum, value) => sum + value, 0)
-    if (totalShrinkable <= 0) {
-      return [...floorWidths]
-    }
-
-    const targetShrink = totalBaseWidth - clampedTarget
-    const integerShrink = new Array(baseWidths.length).fill(0)
-    const fractions = new Array(baseWidths.length).fill(0)
-    let usedShrink = 0
-
-    for (let idx = 0; idx < baseWidths.length; idx++) {
-      if (shrinkable[idx] <= 0) continue
-
-      const exact = (shrinkable[idx] / totalShrinkable) * targetShrink
-      const whole = Math.min(shrinkable[idx], Math.floor(exact))
-      integerShrink[idx] = whole
-      fractions[idx] = exact - whole
-      usedShrink += whole
-    }
-
-    let remainingShrink = targetShrink - usedShrink
-
-    while (remainingShrink > 0) {
-      let bestIdx = -1
-      let bestFraction = -1
-
-      for (let idx = 0; idx < baseWidths.length; idx++) {
-        if (shrinkable[idx] - integerShrink[idx] <= 0) continue
-        if (fractions[idx] > bestFraction) {
-          bestFraction = fractions[idx]
-          bestIdx = idx
-        }
-      }
-
-      if (bestIdx === -1) break
-
-      integerShrink[bestIdx] += 1
-      fractions[bestIdx] = 0
-      remainingShrink -= 1
-    }
-
-    return baseWidths.map((width, idx) => Math.max(floorWidths[idx], width - integerShrink[idx]))
-  }
-
-  private fitColumnWidthsBalanced(widths: number[], targetContentWidth: number): number[] {
-    const minWidth = 1 + this.getHorizontalCellPadding()
-    const hardMinWidths = new Array(widths.length).fill(minWidth)
-    const baseWidths = widths.map((width) => Math.max(1, Math.floor(width)))
-    const totalBaseWidth = baseWidths.reduce((sum, width) => sum + width, 0)
-    const columns = baseWidths.length
-
-    if (columns === 0 || totalBaseWidth <= targetContentWidth) {
-      return baseWidths
-    }
-
-    const evenShare = Math.max(minWidth, Math.floor(targetContentWidth / columns))
-    const preferredMinWidths = baseWidths.map((width) => Math.min(width, evenShare))
-    const preferredMinTotal = preferredMinWidths.reduce((sum, width) => sum + width, 0)
-    const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths
-    const floorTotal = floorWidths.reduce((sum, width) => sum + width, 0)
-    const clampedTarget = Math.max(floorTotal, targetContentWidth)
-
-    if (totalBaseWidth <= clampedTarget) {
-      return baseWidths
-    }
-
-    const shrinkable = baseWidths.map((width, idx) => width - floorWidths[idx])
-    const totalShrinkable = shrinkable.reduce((sum, value) => sum + value, 0)
-    if (totalShrinkable <= 0) {
-      return [...floorWidths]
-    }
-
-    const targetShrink = totalBaseWidth - clampedTarget
-    const shrink = this.allocateShrinkByWeight(shrinkable, targetShrink, "sqrt")
-
-    return baseWidths.map((width, idx) => Math.max(floorWidths[idx], width - shrink[idx]))
-  }
-
-  private allocateShrinkByWeight(shrinkable: number[], targetShrink: number, mode: "linear" | "sqrt"): number[] {
-    const shrink = new Array(shrinkable.length).fill(0)
-
-    if (targetShrink <= 0) {
-      return shrink
-    }
-
-    const weights = shrinkable.map((value) => {
-      if (value <= 0) {
-        return 0
-      }
-
-      return mode === "sqrt" ? Math.sqrt(value) : value
-    })
-    const totalWeight = weights.reduce((sum, value) => sum + value, 0)
-
-    if (totalWeight <= 0) {
-      return shrink
-    }
-
-    const fractions = new Array(shrinkable.length).fill(0)
-    let usedShrink = 0
-
-    for (let idx = 0; idx < shrinkable.length; idx++) {
-      if (shrinkable[idx] <= 0 || weights[idx] <= 0) continue
-
-      const exact = (weights[idx] / totalWeight) * targetShrink
-      const whole = Math.min(shrinkable[idx], Math.floor(exact))
-      shrink[idx] = whole
-      fractions[idx] = exact - whole
-      usedShrink += whole
-    }
-
-    let remainingShrink = targetShrink - usedShrink
-
-    while (remainingShrink > 0) {
-      let bestIdx = -1
-      let bestFraction = -1
-
-      for (let idx = 0; idx < shrinkable.length; idx++) {
-        if (shrinkable[idx] - shrink[idx] <= 0) continue
-
-        if (
-          bestIdx === -1 ||
-          fractions[idx] > bestFraction ||
-          (fractions[idx] === bestFraction && shrinkable[idx] > shrinkable[bestIdx])
-        ) {
-          bestIdx = idx
-          bestFraction = fractions[idx]
-        }
-      }
-
-      if (bestIdx === -1) {
-        break
-      }
-
-      shrink[bestIdx] += 1
-      fractions[bestIdx] = 0
-      remainingShrink -= 1
-    }
-
-    return shrink
+    return fitColumnWidthsProportional(widths, targetContentWidth, minWidth)
   }
 
   private computeRowHeights(columnWidths: number[]): number[] {
