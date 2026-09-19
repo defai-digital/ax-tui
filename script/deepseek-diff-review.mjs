@@ -87,7 +87,11 @@ console.log(`deepseek CLI found: ${cliPath}`)
 // --- 2. Build the bounded self-contained review prompt. --------------------
 git("cat-file", "-e", `${baseline}^{commit}`) // throws (and aborts) on a bad SHA
 const stat = git("diff", "--stat", `${baseline}..HEAD`).trim()
-let diff = git("diff", `${baseline}..HEAD`)
+// Review the maintained sources only: regenerated bundles dominate the raw
+// diff (tens of thousands of lines) while their freshness is already proven
+// by `pnpm run check`. Their per-file stat is included for context.
+const maintainedPaths = ["src", "solid/source", "spinner/src", "chart/src", "test", "script"]
+let diff = git("diff", `${baseline}..HEAD`, "--", ...maintainedPaths)
 if (diff.length > MAX_DIFF_CHARS) {
   const truncatedAt = diff.lastIndexOf("\ndiff --git", MAX_DIFF_CHARS)
   const cut = truncatedAt > 0 ? truncatedAt : MAX_DIFF_CHARS
@@ -104,10 +108,10 @@ const prompt = [
   "  VERDICT: NO-FINDINGS   (when there is nothing actionable)",
   "  VERDICT: FINDINGS      (when at least one actionable defect exists)",
   "",
-  "=== COMMIT RANGE SUMMARY ===",
+  "=== COMMIT RANGE SUMMARY (all paths, incl. regenerated artifacts) ===",
   stat,
   "",
-  "=== UNIFIED DIFF ===",
+  "=== UNIFIED DIFF (maintained sources; regenerated artifacts omitted) ===",
   diff,
 ].join("\n")
 
