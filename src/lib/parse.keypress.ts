@@ -1,6 +1,7 @@
 // Copied from https://github.com/enquirer/enquirer/blob/36785f3399a41cd61e9d28d1eb9c2fcd73d69b4c/lib/keypress.js
 import { Buffer } from "node:buffer"
-import { fromKittyMods, kittyNamedSingleStrokeKeys, parseKittyKeyboard } from "./parse.keypress-kitty.js"
+import { kittyNamedSingleStrokeKeys, parseKittyKeyboard } from "./parse.keypress-kitty.js"
+import { fromKittyMods } from "./keypress-modifiers.js"
 
 const metaKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/
 

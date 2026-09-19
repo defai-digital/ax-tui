@@ -2,6 +2,7 @@
 // Based on https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 
 import type { ParsedKey } from "./parse.keypress.js"
+import { fromKittyMods } from "./keypress-modifiers.js"
 
 const kittyKeyMap: Record<number, string> = {
   // Standard keys
@@ -160,33 +161,6 @@ const printableKeypadText: Record<string, string> = {
 
 function getPrintableKittyKeyText(key: ParsedKey): string | undefined {
   return printableKeypadText[key.name]
-}
-
-/**
- * Decode a Kitty-protocol modifier mask (with the conventional `+1` bias
- * already removed) into individual modifier flags. Shared with the
- * modifyOtherKeys (CSI 27;mod;code~) decode path in parse.keypress.ts.
- */
-export function fromKittyMods(mod: number): {
-  shift: boolean
-  alt: boolean
-  ctrl: boolean
-  super: boolean
-  hyper: boolean
-  meta: boolean
-  capsLock: boolean
-  numLock: boolean
-} {
-  return {
-    shift: !!(mod & 1),
-    alt: !!(mod & 2),
-    ctrl: !!(mod & 4),
-    super: !!(mod & 8),
-    hyper: !!(mod & 16),
-    meta: !!(mod & 32),
-    capsLock: !!(mod & 64),
-    numLock: !!(mod & 128),
-  }
 }
 
 // Map functional key CSI codes to key names

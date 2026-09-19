@@ -6437,6 +6437,20 @@ var SystemClock = class {
 // src/lib/parse.keypress.ts
 import { Buffer as Buffer2 } from "node:buffer";
 
+// src/lib/keypress-modifiers.ts
+function fromKittyMods(mod) {
+  return {
+    shift: !!(mod & 1),
+    alt: !!(mod & 2),
+    ctrl: !!(mod & 4),
+    super: !!(mod & 8),
+    hyper: !!(mod & 16),
+    meta: !!(mod & 32),
+    capsLock: !!(mod & 64),
+    numLock: !!(mod & 128)
+  };
+}
+
 // src/lib/parse.keypress-kitty.ts
 var kittyKeyMap = {
   // Standard keys
@@ -6585,18 +6599,6 @@ var printableKeypadText = {
 };
 function getPrintableKittyKeyText(key) {
   return printableKeypadText[key.name];
-}
-function fromKittyMods(mod) {
-  return {
-    shift: !!(mod & 1),
-    alt: !!(mod & 2),
-    ctrl: !!(mod & 4),
-    super: !!(mod & 8),
-    hyper: !!(mod & 16),
-    meta: !!(mod & 32),
-    capsLock: !!(mod & 64),
-    numLock: !!(mod & 128)
-  };
 }
 var functionalKeyMap = {
   A: "up",
