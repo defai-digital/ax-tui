@@ -87,10 +87,11 @@ console.log(`deepseek CLI found: ${cliPath}`)
 // --- 2. Build the bounded self-contained review prompt. --------------------
 git("cat-file", "-e", `${baseline}^{commit}`) // throws (and aborts) on a bad SHA
 const stat = git("diff", "--stat", `${baseline}..HEAD`).trim()
-// Review the maintained sources only: regenerated bundles dominate the raw
-// diff (tens of thousands of lines) while their freshness is already proven
-// by `pnpm run check`. Their per-file stat is included for context.
-const maintainedPaths = ["src", "solid/source", "spinner/src", "chart/src", "test", "script"]
+// Review the refactored renderer sources: regenerated bundles dominate the
+// raw diff (tens of thousands of lines) while their freshness is already
+// proven by `pnpm run check`, and the added tests/scripts are executed by
+// the other gates. Their per-file stats stay in the prompt for context.
+const maintainedPaths = ["src"]
 let diff = git("diff", `${baseline}..HEAD`, "--", ...maintainedPaths)
 if (diff.length > MAX_DIFF_CHARS) {
   const truncatedAt = diff.lastIndexOf("\ndiff --git", MAX_DIFF_CHARS)
@@ -101,7 +102,7 @@ const prompt = [
   "You are reviewing a TypeScript terminal-UI framework diff for a refactor goal:",
   "duplicate-code consolidation, boundary/stability hardening (NaN, empty,",
   "out-of-range inputs), behavior parity, and no new public exports.",
-  "Review the unified diff below. Tools are disabled; judge only from the diff.",
+  "Do NOT use any tools: every fact you need is in the diff text below.",
   "Report each real defect as a bullet with file path and short rationale.",
   "Do not report style nits or hypothetical concerns.",
   "End your response with exactly one line:",
