@@ -4161,7 +4161,7 @@ import { EventEmitter as EventEmitter2 } from "events";
 
 // src/lib/clamp.ts
 function clamp(value, min, max) {
-  if (!Number.isFinite(value) || max < min || value < min) return min;
+  if (Number.isNaN(value) || max < min || value < min) return min;
   if (value > max) return max;
   return value;
 }

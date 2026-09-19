@@ -12,8 +12,10 @@
  *
  * Boundary hardening over the raw `Math.max(min, Math.min(max, value))`
  * pattern used across renderables:
- * - non-finite values (`NaN`, `±Infinity`) resolve to `min` instead of
- *   poisoning layout, scroll, and opacity state with `NaN`;
+ * - `NaN` resolves to `min` instead of poisoning layout, scroll, and
+ *   opacity state with `NaN`;
+ * - infinities saturate exactly like the raw pattern (`+Infinity → max`,
+ *   `-Infinity → min`), so overflow keeps its direction;
  * - a degenerate range (`max < min`) resolves to `min`, matching the
  *   `Math.max(min, ...)` form's behavior for finite inputs.
  */

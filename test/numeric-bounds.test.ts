@@ -51,12 +51,14 @@ describe("clamp boundary hardening", () => {
     expect(clamp(0.5, 0, 1)).toBe(0.5)
   })
 
-  test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
-    "resolves non-finite value %s to the lower bound instead of poisoning state",
-    (value) => {
-      expect(clamp(value, 0, 10)).toBe(0)
-    },
-  )
+  test("NaN resolves to the lower bound instead of poisoning state", () => {
+    expect(clamp(Number.NaN, 0, 10)).toBe(0)
+  })
+
+  test("infinities saturate with their original direction, matching the raw pattern", () => {
+    expect(clamp(Number.POSITIVE_INFINITY, 0, 10)).toBe(10)
+    expect(clamp(Number.NEGATIVE_INFINITY, 0, 10)).toBe(0)
+  })
 
   test("resolves a degenerate range to the lower bound", () => {
     expect(clamp(5, 10, 0)).toBe(10)
@@ -129,6 +131,16 @@ describe("scroll position boundaries", () => {
     expect(bar.scrollPosition).toBe(0)
   })
 
+  test("positive-overflow scroll position saturates at the scrollable maximum", () => {
+    const bar = new ScrollBarRenderable(ctx, { orientation: "vertical", width: 1, height: 10 })
+    bar.scrollSize = 100
+    bar.viewportSize = 10
+
+    bar.scrollPosition = Number.POSITIVE_INFINITY
+
+    expect(bar.scrollPosition).toBe(90)
+  })
+
   test("finite positions keep clamping into the scrollable range", () => {
     const bar = new ScrollBarRenderable(ctx, { orientation: "vertical", width: 1, height: 10 })
     bar.scrollSize = 100
@@ -160,6 +172,13 @@ describe("slider value boundaries", () => {
 
     slider.value = -500
     expect(slider.value).toBe(10)
+  })
+
+  test("positive-overflow value saturates at the maximum like the raw pattern", () => {
+    const slider = new SliderRenderable(ctx, { orientation: "horizontal", min: 0, max: 100 })
+    slider.value = Number.POSITIVE_INFINITY
+
+    expect(slider.value).toBe(100)
   })
 
   test("NaN viewport size falls back to the minimum thumb size", () => {
