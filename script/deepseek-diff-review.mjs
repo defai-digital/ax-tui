@@ -121,6 +121,12 @@ const timeoutMs = Number(process.env.DEEPSEEK_REVIEW_TIMEOUT_MS ?? 600_000)
 const extraArgs = process.env.DEEPSEEK_REVIEW_ARGS ? process.env.DEEPSEEK_REVIEW_ARGS.split(" ").filter(Boolean) : ["--no-tools"]
 const child = spawn(cliPath, extraArgs, { cwd: repoRoot, stdio: ["pipe", "pipe", "pipe"] })
 
+// The CLI contract reads the prompt from STDIN; close the pipe so the CLI
+// sees EOF once the prompt has been delivered.
+child.stdin.on("error", () => {}) // EPIPE after an early CLI exit is fine
+child.stdin.write(prompt)
+child.stdin.end()
+
 let stdout = ""
 let stderr = ""
 let killedByTimeout = false
