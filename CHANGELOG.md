@@ -3,6 +3,18 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
+## [1.0.3] - 2026-09-20
+
+### Fixed
+
+- Preserve overflow direction when clamping infinite renderer values, while
+  safely handling `NaN` and invalid numeric table widths.
+
+### Changed
+
+- Consolidate internal numeric bounds, table fitting, and keyboard modifier
+  decoding without changing the public API.
+
 ## [1.0.2] - 2026-09-18
 
 ### Fixed

@@ -38,6 +38,10 @@ record; they are not part of the normal build workflow.
 - `vendor/manifest.json`: authoritative binary hashes and local source build provenance.
 - `script/`: build, verification, packaging, and release staging tools.
 - `patches/`, `solid/patches/`: historical behavior contracts, now implemented in source.
+- `.github/workflows/`: `quality.yml` (three-OS validation; also the release
+  preflight) and `jsr.yml` (tag-driven native-asset and JSR publication).
+- `.internal/`, `.ax-code/`, `.tmp/`: gitignored local working areas (design
+  records, logs, release staging, agent memory); never committed or published.
 
 ## Commands
 
@@ -48,9 +52,11 @@ TypeScript 7.0.2 is the development compiler; Solid's JSX transform uses Babel.
 - `pnpm install`: install dependencies.
 - `pnpm run build`: regenerate renderer JS/declarations and spinner/chart dist.
 - `pnpm run build:renderer`: regenerate only renderer, Solid, and native-delivery artifacts.
-- `pnpm run typecheck`: check core, Solid, native delivery, spinner, and chart sources.
+- `pnpm run typecheck`: check core, Solid, native delivery, spinner, chart, and build-script sources.
 - `pnpm run check`: verify independence, native hashes/source provenance, AX contracts, and generated output.
-- `pnpm test`: Vitest framework and maintenance regressions.
+- `pnpm test`: Vitest over `test/**/*.test.ts` (framework and maintenance
+  regressions) and `script/**/*.test.ts` (build/release tooling contracts);
+  run one file with `pnpm exec vitest run <path>`.
 - `pnpm run build:native`: build the host's library with Zig pinned in `.zig-version`.
 - `pnpm run build:native --all`: build and stage all eight native targets.
 - `pnpm run build:native --target=linux-x64`: build one explicit target.
@@ -76,6 +82,21 @@ native artifacts in the same change when the ABI changes. Preserve compatibility
 with the documented package exports; application code must not import source
 or internal generated files.
 
+Commit subjects use conventional-commit prefixes (`feat:`, `fix:`,
+`refactor:`, `perf:`, `test:`, `docs:`, `build:`, `ci:`, `chore:`,
+`release:`) in imperative mood, matching the existing history.
+
+## Releases and CI
+
+Pushes, pull requests, and the release preflight run
+`.github/workflows/quality.yml` on Linux, macOS, and Windows. Pushing a
+`v<version>` tag runs `.github/workflows/jsr.yml`: it stages
+manifest-verified native assets, publishes them to the matching GitHub
+release with byte-for-byte re-verification, and only then publishes the JSR
+package via OIDC (`publish:jsr`). Release mechanics (CHANGELOG entry, bumping
+`package.json` and `jsr.json` together, verification, approval, tag) are
+documented in `MAINTENANCE.md` under Releases.
+
 ## Hard rules
 
 - Preserve `import.meta.url`-relative native and tree-sitter asset resolution.
@@ -87,10 +108,12 @@ or internal generated files.
 - Prefer bundled native libraries; verify downloaded/cached binary and license
   hashes. Signed downstream bundles are verified before signing, not against
   unsigned hashes when loaded after signing.
-- Never commit secrets, `.internal/`, Zig caches, or compiler/SDK installations.
+- Never commit secrets, `.internal/`, `.ax-code/`, Zig caches, or compiler/SDK installations.
 - JSR self-imports map to local exports in `jsr.json`, never to unpublished npm
   self-packages. Exclude native binaries and development source from JSR payloads.
 - Publish verified, immutable native release assets before the matching JSR
   version. Registry publication requires explicit user approval.
-- Use ESM and `import type`. Format handwritten TypeScript with Prettier,
-  `semi: false`, `printWidth: 120`.
+- Use ESM and `import type`. Handwritten TypeScript follows the repo's
+  Prettier style (no semicolons, double quotes, 120-column lines); Prettier
+  is not a repo dependency, so match the surrounding files rather than
+  running a formatter.
