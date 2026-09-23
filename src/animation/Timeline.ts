@@ -34,6 +34,20 @@ interface TimelineItem {
   startTime: number
 }
 
+/**
+ * Resolve an item start time given as `number | string`. Numeric strings
+ * ("500") parse to their value; anything else falls back to 0 so an
+ * unrecognizable offset lands at the start of the timeline instead of
+ * producing a NaN start time.
+ */
+function resolveStartTime(startTime: number | string): number {
+  if (typeof startTime === "string") {
+    const parsed = Number(startTime)
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+  }
+  return startTime
+}
+
 interface TimelineTimelineItem extends TimelineItem {
   type: "timeline"
   timeline: Timeline
@@ -296,7 +310,7 @@ export class Timeline {
   private stateChangeListeners: ((timeline: Timeline) => void)[] = []
 
   constructor(options: TimelineOptions = {}) {
-    this.duration = options.duration || 1000
+    this.duration = options.duration ?? 1000
     this.loop = options.loop === true
     this.autoplay = options.autoplay !== false
     this.onComplete = options.onComplete
@@ -318,7 +332,7 @@ export class Timeline {
   }
 
   add(target: any, properties: AnimationOptions, startTime: number | string = 0): this {
-    const resolvedStartTime = typeof startTime === "string" ? 0 : startTime
+    const resolvedStartTime = resolveStartTime(startTime)
 
     const animationProperties: Record<string, number> = {}
 
@@ -373,7 +387,7 @@ export class Timeline {
   }
 
   call(callback: () => void, startTime: number | string = 0): this {
-    const resolvedStartTime = typeof startTime === "string" ? 0 : startTime
+    const resolvedStartTime = resolveStartTime(startTime)
 
     this.items.push({
       type: "callback",
@@ -489,7 +503,11 @@ export class Timeline {
     }
 
     if (this.loop && this.currentTime >= this.duration) {
-      const overshoot = nextTime % this.duration
+      // Replay the entire remainder so callbacks in every crossed loop fire;
+      // `nextTime % duration` would skip whole cycles when deltaTime spans
+      // more than one loop. A non-positive duration cannot loop; treat the
+      // wrap as final to avoid an unbounded recursion.
+      const overshoot = this.duration > 0 ? nextTime - this.duration : 0
 
       this.resetItems()
       this.currentTime = 0

@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-ELNR3UGO.js";
+} from "./index-LK662F5H.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-OHWD36OX.js";
+} from "./index-I2EDPWUM.js";
 
 // src/post/effects.ts
 function toU8(value) {
@@ -283,7 +283,7 @@ var DistortionEffect = class {
           if (glitch.type === "shift") {
             const shift = glitch.amount;
             for (let x = 0; x < width; x++) {
-              const srcX = (x - shift + width) % width;
+              const srcX = ((x - shift) % width + width) % width;
               const destIndex = baseIndex + x;
               const srcTempIndex = srcX;
               buf.char[destIndex] = tempChar[srcTempIndex];
@@ -743,7 +743,9 @@ var CRTRollingBarEffect = class {
     const bg2 = buffer.buffers.bg;
     this.position += deltaTime / 1e3 * this._speed;
     const cycleHeight = height + this._height * height * 2;
-    this.position = this.position % cycleHeight;
+    if (cycleHeight > 0) {
+      this.position = (this.position % cycleHeight + cycleHeight) % cycleHeight;
+    }
     const barPixelHeight = this._height * height;
     const fadePixelDistance = this._fadeDistance * barPixelHeight;
     const totalEffectHeight = barPixelHeight + fadePixelDistance * 2;
@@ -1043,6 +1045,7 @@ function applyAsciiArt(buffer, ramp = ' .\'`^"",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuv
   const chars = buffer.buffers.char;
   const bg2 = buffer.buffers.bg;
   const rampLength = ramp.length;
+  if (rampLength === 0) return;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const index = y * width + x;
@@ -1612,6 +1615,13 @@ var INVERT_MATRIX = new Float32Array([
 ]);
 
 // src/animation/Timeline.ts
+function resolveStartTime(startTime) {
+  if (typeof startTime === "string") {
+    const parsed = Number(startTime);
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  }
+  return startTime;
+}
 var easingFunctions = {
   linear: (t2) => t2,
   inQuad: (t2) => t2 * t2,
@@ -1798,7 +1808,7 @@ var Timeline = class {
   onPause;
   stateChangeListeners = [];
   constructor(options = {}) {
-    this.duration = options.duration || 1e3;
+    this.duration = options.duration ?? 1e3;
     this.loop = options.loop === true;
     this.autoplay = options.autoplay !== false;
     this.onComplete = options.onComplete;
@@ -1816,7 +1826,7 @@ var Timeline = class {
     }
   }
   add(target, properties, startTime = 0) {
-    const resolvedStartTime = typeof startTime === "string" ? 0 : startTime;
+    const resolvedStartTime = resolveStartTime(startTime);
     const animationProperties = {};
     for (const key in properties) {
       if (!["duration", "ease", "onUpdate", "onComplete", "onStart", "onLoop", "loop", "loopDelay", "alternate"].includes(
@@ -1862,7 +1872,7 @@ var Timeline = class {
     return this;
   }
   call(callback, startTime = 0) {
-    const resolvedStartTime = typeof startTime === "string" ? 0 : startTime;
+    const resolvedStartTime = resolveStartTime(startTime);
     this.items.push({
       type: "callback",
       startTime: resolvedStartTime,
@@ -1962,7 +1972,7 @@ var Timeline = class {
       }
     }
     if (this.loop && this.currentTime >= this.duration) {
-      const overshoot = nextTime % this.duration;
+      const overshoot = this.duration > 0 ? nextTime - this.duration : 0;
       this.resetItems();
       this.currentTime = 0;
       if (overshoot > 0) {
@@ -8353,6 +8363,11 @@ var ScrollBarRenderable = class extends Renderable {
   _showArrows = false;
   _manualVisibility = false;
   _onChange;
+  // Arrow auto-repeat chains (setTimeout -> setInterval). Held across the
+  // handlers so destroy can clear them; a mouseup never arrives after destroy
+  // because the renderable number is already deregistered.
+  startArrowMouseTimer;
+  endArrowMouseTimer;
   scrollStep = null;
   get visible() {
     return super.visible;
@@ -8466,38 +8481,44 @@ var ScrollBarRenderable = class extends Renderable {
     this.add(this.startArrow);
     this.add(this.slider);
     this.add(this.endArrow);
-    let startArrowMouseTimeout = void 0;
-    let endArrowMouseTimeout = void 0;
     this.startArrow.onMouseDown = (event) => {
       event.stopPropagation();
       event.preventDefault();
       this.scrollBy(-0.5, "viewport");
-      startArrowMouseTimeout = setTimeout(() => {
+      this.startArrowMouseTimer = setTimeout(() => {
         this.scrollBy(-0.5, "viewport");
-        startArrowMouseTimeout = setInterval(() => {
+        this.startArrowMouseTimer = setInterval(() => {
           this.scrollBy(-0.2, "viewport");
         }, 200);
       }, 500);
     };
     this.startArrow.onMouseUp = (event) => {
       event.stopPropagation();
-      clearInterval(startArrowMouseTimeout);
+      clearInterval(this.startArrowMouseTimer);
     };
     this.endArrow.onMouseDown = (event) => {
       event.stopPropagation();
       event.preventDefault();
       this.scrollBy(0.5, "viewport");
-      endArrowMouseTimeout = setTimeout(() => {
+      this.endArrowMouseTimer = setTimeout(() => {
         this.scrollBy(0.5, "viewport");
-        endArrowMouseTimeout = setInterval(() => {
+        this.endArrowMouseTimer = setInterval(() => {
           this.scrollBy(0.2, "viewport");
         }, 200);
       }, 500);
     };
     this.endArrow.onMouseUp = (event) => {
       event.stopPropagation();
-      clearInterval(endArrowMouseTimeout);
+      clearInterval(this.endArrowMouseTimer);
     };
+  }
+  destroySelf() {
+    clearTimeout(this.startArrowMouseTimer);
+    clearInterval(this.startArrowMouseTimer);
+    this.startArrowMouseTimer = void 0;
+    clearTimeout(this.endArrowMouseTimer);
+    clearInterval(this.endArrowMouseTimer);
+    this.endArrowMouseTimer = void 0;
   }
   set arrowOptions(options) {
     Object.assign(this.startArrow, options);

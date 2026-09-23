@@ -36,7 +36,14 @@ export function Portal(props: { mount?: DomNode; ref?: (el: {}) => void; childre
       insert(renderRoot, content)
       el.add(container)
       props.ref && (props as any).ref(container)
-      onCleanup(() => el.remove(container.id))
+      onCleanup(() => {
+        el.remove(container.id)
+        // Detaching alone leaks the container and its subtree (Yoga nodes,
+        // framebuffer, lifecycle passes). The reconciler's _removeNode path
+        // destroys detached nodes on the next tick; the portal manages its
+        // container directly, so it must destroy it itself.
+        container.destroyRecursively()
+      })
     },
     undefined,
     { render: true },

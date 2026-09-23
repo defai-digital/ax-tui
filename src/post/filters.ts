@@ -195,6 +195,10 @@ export function applyAsciiArt(
   const bg = buffer.buffers.bg
   const rampLength = ramp.length
 
+  // An empty ramp has no glyph to map luminance to; indexing ramp[-1] below
+  // would throw on the first cell.
+  if (rampLength === 0) return
+
   // Set ASCII characters based on background luminance
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {

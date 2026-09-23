@@ -184,6 +184,18 @@ function _getParentNode(childNode: DomNode): DomNode | undefined {
 // Retain intrinsic/custom defaults while reactive style objects are replaced or removed.
 const textStyleDefaults = new WeakMap<TextNodeRenderable, Pick<TextNodeRenderable, "attributes" | "fg" | "bg">>()
 
+// Layout style subkeys that disappear from a later style object are restored
+// to these intrinsic defaults. x/y/width/height getters return computed values
+// (absolute/computed pixels), so they cannot be captured reliably; every other
+// styleable prop's getter returns the raw set value and is captured lazily.
+const layoutStyleIntrinsicDefaults: Record<string, unknown> = {
+  width: "auto",
+  height: "auto",
+  x: 0,
+  y: 0,
+}
+const layoutStyleCapturedDefaults = new WeakMap<DomNode, Map<string, unknown>>()
+
 export const {
   render: _render,
   effect,
@@ -263,6 +275,11 @@ export const {
 
     switch (name) {
       case "id":
+        // The id is the key in the parent's renderable registry, captured at
+        // insert time. Mutating it after insertion would desync removal
+        // (parent.remove(newId) misses), leaving a ghost node behind, so only
+        // accept the id while the node is not yet mounted.
+        if (node.parent) break
         log("Id mapped", node.id, "=", value)
         node[name] = value
         break
@@ -337,17 +354,47 @@ export const {
           }
         }
         break
-      case "style":
-        for (const prop in value) {
-          const propVal = value[prop]
+      case "style": {
+        const nextStyle = value ?? {}
+        let captured = layoutStyleCapturedDefaults.get(node)
+        if (!captured) {
+          captured = new Map()
+          layoutStyleCapturedDefaults.set(node, captured)
+        }
+
+        for (const prop in nextStyle) {
+          const propVal = nextStyle[prop]
           if (prev !== undefined && propVal === prev[prop]) continue
+          // Capture the raw current value before the first style-driven write
+          // so a later removal of this subkey can restore it.
+          if (!(prop in layoutStyleIntrinsicDefaults) && !captured.has(prop)) {
+            // @ts-expect-error todo validate if prop is actually settable
+            captured.set(prop, node[prop])
+          }
           // @ts-expect-error todo validate if prop is actually settable
           node[prop] = propVal
         }
+
+        // Subkeys present in the previous style but missing now must fall back
+        // to their intrinsic (or captured pre-style) value instead of sticking.
+        const prevStyle = prev ?? {}
+        for (const prop in prevStyle) {
+          if (prop in nextStyle) continue
+          if (prop in layoutStyleIntrinsicDefaults) {
+            // @ts-expect-error todo validate if prop is actually settable
+            node[prop] = layoutStyleIntrinsicDefaults[prop]
+          } else if (captured.has(prop)) {
+            // @ts-expect-error todo validate if prop is actually settable
+            node[prop] = captured.get(prop)
+            captured.delete(prop)
+          }
+        }
         break
+      }
       case "text":
       case "content": {
-        const textValue = typeof value === "string" ? value : Array.isArray(value) ? value.join("") : `${value}`
+        const textValue =
+          value == null ? "" : typeof value === "string" ? value : Array.isArray(value) ? value.join("") : `${value}`
         // @ts-expect-error todo validate if prop is actually settable
         node[name] = decodeHTML(textValue)
         break

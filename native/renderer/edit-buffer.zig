@@ -682,7 +682,9 @@ pub const EditBuffer = struct {
 
         self.tb.markViewsDirty();
         self.events.emit(.cursorChanged);
-        self.emitNativeEvent("cursorChanged");
+        // Keep the wire event name consistent with every other cursor update so
+        // TS listeners on "cursor-changed" also fire after undo/redo.
+        self.emitNativeEvent("cursor-changed");
 
         return prev_meta;
     }
@@ -699,7 +701,9 @@ pub const EditBuffer = struct {
 
         self.tb.markViewsDirty();
         self.events.emit(.cursorChanged);
-        self.emitNativeEvent("cursorChanged");
+        // Keep the wire event name consistent with every other cursor update so
+        // TS listeners on "cursor-changed" also fire after undo/redo.
+        self.emitNativeEvent("cursor-changed");
 
         return next_meta;
     }

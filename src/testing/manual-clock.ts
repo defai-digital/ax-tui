@@ -56,9 +56,13 @@ export class ManualClock implements Clock {
 
   public advance(delayMs: number): void {
     const targetTime = this.time + Math.max(0, Math.floor(delayMs))
+    // Zero-delay intervals reschedule at the current time; without a cap they
+    // would fire forever inside a single advance. Fire each at most once per
+    // advance and leave it pending for the next one.
+    const firedZeroDelayIntervals = new Set<number>()
 
     while (true) {
-      const nextTimer = this.peekNextTimer()
+      const nextTimer = this.peekNextTimer(firedZeroDelayIntervals)
       if (!nextTimer || nextTimer.fireAt > targetTime) {
         break
       }
@@ -68,6 +72,9 @@ export class ManualClock implements Clock {
       nextTimer.fn()
 
       if (nextTimer.repeat && !this.timers.has(nextTimer.id)) {
+        if (nextTimer.delayMs === 0) {
+          firedZeroDelayIntervals.add(nextTimer.id)
+        }
         this.timers.set(nextTimer.id, {
           ...nextTimer,
           fireAt: this.time + nextTimer.delayMs,
@@ -104,9 +111,10 @@ export class ManualClock implements Clock {
     return id
   }
 
-  private peekNextTimer(): ScheduledTimer | null {
+  private peekNextTimer(excludeIds?: Set<number>): ScheduledTimer | null {
     let nextTimer: ScheduledTimer | null = null
     for (const timer of this.timers.values()) {
+      if (excludeIds?.has(timer.id)) continue
       if (!nextTimer || compareTimers(timer, nextTimer) < 0) {
         nextTimer = timer
       }

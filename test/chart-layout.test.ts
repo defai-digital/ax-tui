@@ -20,10 +20,16 @@ describe("chart symbols", () => {
     expect(BAR_LEVELS).toEqual(["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"])
     expect(symbolForHeight(0)).toBe(" ")
     expect(symbolForHeight(-3)).toBe(" ")
+    expect(symbolForHeight(NaN)).toBe(" ")
     expect(symbolForHeight(1)).toBe("▁")
     expect(symbolForHeight(4)).toBe("▄")
     expect(symbolForHeight(8)).toBe("█")
     expect(symbolForHeight(16)).toBe("█")
+  })
+
+  test("fractional ticks below one level map to empty instead of undefined", () => {
+    expect(symbolForHeight(0.5)).toBe(" ")
+    expect(symbolForHeight(7.9)).toBe("▇")
   })
 
   test("block eighths are left-aligned vertical partials", () => {

@@ -119,6 +119,12 @@ describe("createPulse", () => {
     // speed clamped to 0, so floor(frame*0) % 2 = 0 always
     expect(gen(5, 0, 10, 5)).toBe("x")
   })
+
+  test.each([NaN, Infinity, -Infinity])("non-finite speed (%s) yields the first color instead of undefined", (speed) => {
+    const gen = createPulse(["x", "y"], speed)
+    expect(gen(0, 0, 10, 5)).toBe("x")
+    expect(gen(7, 0, 10, 5)).toBe("x")
+  })
 })
 
 describe("createWave", () => {

@@ -46,7 +46,8 @@ export const BRAILLE_BASE = 0x2800
  * (ratatui `symbol_for_height`): 0 -> empty, 1..8 -> one_eighth..full.
  */
 export function symbolForHeight(ticks: number): string {
-  if (!(ticks > 0)) return BAR_EMPTY
-  if (ticks >= 8) return BAR_LEVELS[7]!
-  return BAR_LEVELS[Math.floor(ticks) - 1]!
+  const level = Math.floor(ticks)
+  if (!(level > 0)) return BAR_EMPTY
+  if (level >= 8) return BAR_LEVELS[7]!
+  return BAR_LEVELS[level - 1]!
 }

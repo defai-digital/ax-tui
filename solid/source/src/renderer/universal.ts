@@ -242,6 +242,15 @@ export function createRenderer<NodeType>({
         setProperty(node, prop, value, prevProps[prop])
         prevProps[prop] = value
       }
+      // Props that disappeared from the source must be unset, otherwise stale
+      // values stick on the node forever (Solid's DOM spread diffs both ways).
+      for (const prop in prevProps) {
+        if (prop === "children" || prop === "ref") continue
+        if (!(prop in props)) {
+          setProperty(node, prop, undefined, prevProps[prop])
+          delete prevProps[prop]
+        }
+      }
     })
     return prevProps
   }

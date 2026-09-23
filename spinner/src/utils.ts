@@ -51,7 +51,8 @@ export function createStatic(color: ColorInput): ColorGenerator {
  */
 export function createPulse(colors: ColorInput[], speed: number = 1): ColorGenerator {
   if (colors.length === 0) throw new Error("createPulse: colors array must not be empty")
-  const safeSpeed = Math.max(0, speed)
+  // NaN/Infinity speed would index colors[NaN] and yield undefined on every frame
+  const safeSpeed = Number.isFinite(speed) ? Math.max(0, speed) : 0
   return (frameIndex: number) => colors[Math.floor(frameIndex * safeSpeed) % colors.length]!
 }
 

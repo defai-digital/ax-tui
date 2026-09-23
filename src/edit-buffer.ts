@@ -133,10 +133,12 @@ export class EditBuffer extends EventEmitter {
 
   public getText(): string {
     this.guard()
-    // TODO: Use byte size of text buffer to get the actual size of the text
-    // actually native can stack alloc all the text and decode will alloc as js string then
-    const maxSize = 1024 * 1024 // 1MB max
-    const textBytes = this.lib.editBufferGetText(this.bufferPtr, maxSize)
+    // Size the output from the buffer's actual byte size: a fixed cap would
+    // silently truncate larger buffers, and native copies only what fits.
+    const byteSize = this.lib.textBufferGetByteSize(this.textBufferPtr)
+    if (byteSize === 0) return ""
+
+    const textBytes = this.lib.editBufferGetText(this.bufferPtr, byteSize)
 
     if (!textBytes) return ""
 
@@ -274,11 +276,11 @@ export class EditBuffer extends EventEmitter {
     this.guard()
     if (startOffset >= endOffset) return ""
 
-    // TODO: Use actual expected size of the text
-    // like other methods native can just return a pointer and size
-    // and we immediately decode the text into a js string then the native stack
-    // can go out of scope
-    const maxSize = 1024 * 1024 // 1MB max
+    // Offsets are rope byte offsets, so the result is bounded by the clamped
+    // end offset; a fixed 1MB cap would silently truncate larger ranges.
+    const maxSize = Math.min(this.lib.textBufferGetByteSize(this.textBufferPtr), endOffset)
+    if (maxSize <= 0) return ""
+
     const textBytes = this.lib.editBufferGetTextRange(this.bufferPtr, startOffset, endOffset, maxSize)
 
     if (!textBytes) return ""
@@ -289,7 +291,11 @@ export class EditBuffer extends EventEmitter {
   public getTextRangeByCoords(startRow: number, startCol: number, endRow: number, endCol: number): string {
     this.guard()
 
-    const maxSize = 1024 * 1024 // 1MB max
+    // Row/col coordinates give no cheap byte bound; use the buffer's actual
+    // byte size so large ranges are not silently truncated at 1MB.
+    const maxSize = this.lib.textBufferGetByteSize(this.textBufferPtr)
+    if (maxSize <= 0) return ""
+
     const textBytes = this.lib.editBufferGetTextRangeByCoords(
       this.bufferPtr,
       startRow,

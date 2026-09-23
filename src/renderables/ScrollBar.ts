@@ -34,6 +34,12 @@ export class ScrollBarRenderable extends Renderable {
 
   private _onChange: ((position: number) => void) | undefined
 
+  // Arrow auto-repeat chains (setTimeout -> setInterval). Held across the
+  // handlers so destroy can clear them; a mouseup never arrives after destroy
+  // because the renderable number is already deregistered.
+  private startArrowMouseTimer: Timeout | undefined
+  private endArrowMouseTimer: Timeout | undefined
+
   scrollStep: number | undefined | null = null
 
   get visible(): boolean {
@@ -183,19 +189,16 @@ export class ScrollBarRenderable extends Renderable {
     this.add(this.slider)
     this.add(this.endArrow)
 
-    let startArrowMouseTimeout = undefined as Timeout
-    let endArrowMouseTimeout = undefined as Timeout
-
     this.startArrow.onMouseDown = (event) => {
       event.stopPropagation()
       event.preventDefault()
 
       this.scrollBy(-0.5, "viewport")
 
-      startArrowMouseTimeout = setTimeout(() => {
+      this.startArrowMouseTimer = setTimeout(() => {
         this.scrollBy(-0.5, "viewport")
 
-        startArrowMouseTimeout = setInterval(() => {
+        this.startArrowMouseTimer = setInterval(() => {
           this.scrollBy(-0.2, "viewport")
         }, 200)
       }, 500)
@@ -203,7 +206,7 @@ export class ScrollBarRenderable extends Renderable {
 
     this.startArrow.onMouseUp = (event) => {
       event.stopPropagation()
-      clearInterval(startArrowMouseTimeout!)
+      clearInterval(this.startArrowMouseTimer!)
     }
 
     this.endArrow.onMouseDown = (event) => {
@@ -212,10 +215,10 @@ export class ScrollBarRenderable extends Renderable {
 
       this.scrollBy(0.5, "viewport")
 
-      endArrowMouseTimeout = setTimeout(() => {
+      this.endArrowMouseTimer = setTimeout(() => {
         this.scrollBy(0.5, "viewport")
 
-        endArrowMouseTimeout = setInterval(() => {
+        this.endArrowMouseTimer = setInterval(() => {
           this.scrollBy(0.2, "viewport")
         }, 200)
       }, 500)
@@ -223,8 +226,20 @@ export class ScrollBarRenderable extends Renderable {
 
     this.endArrow.onMouseUp = (event) => {
       event.stopPropagation()
-      clearInterval(endArrowMouseTimeout!)
+      clearInterval(this.endArrowMouseTimer!)
     }
+  }
+
+  protected destroySelf(): void {
+    // An arrow held during destroy never receives its mouseup (the renderable
+    // number is deregistered), which would leave the repeat interval running
+    // against the destroyed subtree forever.
+    clearTimeout(this.startArrowMouseTimer)
+    clearInterval(this.startArrowMouseTimer)
+    this.startArrowMouseTimer = undefined
+    clearTimeout(this.endArrowMouseTimer)
+    clearInterval(this.endArrowMouseTimer)
+    this.endArrowMouseTimer = undefined
   }
 
   public set arrowOptions(options: ScrollBarOptions["arrowOptions"]) {

@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-OHWD36OX.js";
+} from "./index-I2EDPWUM.js";
 
 // src/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -283,8 +283,9 @@ var EditBuffer = class _EditBuffer extends EventEmitter {
   }
   getText() {
     this.guard();
-    const maxSize = 1024 * 1024;
-    const textBytes = this.lib.editBufferGetText(this.bufferPtr, maxSize);
+    const byteSize = this.lib.textBufferGetByteSize(this.textBufferPtr);
+    if (byteSize === 0) return "";
+    const textBytes = this.lib.editBufferGetText(this.bufferPtr, byteSize);
     if (!textBytes) return "";
     return this.lib.decoder.decode(textBytes);
   }
@@ -396,14 +397,16 @@ var EditBuffer = class _EditBuffer extends EventEmitter {
   getTextRange(startOffset, endOffset) {
     this.guard();
     if (startOffset >= endOffset) return "";
-    const maxSize = 1024 * 1024;
+    const maxSize = Math.min(this.lib.textBufferGetByteSize(this.textBufferPtr), endOffset);
+    if (maxSize <= 0) return "";
     const textBytes = this.lib.editBufferGetTextRange(this.bufferPtr, startOffset, endOffset, maxSize);
     if (!textBytes) return "";
     return this.lib.decoder.decode(textBytes);
   }
   getTextRangeByCoords(startRow, startCol, endRow, endCol) {
     this.guard();
-    const maxSize = 1024 * 1024;
+    const maxSize = this.lib.textBufferGetByteSize(this.textBufferPtr);
+    if (maxSize <= 0) return "";
     const textBytes = this.lib.editBufferGetTextRangeByCoords(
       this.bufferPtr,
       startRow,
@@ -614,7 +617,8 @@ var EditorView = class _EditorView {
   }
   getSelectedText() {
     this.guard();
-    const maxLength = 1024 * 1024;
+    const maxLength = this.lib.textBufferGetByteSize(this.lib.editBufferGetTextBuffer(this.editBuffer.ptr));
+    if (maxLength === 0) return "";
     const selectedBytes = this.lib.editorViewGetSelectedTextBytes(this.viewPtr, maxLength);
     if (!selectedBytes) return "";
     return this.lib.decoder.decode(selectedBytes);
@@ -625,7 +629,8 @@ var EditorView = class _EditorView {
   }
   getText() {
     this.guard();
-    const maxLength = 1024 * 1024;
+    const maxLength = this.lib.textBufferGetByteSize(this.lib.editBufferGetTextBuffer(this.editBuffer.ptr));
+    if (maxLength === 0) return "";
     const textBytes = this.lib.editorViewGetText(this.viewPtr, maxLength);
     if (!textBytes) return "";
     return this.lib.decoder.decode(textBytes);
@@ -1746,7 +1751,7 @@ var CodeRenderable = class _CodeRenderable extends TextBufferRenderable {
     while (lineStart <= content.length) {
       const newlineOffset = content.indexOf("\n", lineStart);
       const lineEnd = newlineOffset === -1 ? content.length : newlineOffset;
-      while (rangeIndex < concealLineRanges.length && concealLineRanges[rangeIndex][1] <= lineStart) {
+      while (rangeIndex < concealLineRanges.length && concealLineRanges[rangeIndex][1] < lineStart) {
         rangeIndex++;
       }
       const range = concealLineRanges[rangeIndex];
@@ -2914,8 +2919,8 @@ var TerminalConsole = class extends EventEmitter3 {
     const newDisplayLines = this._processLogEntry(logEntry);
     this._displayLines.push(...newDisplayLines);
     if (this._displayLines.length > this.options.maxDisplayLines) {
-      this._displayLines.splice(0, this._displayLines.length - this.options.maxDisplayLines);
       const linesRemoved = this._displayLines.length - this.options.maxDisplayLines;
+      this._displayLines.splice(0, linesRemoved);
       this.scrollTopIndex = Math.max(0, this.scrollTopIndex - linesRemoved);
     }
     if (this.isScrolledToBottom) {
@@ -3305,7 +3310,7 @@ var TerminalConsole = class extends EventEmitter3 {
     for (let i = 0; i < initialLines.length; i++) {
       const lineText = initialLines[i];
       const isFirstLineOfEntry = i === 0;
-      const availableWidth = this.consoleWidth - 1 - (isFirstLineOfEntry ? 0 : INDENT_WIDTH);
+      const availableWidth = Math.max(1, this.consoleWidth - 1 - (isFirstLineOfEntry ? 0 : INDENT_WIDTH));
       const linePrefix = isFirstLineOfEntry ? prefix : " ".repeat(INDENT_WIDTH);
       const textToWrap = isFirstLineOfEntry ? linePrefix + lineText : lineText;
       let currentPos = 0;
@@ -3888,7 +3893,10 @@ var EditBufferRenderable = class extends Renderable {
         this.editorView.setViewport(newOffsetX, viewport.offsetY, viewport.width, viewport.height, true);
         this.requestRender();
       } else if (direction === "right") {
-        const newOffsetX = viewport.offsetX + delta;
+        const measureResult = this.editorView.measureForDimensions(0, viewport.height);
+        const contentWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1;
+        const maxOffsetX = Math.max(0, contentWidth - viewport.width);
+        const newOffsetX = Math.min(viewport.offsetX + delta, maxOffsetX);
         this.editorView.setViewport(newOffsetX, viewport.offsetY, viewport.width, viewport.height, true);
         this.requestRender();
       }
@@ -4117,8 +4125,7 @@ var EditBufferRenderable = class extends Renderable {
     const select = options?.select ?? false;
     if (!select && this.hasSelection()) {
       const selection = this.getSelection();
-      const targetOffset = this.cursorOffset === selection.start ? selection.end - 1 : selection.end;
-      this.editBuffer.setCursorByOffset(targetOffset);
+      this.editBuffer.setCursorByOffset(selection.end);
       this._ctx.clearSelection();
       this.requestRender();
       return true;
@@ -6835,8 +6842,10 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     if (terminalWritable && !terminalScreenModeChanged && !shouldDeferSplitFooterResizeTransition) {
       if (prevSplitHeight === 0 && nextSplitHeight > 0) {
         const freedLines = this._terminalHeight - nextSplitHeight;
-        const scrollDown = ANSI.scrollDown(freedLines);
-        this.writeOut(scrollDown);
+        if (freedLines > 0) {
+          const scrollDown = ANSI.scrollDown(freedLines);
+          this.writeOut(scrollDown);
+        }
       } else if (splitViewportScrollLines > 0) {
         const additionalLines = splitViewportScrollLines;
         const scrollUp = ANSI.scrollUp(additionalLines);

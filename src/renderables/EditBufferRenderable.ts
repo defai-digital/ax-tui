@@ -438,7 +438,12 @@ export abstract class EditBufferRenderable extends Renderable implements LineInf
         this.editorView.setViewport(newOffsetX, viewport.offsetY, viewport.width, viewport.height, true)
         this.requestRender()
       } else if (direction === "right") {
-        const newOffsetX = viewport.offsetX + delta
+        // Clamp like the "down" branch: unclamped, repeated right scrolls run
+        // the viewport far past the content and leave a blank screen.
+        const measureResult = this.editorView.measureForDimensions(0, viewport.height)
+        const contentWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1
+        const maxOffsetX = Math.max(0, contentWidth - viewport.width)
+        const newOffsetX = Math.min(viewport.offsetX + delta, maxOffsetX)
         this.editorView.setViewport(newOffsetX, viewport.offsetY, viewport.width, viewport.height, true)
         this.requestRender()
       }
@@ -713,8 +718,11 @@ export abstract class EditBufferRenderable extends Renderable implements LineInf
 
     if (!select && this.hasSelection()) {
       const selection = this.getSelection()!
-      const targetOffset = this.cursorOffset === selection.start ? selection.end - 1 : selection.end
-      this.editBuffer.setCursorByOffset(targetOffset)
+      // Selection offsets are caret positions in a half-open [start, end)
+      // interval, so collapsing right always lands on `end` - symmetric with
+      // moveCursorLeft landing on `start` - regardless of the direction the
+      // selection was made.
+      this.editBuffer.setCursorByOffset(selection.end)
       this._ctx.clearSelection()
       this.requestRender()
       return true

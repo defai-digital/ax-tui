@@ -2953,8 +2953,12 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     if (terminalWritable && !terminalScreenModeChanged && !shouldDeferSplitFooterResizeTransition) {
       if (prevSplitHeight === 0 && nextSplitHeight > 0) {
         const freedLines = this._terminalHeight - nextSplitHeight
-        const scrollDown = ANSI.scrollDown(freedLines)
-        this.writeOut(scrollDown)
+        // A footer as tall as the terminal frees zero lines; CSI 0 T is read
+        // as the default (1) by terminals and would scroll the screen.
+        if (freedLines > 0) {
+          const scrollDown = ANSI.scrollDown(freedLines)
+          this.writeOut(scrollDown)
+        }
       } else if (splitViewportScrollLines > 0) {
         const additionalLines = splitViewportScrollLines
         const scrollUp = ANSI.scrollUp(additionalLines)

@@ -114,3 +114,52 @@ test.each([
     expect(timeline.items).toHaveLength(0)
   },
 )
+
+test("an explicit zero duration completes immediately instead of falling back to 1000", () => {
+  const onComplete = vi.fn()
+  const timeline = new Timeline({ duration: 0, onComplete }).play()
+  timeline.update(0)
+  expect(timeline.isComplete).toBe(true)
+  expect(onComplete).toHaveBeenCalledOnce()
+})
+
+test("a zero-duration looping timeline does not recurse forever on an update", () => {
+  const timeline = new Timeline({ duration: 0, loop: true }).play()
+  expect(() => timeline.update(10)).not.toThrow()
+})
+
+test("numeric string start times resolve to their offset in add and call", () => {
+  const target = { x: 0 }
+  const callback = vi.fn()
+  const timeline = new Timeline({ autoplay: false })
+    .add(target, { x: 10, duration: 100 }, "200")
+    .call(callback, "500")
+  timeline.play()
+  timeline.update(199)
+  expect(target.x).toBe(0)
+  expect(callback).not.toHaveBeenCalled()
+  timeline.update(1)
+  expect(target.x).toBe(0)
+  timeline.update(50)
+  expect(target.x).toBe(5)
+  expect(callback).not.toHaveBeenCalled()
+  timeline.update(250)
+  expect(target.x).toBe(10)
+  expect(callback).toHaveBeenCalledOnce()
+})
+
+test("unparseable string start times fall back to the start of the timeline", () => {
+  const callback = vi.fn()
+  const timeline = new Timeline({ autoplay: false }).call(callback, "later")
+  timeline.play()
+  timeline.update(0)
+  expect(callback).toHaveBeenCalledOnce()
+})
+
+test("looping timelines replay callbacks in every crossed cycle", () => {
+  const callback = vi.fn()
+  const timeline = new Timeline({ duration: 1000, loop: true }).call(callback, 800).play()
+  timeline.update(2500)
+  expect(callback).toHaveBeenCalledTimes(2)
+  expect(timeline.currentTime).toBe(500)
+})

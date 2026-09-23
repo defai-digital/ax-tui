@@ -163,8 +163,11 @@ export class EditorView {
 
   public getSelectedText(): string {
     this.guard()
-    // TODO: native can stack alloc all the text and decode will alloc as js string then
-    const maxLength = 1024 * 1024 // 1MB should be enough for most selections
+    // Size the output from the buffer's actual byte size; a fixed cap would
+    // silently truncate larger selections.
+    const maxLength = this.lib.textBufferGetByteSize(this.lib.editBufferGetTextBuffer(this.editBuffer.ptr))
+    if (maxLength === 0) return ""
+
     const selectedBytes = this.lib.editorViewGetSelectedTextBytes(this.viewPtr, maxLength)
 
     if (!selectedBytes) return ""
@@ -179,7 +182,11 @@ export class EditorView {
 
   public getText(): string {
     this.guard()
-    const maxLength = 1024 * 1024 // 1MB buffer
+    // Size the output from the buffer's actual byte size; a fixed cap would
+    // silently truncate larger buffers.
+    const maxLength = this.lib.textBufferGetByteSize(this.lib.editBufferGetTextBuffer(this.editBuffer.ptr))
+    if (maxLength === 0) return ""
+
     const textBytes = this.lib.editorViewGetText(this.viewPtr, maxLength)
     if (!textBytes) return ""
     return this.lib.decoder.decode(textBytes)

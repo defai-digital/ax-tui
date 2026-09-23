@@ -133,6 +133,9 @@ export class SyntaxStyle {
 
     this.nameCache.set(name, id)
     this.styleDefs.set(name, { ...style, fg: fg ?? undefined, bg: bg ?? undefined })
+    // Merged styles are derived from styleDefs; a (re)registered name must
+    // invalidate prior merges that may have fallen back to it.
+    this.mergedCache.clear()
 
     return id
   }

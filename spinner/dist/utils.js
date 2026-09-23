@@ -32,7 +32,8 @@ export function createStatic(color) {
 export function createPulse(colors, speed = 1) {
     if (colors.length === 0)
         throw new Error("createPulse: colors array must not be empty");
-    const safeSpeed = Math.max(0, speed);
+    // NaN/Infinity speed would index colors[NaN] and yield undefined on every frame
+    const safeSpeed = Number.isFinite(speed) ? Math.max(0, speed) : 0;
     return (frameIndex) => colors[Math.floor(frameIndex * safeSpeed) % colors.length];
 }
 /**

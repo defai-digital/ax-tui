@@ -377,7 +377,9 @@ export function createMockKeys(renderer: CliRenderer, options?: MockKeysOptions)
   }
 
   const typeText = async (text: string, delayMs: number = 0): Promise<void> => {
-    const keys = text.split("")
+    // Array.from iterates code points; split("") would break surrogate pairs
+    // (e.g. emoji) into lone surrogates and emit U+FFFD per half.
+    const keys = Array.from(text)
     await pressKeys(keys, delayMs)
   }
 
@@ -439,7 +441,12 @@ export function createMockKeys(renderer: CliRenderer, options?: MockKeysOptions)
   }
 
   const pasteBracketedText = (text: string): Promise<void> => {
-    return pressKeys([ANSI.bracketedPasteStart, text, ANSI.bracketedPasteEnd])
+    // The paste body is emitted verbatim. Routing it through the key map would
+    // rewrite a body that happens to be a key name (e.g. "TAB") into that
+    // key's escape sequence instead of the literal text.
+    renderer.stdin.emit("data", Buffer.from(ANSI.bracketedPasteStart))
+    renderer.stdin.emit("data", Buffer.from(text))
+    return pressKeys([ANSI.bracketedPasteEnd])
   }
 
   return {

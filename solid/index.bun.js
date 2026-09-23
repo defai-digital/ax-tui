@@ -411,6 +411,13 @@ function createRenderer({
         setProperty(node, prop, value, prevProps[prop]);
         prevProps[prop] = value;
       }
+      for (const prop in prevProps) {
+        if (prop === "children" || prop === "ref") continue;
+        if (!(prop in props)) {
+          setProperty(node, prop, void 0, prevProps[prop]);
+          delete prevProps[prop];
+        }
+      }
     });
     return prevProps;
   }
@@ -587,6 +594,13 @@ function _getParentNode(childNode) {
   return parent;
 }
 var textStyleDefaults = /* @__PURE__ */ new WeakMap();
+var layoutStyleIntrinsicDefaults = {
+  width: "auto",
+  height: "auto",
+  x: 0,
+  y: 0
+};
+var layoutStyleCapturedDefaults = /* @__PURE__ */ new WeakMap();
 var {
   render: _render,
   effect,
@@ -654,6 +668,7 @@ var {
     }
     switch (name) {
       case "id":
+        if (node.parent) break;
         log("Id mapped", node.id, "=", value);
         node[name] = value;
         break;
@@ -721,16 +736,36 @@ var {
           }
         }
         break;
-      case "style":
-        for (const prop in value) {
-          const propVal = value[prop];
+      case "style": {
+        const nextStyle = value ?? {};
+        let captured = layoutStyleCapturedDefaults.get(node);
+        if (!captured) {
+          captured = /* @__PURE__ */ new Map();
+          layoutStyleCapturedDefaults.set(node, captured);
+        }
+        for (const prop in nextStyle) {
+          const propVal = nextStyle[prop];
           if (prev !== void 0 && propVal === prev[prop]) continue;
+          if (!(prop in layoutStyleIntrinsicDefaults) && !captured.has(prop)) {
+            captured.set(prop, node[prop]);
+          }
           node[prop] = propVal;
         }
+        const prevStyle = prev ?? {};
+        for (const prop in prevStyle) {
+          if (prop in nextStyle) continue;
+          if (prop in layoutStyleIntrinsicDefaults) {
+            node[prop] = layoutStyleIntrinsicDefaults[prop];
+          } else if (captured.has(prop)) {
+            node[prop] = captured.get(prop);
+            captured.delete(prop);
+          }
+        }
         break;
+      }
       case "text":
       case "content": {
-        const textValue = typeof value === "string" ? value : Array.isArray(value) ? value.join("") : `${value}`;
+        const textValue = value == null ? "" : typeof value === "string" ? value : Array.isArray(value) ? value.join("") : `${value}`;
         node[name] = decodeHTML(textValue);
         break;
       }
@@ -802,7 +837,10 @@ function Portal(props) {
       insert(renderRoot, content);
       el.add(container);
       props.ref && props.ref(container);
-      onCleanup2(() => el.remove(container.id));
+      onCleanup2(() => {
+        el.remove(container.id);
+        container.destroyRecursively();
+      });
     },
     void 0,
     { render: true }

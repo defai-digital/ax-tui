@@ -6275,6 +6275,7 @@ var SyntaxStyle = class _SyntaxStyle {
     const id = this.lib.syntaxStyleRegister(this.stylePtr, name, fg2, bg2, attributes);
     this.nameCache.set(name, id);
     this.styleDefs.set(name, { ...style, fg: fg2 ?? void 0, bg: bg2 ?? void 0 });
+    this.mergedCache.clear();
     return id;
   }
   resolveStyleId(name) {
@@ -7549,26 +7550,24 @@ var ASCIIFontSelectionHelper = class {
     }
     const text = this.getText();
     const font = this.getFont();
-    const selStart = { x: localSelection.anchorX, y: localSelection.anchorY };
-    const selEnd = { x: localSelection.focusX, y: localSelection.focusY };
+    let selStart = { x: localSelection.anchorX, y: localSelection.anchorY };
+    let selEnd = { x: localSelection.focusX, y: localSelection.focusY };
+    if (selStart.y > selEnd.y || selStart.y === selEnd.y && selStart.x > selEnd.x) {
+      ;
+      [selStart, selEnd] = [selEnd, selStart];
+    }
     if (height - 1 < selStart.y || 0 > selEnd.y) {
       this.localSelection = null;
       return previousSelection !== null;
     }
     let startCharIndex = 0;
     let endCharIndex = text.length;
-    if (selStart.y > height - 1) {
-      this.localSelection = null;
-      return previousSelection !== null;
-    } else if (selStart.y >= 0 && selStart.y <= height - 1) {
+    if (selStart.y >= 0 && selStart.y <= height - 1) {
       if (selStart.x > 0) {
         startCharIndex = coordinateToCharacterIndex(selStart.x, text, font);
       }
     }
-    if (selEnd.y < 0) {
-      this.localSelection = null;
-      return previousSelection !== null;
-    } else if (selEnd.y >= 0 && selEnd.y <= height - 1) {
+    if (selEnd.y >= 0 && selEnd.y <= height - 1) {
       if (selEnd.x >= 0) {
         endCharIndex = coordinateToCharacterIndex(selEnd.x, text, font);
       } else {

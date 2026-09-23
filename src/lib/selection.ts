@@ -213,8 +213,15 @@ export class ASCIIFontSelectionHelper {
     const text = this.getText()
     const font = this.getFont()
 
-    const selStart = { x: localSelection.anchorX, y: localSelection.anchorY }
-    const selEnd = { x: localSelection.focusX, y: localSelection.focusY }
+    // Normalize anchor/focus into reading order (top-to-bottom, then left-to-right).
+    // Selection bounds are direction-agnostic rectangles (see Selection.bounds), so
+    // dragging right-to-left or bottom-to-top must select the same cells as the
+    // forward drag.
+    let selStart = { x: localSelection.anchorX, y: localSelection.anchorY }
+    let selEnd = { x: localSelection.focusX, y: localSelection.focusY }
+    if (selStart.y > selEnd.y || (selStart.y === selEnd.y && selStart.x > selEnd.x)) {
+      ;[selStart, selEnd] = [selEnd, selStart]
+    }
 
     if (height - 1 < selStart.y || 0 > selEnd.y) {
       this.localSelection = null
@@ -224,22 +231,14 @@ export class ASCIIFontSelectionHelper {
     let startCharIndex = 0
     let endCharIndex = text.length
 
-    if (selStart.y > height - 1) {
-      // Selection starts below us - we're not selected
-      this.localSelection = null
-      return previousSelection !== null
-    } else if (selStart.y >= 0 && selStart.y <= height - 1) {
+    if (selStart.y >= 0 && selStart.y <= height - 1) {
       // Selection starts within our Y range - use the actual start X coordinate
       if (selStart.x > 0) {
         startCharIndex = coordinateToCharacterIndex(selStart.x, text, font)
       }
     }
 
-    if (selEnd.y < 0) {
-      // Selection ends above us - we're not selected
-      this.localSelection = null
-      return previousSelection !== null
-    } else if (selEnd.y >= 0 && selEnd.y <= height - 1) {
+    if (selEnd.y >= 0 && selEnd.y <= height - 1) {
       // Selection ends within our Y range - use the actual end X coordinate
       if (selEnd.x >= 0) {
         endCharIndex = coordinateToCharacterIndex(selEnd.x, text, font)

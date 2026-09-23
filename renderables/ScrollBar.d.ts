@@ -24,6 +24,8 @@ export declare class ScrollBarRenderable extends Renderable {
     private _showArrows;
     private _manualVisibility;
     private _onChange;
+    private startArrowMouseTimer;
+    private endArrowMouseTimer;
     scrollStep: number | undefined | null;
     get visible(): boolean;
     set visible(value: boolean);
@@ -37,6 +39,7 @@ export declare class ScrollBarRenderable extends Renderable {
     get showArrows(): boolean;
     set showArrows(value: boolean);
     constructor(ctx: RenderContext, { trackOptions, arrowOptions, orientation, showArrows, ...options }: ScrollBarOptions);
+    protected destroySelf(): void;
     set arrowOptions(options: ScrollBarOptions["arrowOptions"]);
     set trackOptions(options: ScrollBarOptions["trackOptions"]);
     private updateSliderFromScrollState;

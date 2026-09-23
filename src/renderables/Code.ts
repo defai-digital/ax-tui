@@ -498,7 +498,10 @@ export class CodeRenderable extends TextBufferRenderable {
       const newlineOffset = content.indexOf("\n", lineStart)
       const lineEnd = newlineOffset === -1 ? content.length : newlineOffset
 
-      while (rangeIndex < concealLineRanges.length && concealLineRanges[rangeIndex][1] <= lineStart) {
+      // Evict ranges strictly before this line: a concealLines range ending at
+      // a newline offset also consumes that newline (tree-sitter-styled-text),
+      // so the line starting exactly at range[1] is still covered by it.
+      while (rangeIndex < concealLineRanges.length && concealLineRanges[rangeIndex][1] < lineStart) {
         rangeIndex++
       }
 

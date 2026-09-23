@@ -2,11 +2,11 @@
 import {
   ANSI,
   CliRenderer
-} from "./index-ELNR3UGO.js";
+} from "./index-LK662F5H.js";
 import {
   SystemClock,
   TreeSitterClient
-} from "./index-OHWD36OX.js";
+} from "./index-I2EDPWUM.js";
 
 // src/testing/mock-keys.ts
 import { Buffer as Buffer2 } from "node:buffer";
@@ -275,7 +275,7 @@ function createMockKeys(renderer, options) {
     renderer.stdin.emit("data", Buffer2.from(keyCode));
   };
   const typeText = async (text, delayMs = 0) => {
-    const keys = text.split("");
+    const keys = Array.from(text);
     await pressKeys(keys, delayMs);
   };
   const pressReturn = (modifiers) => {
@@ -303,7 +303,9 @@ function createMockKeys(renderer, options) {
     pressKey("c", { ctrl: true });
   };
   const pasteBracketedText = (text) => {
-    return pressKeys([ANSI.bracketedPasteStart, text, ANSI.bracketedPasteEnd]);
+    renderer.stdin.emit("data", Buffer2.from(ANSI.bracketedPasteStart));
+    renderer.stdin.emit("data", Buffer2.from(text));
+    return pressKeys([ANSI.bracketedPasteEnd]);
   };
   return {
     pressKeys,
@@ -874,8 +876,9 @@ var ManualClock = class {
   }
   advance(delayMs) {
     const targetTime = this.time + Math.max(0, Math.floor(delayMs));
+    const firedZeroDelayIntervals = /* @__PURE__ */ new Set();
     while (true) {
-      const nextTimer = this.peekNextTimer();
+      const nextTimer = this.peekNextTimer(firedZeroDelayIntervals);
       if (!nextTimer || nextTimer.fireAt > targetTime) {
         break;
       }
@@ -883,6 +886,9 @@ var ManualClock = class {
       this.time = nextTimer.fireAt;
       nextTimer.fn();
       if (nextTimer.repeat && !this.timers.has(nextTimer.id)) {
+        if (nextTimer.delayMs === 0) {
+          firedZeroDelayIntervals.add(nextTimer.id);
+        }
         this.timers.set(nextTimer.id, {
           ...nextTimer,
           fireAt: this.time + nextTimer.delayMs,
@@ -914,9 +920,10 @@ var ManualClock = class {
     });
     return id;
   }
-  peekNextTimer() {
+  peekNextTimer(excludeIds) {
     let nextTimer = null;
     for (const timer of this.timers.values()) {
+      if (excludeIds?.has(timer.id)) continue;
       if (!nextTimer || compareTimers(timer, nextTimer) < 0) {
         nextTimer = timer;
       }

@@ -131,7 +131,9 @@ export class DistortionEffect {
           if (glitch.type === "shift") {
             const shift = glitch.amount
             for (let x = 0; x < width; x++) {
-              const srcX = (x - shift + width) % width // Wrap around shift
+              // True positive modulo: a shift larger than the row width must
+              // wrap, not read out of bounds (JS % keeps the dividend sign)
+              const srcX = (((x - shift) % width) + width) % width
               const destIndex = baseIndex + x
               const srcTempIndex = srcX
 
@@ -743,9 +745,14 @@ export class CRTRollingBarEffect {
 
     // Update bar position (convert deltaTime from ms to seconds)
     this.position += (deltaTime / 1000) * this._speed
-    // Wrap position to keep it rolling continuously
+    // Wrap position to keep it rolling continuously. Skip when the buffer has
+    // no rows: modulo zero is NaN and would poison the position forever, and a
+    // negative speed needs a true positive modulo so the bar wraps instead of
+    // walking off the top of the screen.
     const cycleHeight = height + this._height * height * 2
-    this.position = this.position % cycleHeight
+    if (cycleHeight > 0) {
+      this.position = ((this.position % cycleHeight) + cycleHeight) % cycleHeight
+    }
 
     const barPixelHeight = this._height * height
     const fadePixelDistance = this._fadeDistance * barPixelHeight

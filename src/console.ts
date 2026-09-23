@@ -473,8 +473,11 @@ export class TerminalConsole extends EventEmitter {
     this._displayLines.push(...newDisplayLines)
 
     if (this._displayLines.length > this.options.maxDisplayLines) {
-      this._displayLines.splice(0, this._displayLines.length - this.options.maxDisplayLines)
+      // Capture the overflow before trimming; after the splice the length
+      // already equals maxDisplayLines and the adjustment would always be 0,
+      // leaving scrollTopIndex pointing at deleted lines.
       const linesRemoved = this._displayLines.length - this.options.maxDisplayLines
+      this._displayLines.splice(0, linesRemoved)
       this.scrollTopIndex = Math.max(0, this.scrollTopIndex - linesRemoved)
     }
 
@@ -937,7 +940,10 @@ export class TerminalConsole extends EventEmitter {
     for (let i = 0; i < initialLines.length; i++) {
       const lineText = initialLines[i]
       const isFirstLineOfEntry = i === 0
-      const availableWidth = this.consoleWidth - 1 - (isFirstLineOfEntry ? 0 : INDENT_WIDTH)
+      // Clamp to at least 1: a non-positive width (tiny console, or the
+      // indent consuming the whole width) would never advance currentPos and
+      // loop forever allocating display lines.
+      const availableWidth = Math.max(1, this.consoleWidth - 1 - (isFirstLineOfEntry ? 0 : INDENT_WIDTH))
       const linePrefix = isFirstLineOfEntry ? prefix : " ".repeat(INDENT_WIDTH)
       const textToWrap = isFirstLineOfEntry ? linePrefix + lineText : lineText
 
