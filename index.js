@@ -5927,8 +5927,8 @@ var TextTableRenderable = class extends Renderable {
       return this.createEmptyLayout();
     }
     const borderLayout = this.resolveBorderLayout();
-    const columnWidths = this.computeColumnWidths(maxTableWidth, borderLayout);
-    const rowHeights = this.computeRowHeights(columnWidths);
+    const { widths: columnWidths, intrinsic } = this.computeColumnWidths(maxTableWidth, borderLayout);
+    const rowHeights = this.computeRowHeights(columnWidths, intrinsic);
     const columnOffsets = this.computeOffsets(
       columnWidths,
       borderLayout.left,
@@ -5959,17 +5959,24 @@ var TextTableRenderable = class extends Renderable {
   computeColumnWidths(maxTableWidth, borderLayout) {
     const horizontalPadding = this.getHorizontalCellPadding();
     const intrinsicWidths = new Array(this._columnCount).fill(1 + horizontalPadding);
+    const intrinsic = [];
     for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
+      const rowMeasures = [];
+      intrinsic.push(rowMeasures);
       for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
         if (!cell) continue;
         const measure = cell.textBufferView.measureForDimensions(0, MEASURE_HEIGHT);
-        const measuredWidth = Math.max(1, measure?.widthColsMax ?? 0) + horizontalPadding;
-        intrinsicWidths[colIdx] = Math.max(intrinsicWidths[colIdx], measuredWidth);
+        const intrinsicCell = {
+          width: Math.max(1, measure?.widthColsMax ?? 0),
+          lineCount: Math.max(1, measure?.lineCount ?? 1)
+        };
+        rowMeasures[colIdx] = intrinsicCell;
+        intrinsicWidths[colIdx] = Math.max(intrinsicWidths[colIdx], intrinsicCell.width + horizontalPadding);
       }
     }
     if (maxTableWidth === void 0 || !Number.isFinite(maxTableWidth) || maxTableWidth <= 0) {
-      return intrinsicWidths;
+      return { widths: intrinsicWidths, intrinsic };
     }
     const maxContentWidth = Math.max(
       1,
@@ -5977,18 +5984,18 @@ var TextTableRenderable = class extends Renderable {
     );
     const currentWidth = intrinsicWidths.reduce((sum, width) => sum + width, 0);
     if (currentWidth === maxContentWidth) {
-      return intrinsicWidths;
+      return { widths: intrinsicWidths, intrinsic };
     }
     if (currentWidth < maxContentWidth) {
       if (this.isFullWidthMode()) {
-        return this.expandColumnWidths(intrinsicWidths, maxContentWidth);
+        return { widths: this.expandColumnWidths(intrinsicWidths, maxContentWidth), intrinsic };
       }
-      return intrinsicWidths;
+      return { widths: intrinsicWidths, intrinsic };
     }
     if (this._wrapMode === "none") {
-      return intrinsicWidths;
+      return { widths: intrinsicWidths, intrinsic };
     }
-    return this.fitColumnWidths(intrinsicWidths, maxContentWidth);
+    return { widths: this.fitColumnWidths(intrinsicWidths, maxContentWidth), intrinsic };
   }
   expandColumnWidths(widths, targetContentWidth) {
     const baseWidths = widths.map(normalizeColumnWidth);
@@ -6016,7 +6023,7 @@ var TextTableRenderable = class extends Renderable {
     }
     return fitColumnWidthsProportional(widths, targetContentWidth, minWidth);
   }
-  computeRowHeights(columnWidths) {
+  computeRowHeights(columnWidths, intrinsic) {
     const horizontalPadding = this.getHorizontalCellPadding();
     const verticalPadding = this.getVerticalCellPadding();
     const rowHeights = new Array(this._rowCount).fill(1 + verticalPadding);
@@ -6024,9 +6031,15 @@ var TextTableRenderable = class extends Renderable {
       for (let colIdx = 0; colIdx < this._columnCount; colIdx++) {
         const cell = this._cells[rowIdx]?.[colIdx];
         if (!cell) continue;
-        const width = Math.max(1, (columnWidths[colIdx] ?? 1) - horizontalPadding);
-        const measure = cell.textBufferView.measureForDimensions(width, MEASURE_HEIGHT);
-        const lineCount = Math.max(1, measure?.lineCount ?? 1);
+        const contentWidth = Math.max(1, (columnWidths[colIdx] ?? 1) - horizontalPadding);
+        const intrinsicCell = intrinsic[rowIdx]?.[colIdx];
+        let lineCount;
+        if (intrinsicCell && intrinsicCell.width <= contentWidth) {
+          lineCount = intrinsicCell.lineCount;
+        } else {
+          const measure = cell.textBufferView.measureForDimensions(contentWidth, MEASURE_HEIGHT);
+          lineCount = Math.max(1, measure?.lineCount ?? 1);
+        }
         rowHeights[rowIdx] = Math.max(rowHeights[rowIdx], lineCount + verticalPadding);
       }
     }
