@@ -6823,6 +6823,16 @@ var MarkdownRenderable = class extends Renderable {
       marginBottom
     });
   }
+  createMarkdownTextBlock(token, raw, id, marginBottom = 0) {
+    return this.createMarkdownCodeRenderable(
+      raw,
+      id,
+      marginBottom,
+      this._linkifyMarkdownChunks,
+      void 0,
+      this.createInitialStyledText(token)
+    );
+  }
   getBlockquoteContent(token) {
     return "text" in token && typeof token.text === "string" && token.text ? token.text : " ";
   }
@@ -7019,28 +7029,14 @@ var MarkdownRenderable = class extends Renderable {
   }
   createListChildRenderable(token, id) {
     if (token.type === "text" || token.type === "paragraph") {
-      return this.createMarkdownCodeRenderable(
-        this.normalizeScrollbackMarkdownBlockRaw(token.raw),
-        id,
-        0,
-        this._linkifyMarkdownChunks,
-        void 0,
-        this.createInitialStyledText(token)
-      );
+      return this.createMarkdownTextBlock(token, this.normalizeScrollbackMarkdownBlockRaw(token.raw), id);
     }
     if (token.type === "list") return this.createListRenderable(token, id);
     if (token.type === "code") return this.createCodeRenderable(token, id);
     if (token.type === "blockquote") return this.createBlockquoteRenderable(token, id);
     if (token.type === "hr") return this.createHorizontalRuleRenderable(id);
     if (token.type === "table") return this.createTableBlock(token, id).renderable;
-    return token.raw ? this.createMarkdownCodeRenderable(
-      token.raw,
-      id,
-      0,
-      this._linkifyMarkdownChunks,
-      void 0,
-      this.createInitialStyledText(token)
-    ) : null;
+    return token.raw ? this.createMarkdownTextBlock(token, token.raw, id) : null;
   }
   createHorizontalRuleRenderable(id, marginBottom = 0) {
     return new BoxRenderable(this.ctx, {
@@ -7489,14 +7485,7 @@ var MarkdownRenderable = class extends Renderable {
     if (!markdownRaw) {
       return { renderable: void 0, canUpdateInPlace: true };
     }
-    const renderable = this.createMarkdownCodeRenderable(
-      markdownRaw,
-      id,
-      0,
-      this._linkifyMarkdownChunks,
-      void 0,
-      this.createInitialStyledText(token)
-    );
+    const renderable = this.createMarkdownTextBlock(token, markdownRaw, id);
     renderable.marginTop = marginTop;
     return { renderable, canUpdateInPlace: true };
   }
@@ -7538,14 +7527,7 @@ var MarkdownRenderable = class extends Renderable {
     if (!token.raw) {
       return null;
     }
-    return this.createMarkdownCodeRenderable(
-      token.raw,
-      id,
-      marginBottom,
-      this._linkifyMarkdownChunks,
-      void 0,
-      this.createInitialStyledText(token)
-    );
+    return this.createMarkdownTextBlock(token, token.raw, id, marginBottom);
   }
   createCustomRenderable(token, index, nextToken) {
     const custom = this.renderCustomNode(token, () => {
@@ -7596,7 +7578,7 @@ var MarkdownRenderable = class extends Renderable {
     if (!renderable || renderable === usedRenderable || renderable.parent) return;
     renderable.destroyRecursively();
   }
-  updateBlockRenderable(state, token, index, nextToken, forceListRefresh = false) {
+  updateBlockRenderable(state, token, index, nextToken, forceListRefresh = false, forceTableRegenerate = false) {
     const marginBottom = this.getInterBlockMargin(token, nextToken);
     if (token.type === "code") {
       this.applyCodeBlockRenderable(state.renderable, token, marginBottom);
@@ -7626,7 +7608,7 @@ var MarkdownRenderable = class extends Renderable {
     }
     if (token.type === "table") {
       const tableToken = token;
-      const { cache, changed } = this.buildTableContentCache(tableToken, state.tableContentCache);
+      const { cache, changed } = this.buildTableContentCache(tableToken, state.tableContentCache, forceTableRegenerate);
       if (!cache) {
         if (state.renderable instanceof CodeRenderable) {
           this.applyMarkdownCodeRenderable(state.renderable, tableToken.raw, marginBottom);
@@ -7671,13 +7653,11 @@ var MarkdownRenderable = class extends Renderable {
       return;
     }
     state.renderable.destroyRecursively();
-    const markdownRenderable = this.createMarkdownCodeRenderable(
+    const markdownRenderable = this.createMarkdownTextBlock(
+      token,
       this.getTopLevelBlockRaw(token) ?? token.raw,
       `${this.id}-block-${index}`,
-      marginBottom,
-      this._linkifyMarkdownChunks,
-      void 0,
-      this.createInitialStyledText(token)
+      marginBottom
     );
     this.add(markdownRenderable, index);
     state.renderable = markdownRenderable;
@@ -7919,77 +7899,7 @@ var MarkdownRenderable = class extends Renderable {
     }
     for (let i = 0; i < this._blockStates.length; i++) {
       const state = this._blockStates[i];
-      const marginBottom = this.getInterBlockMargin(state.token, this._blockStates[i + 1]?.token);
-      if (state.token.type === "code") {
-        this.applyCodeBlockRenderable(state.renderable, state.token, marginBottom);
-        continue;
-      }
-      if (state.token.type === "blockquote") {
-        this.applyBlockquoteRenderable(state.renderable, state.token, marginBottom);
-        continue;
-      }
-      if (state.token.type === "list") {
-        this.updateBlockRenderable(state, state.token, i, this._blockStates[i + 1]?.token, true);
-        continue;
-      }
-      if (state.token.type === "hr") {
-        state.renderable.marginBottom = marginBottom;
-        continue;
-      }
-      if (state.token.type === "table") {
-        const tableToken = state.token;
-        const { cache } = this.buildTableContentCache(tableToken, state.tableContentCache, true);
-        if (!cache) {
-          if (state.renderable instanceof CodeRenderable) {
-            this.applyMarkdownCodeRenderable(state.renderable, tableToken.raw, marginBottom);
-          } else {
-            state.renderable.destroyRecursively();
-            const fallbackRenderable = this.createMarkdownCodeRenderable(
-              tableToken.raw,
-              `${this.id}-block-${i}`,
-              marginBottom
-            );
-            this.add(fallbackRenderable, i);
-            state.renderable = fallbackRenderable;
-          }
-          state.tableContentCache = void 0;
-          continue;
-        }
-        if (state.renderable instanceof TextTableRenderable) {
-          state.renderable.content = cache.content;
-          this.applyTableRenderableOptions(state.renderable, this.resolveTableRenderableOptions());
-          state.renderable.marginBottom = marginBottom;
-          state.tableContentCache = cache;
-          continue;
-        }
-        state.renderable.destroyRecursively();
-        const tableRenderable = this.createTextTableRenderable(cache.content, `${this.id}-block-${i}`, marginBottom);
-        this.add(tableRenderable, i);
-        state.renderable = tableRenderable;
-        state.tableContentCache = cache;
-        continue;
-      }
-      if (state.renderable instanceof CodeRenderable) {
-        this.applyMarkdownCodeRenderable(
-          state.renderable,
-          this.getTopLevelBlockRaw(state.token) ?? state.token.raw,
-          marginBottom,
-          void 0,
-          this.createInitialStyledText(state.token)
-        );
-        continue;
-      }
-      state.renderable.destroyRecursively();
-      const markdownRenderable = this.createMarkdownCodeRenderable(
-        this.getTopLevelBlockRaw(state.token) ?? state.token.raw,
-        `${this.id}-block-${i}`,
-        marginBottom,
-        this._linkifyMarkdownChunks,
-        void 0,
-        this.createInitialStyledText(state.token)
-      );
-      this.add(markdownRenderable, i);
-      state.renderable = markdownRenderable;
+      this.updateBlockRenderable(state, state.token, i, this._blockStates[i + 1]?.token, true, true);
     }
   }
   clearCache() {

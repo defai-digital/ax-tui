@@ -185,6 +185,7 @@ export declare class MarkdownRenderable extends Renderable {
     private renderInlineTokenWithStyle;
     private applyMargins;
     private createMarkdownCodeRenderable;
+    private createMarkdownTextBlock;
     private getBlockquoteContent;
     private getBlockquoteBorderColor;
     private createBlockquoteRenderable;
