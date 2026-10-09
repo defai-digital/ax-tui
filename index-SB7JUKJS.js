@@ -6612,6 +6612,48 @@ var tildeKeyMap = {
   "29": "menu",
   "57427": "clear"
 };
+function createKittyKey(sequence, name) {
+  return {
+    name,
+    ctrl: false,
+    meta: false,
+    shift: false,
+    option: false,
+    number: false,
+    sequence,
+    raw: sequence,
+    eventType: "press",
+    source: "kitty",
+    super: false,
+    hyper: false,
+    capsLock: false,
+    numLock: false
+  };
+}
+function applyKittyModifiers(key, modifierStr) {
+  if (!modifierStr) return;
+  const modifierMask = parseInt(modifierStr, 10);
+  if (isNaN(modifierMask) || modifierMask <= 1) return;
+  const mods = fromKittyMods(modifierMask - 1);
+  key.shift = mods.shift;
+  key.ctrl = mods.ctrl;
+  key.meta = mods.alt || mods.meta;
+  key.option = mods.alt;
+  key.super = mods.super;
+  key.hyper = mods.hyper;
+  key.capsLock = mods.capsLock;
+  key.numLock = mods.numLock;
+}
+function applyKittyEventType(key, eventTypeStr) {
+  if (eventTypeStr === "2") {
+    key.eventType = "press";
+    key.repeated = true;
+  } else if (eventTypeStr === "3") {
+    key.eventType = "release";
+  } else {
+    key.eventType = "press";
+  }
+}
 function parseKittySpecialKey(sequence) {
   const specialKeyRe = /^\x1b\[(\d+);(\d+):(\d+)([A-Z~])$/;
   const match = specialKeyRe.exec(sequence);
@@ -6628,44 +6670,9 @@ function parseKittySpecialKey(sequence) {
     keyName2 = functionalKeyMap[terminator];
   }
   if (!keyName2) return null;
-  const key = {
-    name: keyName2,
-    ctrl: false,
-    meta: false,
-    shift: false,
-    option: false,
-    number: false,
-    sequence,
-    raw: sequence,
-    eventType: "press",
-    source: "kitty",
-    super: false,
-    hyper: false,
-    capsLock: false,
-    numLock: false
-  };
-  if (modifierStr) {
-    const modifierMask = parseInt(modifierStr, 10);
-    if (!isNaN(modifierMask) && modifierMask > 1) {
-      const mods = fromKittyMods(modifierMask - 1);
-      key.shift = mods.shift;
-      key.ctrl = mods.ctrl;
-      key.meta = mods.alt || mods.meta;
-      key.option = mods.alt;
-      key.super = mods.super;
-      key.hyper = mods.hyper;
-      key.capsLock = mods.capsLock;
-      key.numLock = mods.numLock;
-    }
-  }
-  if (eventTypeStr === "1" || !eventTypeStr) {
-    key.eventType = "press";
-  } else if (eventTypeStr === "2") {
-    key.eventType = "press";
-    key.repeated = true;
-  } else if (eventTypeStr === "3") {
-    key.eventType = "release";
-  }
+  const key = createKittyKey(sequence, keyName2);
+  applyKittyModifiers(key, modifierStr);
+  applyKittyEventType(key, eventTypeStr);
   return key;
 }
 function parseKittyKeyboard(sequence) {
@@ -6677,22 +6684,7 @@ function parseKittyKeyboard(sequence) {
   const params = match[1];
   const fields = params.split(";");
   if (fields.length < 1) return null;
-  const key = {
-    name: "",
-    ctrl: false,
-    meta: false,
-    shift: false,
-    option: false,
-    number: false,
-    sequence,
-    raw: sequence,
-    eventType: "press",
-    source: "kitty",
-    super: false,
-    hyper: false,
-    capsLock: false,
-    numLock: false
-  };
+  const key = createKittyKey(sequence, "");
   let text = "";
   const field1 = fields[0]?.split(":") || [];
   const codepointStr = field1[0];
@@ -6732,32 +6724,8 @@ function parseKittyKeyboard(sequence) {
   }
   if (fields[1]) {
     const field2 = fields[1].split(":");
-    const modifierStr = field2[0];
-    const eventTypeStr = field2[1];
-    if (modifierStr) {
-      const modifierMask = parseInt(modifierStr, 10);
-      if (!isNaN(modifierMask) && modifierMask > 1) {
-        const mods = fromKittyMods(modifierMask - 1);
-        key.shift = mods.shift;
-        key.ctrl = mods.ctrl;
-        key.meta = mods.alt || mods.meta;
-        key.option = mods.alt;
-        key.super = mods.super;
-        key.hyper = mods.hyper;
-        key.capsLock = mods.capsLock;
-        key.numLock = mods.numLock;
-      }
-    }
-    if (eventTypeStr === "1" || !eventTypeStr) {
-      key.eventType = "press";
-    } else if (eventTypeStr === "2") {
-      key.eventType = "press";
-      key.repeated = true;
-    } else if (eventTypeStr === "3") {
-      key.eventType = "release";
-    } else {
-      key.eventType = "press";
-    }
+    applyKittyModifiers(key, field2[0]);
+    applyKittyEventType(key, field2[1]);
   }
   if (fields[2]) {
     const codepoints = fields[2].split(":");

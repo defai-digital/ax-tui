@@ -209,6 +209,52 @@ const tildeKeyMap: Record<string, string> = {
  *   Functional: CSI 1;modifiers:event_type LETTER (e.g., \x1b[1;1:1A = up arrow press)
  *   Tilde: CSI number;modifiers:event_type ~ (e.g., \x1b[5;1:1~ = pageup press)
  */
+function createKittyKey(sequence: string, name: string): ParsedKey {
+  return {
+    name,
+    ctrl: false,
+    meta: false,
+    shift: false,
+    option: false,
+    number: false,
+    sequence,
+    raw: sequence,
+    eventType: "press",
+    source: "kitty",
+    super: false,
+    hyper: false,
+    capsLock: false,
+    numLock: false,
+  }
+}
+
+function applyKittyModifiers(key: ParsedKey, modifierStr: string | undefined): void {
+  if (!modifierStr) return
+  const modifierMask = parseInt(modifierStr, 10)
+  if (isNaN(modifierMask) || modifierMask <= 1) return
+  const mods = fromKittyMods(modifierMask - 1) // Kitty modifiers start from 1
+  key.shift = mods.shift
+  key.ctrl = mods.ctrl
+  key.meta = mods.alt || mods.meta
+  key.option = mods.alt
+  key.super = mods.super
+  key.hyper = mods.hyper
+  key.capsLock = mods.capsLock
+  key.numLock = mods.numLock
+}
+
+// Kitty event types: 1 = press (default), 2 = repeat, 3 = release.
+function applyKittyEventType(key: ParsedKey, eventTypeStr: string | undefined): void {
+  if (eventTypeStr === "2") {
+    key.eventType = "press"
+    key.repeated = true
+  } else if (eventTypeStr === "3") {
+    key.eventType = "release"
+  } else {
+    key.eventType = "press"
+  }
+}
+
 function parseKittySpecialKey(sequence: string): ParsedKey | null {
   // Combined regex: matches both functional keys (letter) and tilde keys (~)
   const specialKeyRe = /^\x1b\[(\d+);(\d+):(\d+)([A-Z~])$/
@@ -234,48 +280,10 @@ function parseKittySpecialKey(sequence: string): ParsedKey | null {
 
   if (!keyName) return null
 
-  const key: ParsedKey = {
-    name: keyName,
-    ctrl: false,
-    meta: false,
-    shift: false,
-    option: false,
-    number: false,
-    sequence,
-    raw: sequence,
-    eventType: "press",
-    source: "kitty",
-    super: false,
-    hyper: false,
-    capsLock: false,
-    numLock: false,
-  }
+  const key = createKittyKey(sequence, keyName)
 
-  // Parse modifiers
-  if (modifierStr) {
-    const modifierMask = parseInt(modifierStr, 10)
-    if (!isNaN(modifierMask) && modifierMask > 1) {
-      const mods = fromKittyMods(modifierMask - 1)
-      key.shift = mods.shift
-      key.ctrl = mods.ctrl
-      key.meta = mods.alt || mods.meta
-      key.option = mods.alt
-      key.super = mods.super
-      key.hyper = mods.hyper
-      key.capsLock = mods.capsLock
-      key.numLock = mods.numLock
-    }
-  }
-
-  // Parse event type: 1 = press, 2 = repeat, 3 = release
-  if (eventTypeStr === "1" || !eventTypeStr) {
-    key.eventType = "press"
-  } else if (eventTypeStr === "2") {
-    key.eventType = "press"
-    key.repeated = true
-  } else if (eventTypeStr === "3") {
-    key.eventType = "release"
-  }
+  applyKittyModifiers(key, modifierStr)
+  applyKittyEventType(key, eventTypeStr)
 
   return key
 }
@@ -296,22 +304,7 @@ export function parseKittyKeyboard(sequence: string): ParsedKey | null {
 
   if (fields.length < 1) return null
 
-  const key: ParsedKey = {
-    name: "",
-    ctrl: false,
-    meta: false,
-    shift: false,
-    option: false,
-    number: false,
-    sequence,
-    raw: sequence,
-    eventType: "press",
-    source: "kitty",
-    super: false,
-    hyper: false,
-    capsLock: false,
-    numLock: false,
-  }
+  const key = createKittyKey(sequence, "")
 
   let text = ""
 
@@ -368,35 +361,8 @@ export function parseKittyKeyboard(sequence: string): ParsedKey | null {
   // Parse field 2: modifier_mask:event_type
   if (fields[1]) {
     const field2 = fields[1].split(":")
-    const modifierStr = field2[0]
-    const eventTypeStr = field2[1]
-
-    if (modifierStr) {
-      const modifierMask = parseInt(modifierStr, 10)
-      if (!isNaN(modifierMask) && modifierMask > 1) {
-        const mods = fromKittyMods(modifierMask - 1) // Kitty modifiers start from 1
-        key.shift = mods.shift
-        key.ctrl = mods.ctrl
-        key.meta = mods.alt || mods.meta
-        key.option = mods.alt
-        key.super = mods.super
-        key.hyper = mods.hyper
-        key.capsLock = mods.capsLock
-        key.numLock = mods.numLock
-      }
-    }
-
-    // Parse event type: 1 = press (default), 2 = repeat, 3 = release
-    if (eventTypeStr === "1" || !eventTypeStr) {
-      key.eventType = "press"
-    } else if (eventTypeStr === "2") {
-      key.eventType = "press"
-      key.repeated = true
-    } else if (eventTypeStr === "3") {
-      key.eventType = "release"
-    } else {
-      key.eventType = "press"
-    }
+    applyKittyModifiers(key, field2[0])
+    applyKittyEventType(key, field2[1])
   }
 
   // Parse field 3: text_as_codepoint[:text_as_codepoint]
