@@ -3,6 +3,40 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
+## [1.0.4] - 2026-10-09
+
+### Fixed
+
+- Normalize ASCIIFont selections into reading order, so a reverse drag selects
+  the same cells as a forward drag.
+- Count trimmed console lines before splicing, so the scroll index follows the
+  deletion, and clamp the console wrap width to at least 1.
+- Skip a full-height footer scroll when it frees zero lines.
+- Honor an explicit timeline duration of 0, accept numeric-string start times,
+  and fire loop callbacks for every cycle the clock crosses.
+- Wrap glitch shifts with a positive modulo, and ignore non-finite rolling-bar
+  positions. An empty ASCII ramp returns without throwing.
+- Drop the merged syntax-style cache when a style name is registered again.
+- Read edit-buffer text from the buffer's byte size instead of stopping at 1MB.
+- Collapse a reverse selection on Right, and clamp rightward scroll the same
+  way as the other directions.
+- Clear scrollbar arrow auto-repeat timers when the scrollbar is destroyed.
+- Keep code conceal ranges through the newline at their end offset.
+- Render nullish Solid text and content as empty strings. Destroy a portal's
+  container on unmount. Unset props removed from a spread, and restore layout
+  styles removed from a later style object.
+- Treat a non-finite pulse speed as stopped, and map a fractional symbol height
+  below one level to the empty glyph.
+- Emit undo and redo cursor updates as `cursor-changed`, matching every other
+  cursor update.
+
+### Changed
+
+- Share text measurement, Kitty key parsing, markdown block updates, and
+  post-process color helpers internally. The public API is unchanged.
+- Skip the table wrap-measure pass when a cell's widest line already fits its
+  column.
+
 ## [1.0.3] - 2026-09-20
 
 ### Fixed
