@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-LK662F5H.js";
+} from "./index-C4TKWOQY.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,9 +184,9 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-I2EDPWUM.js";
+} from "./index-FMUCVBTF.js";
 
-// src/post/effects.ts
+// src/post/color-bytes.ts
 function toU8(value) {
   return Math.round(Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0)) * 255);
 }
@@ -200,6 +200,8 @@ function setRgb(buffer, base, r, g, b) {
   buffer[base + 2] = toU8(b);
   buffer[base + 3] = a;
 }
+
+// src/post/effects.ts
 var DistortionEffect = class {
   // --- Configurable Parameters ---
   glitchChancePerSecond = 0.5;
@@ -899,19 +901,6 @@ var RainbowTextEffect = class {
 };
 
 // src/post/filters.ts
-function toU82(value) {
-  return Math.round(Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0)) * 255);
-}
-function channel2(buffer, index) {
-  return (buffer[index] & 255) / 255;
-}
-function setRgb2(buffer, base, r, g, b) {
-  const a = buffer[base + 3] & 255;
-  buffer[base] = toU82(r);
-  buffer[base + 1] = toU82(g);
-  buffer[base + 2] = toU82(b);
-  buffer[base + 3] = a;
-}
 function applyScanlines(buffer, strength = 0.8, step = 2) {
   if (strength === 1 || step < 1) return;
   const width = buffer.width;
@@ -1035,7 +1024,7 @@ function applyChromaticAberration(buffer, strength = 1) {
       const gIndex = (y * width + x) * 4;
       const bIndex = (y * width + bX) * 4;
       const destIndex = (y * width + x) * 4;
-      setRgb2(destFg, destIndex, channel2(srcFg, rIndex), channel2(srcFg, gIndex + 1), channel2(srcFg, bIndex + 2));
+      setRgb(destFg, destIndex, channel(srcFg, rIndex), channel(srcFg, gIndex + 1), channel(srcFg, bIndex + 2));
     }
   }
 }
@@ -1050,9 +1039,9 @@ function applyAsciiArt(buffer, ramp = ' .\'`^"",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuv
     for (let x = 0; x < width; x++) {
       const index = y * width + x;
       const colorIndex = index * 4;
-      const bgR = channel2(bg2, colorIndex);
-      const bgG = channel2(bg2, colorIndex + 1);
-      const bgB = channel2(bg2, colorIndex + 2);
+      const bgR = channel(bg2, colorIndex);
+      const bgG = channel(bg2, colorIndex + 1);
+      const bgB = channel(bg2, colorIndex + 2);
       const lum = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
       const rampIndex = Math.min(rampLength - 1, Math.floor(lum * rampLength));
       chars[index] = ramp[rampIndex].charCodeAt(0);
@@ -1257,8 +1246,8 @@ var BloomEffect = class {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const index = (y * width + x) * 4;
-        const fgLum = 0.299 * channel2(srcFg, index) + 0.587 * channel2(srcFg, index + 1) + 0.114 * channel2(srcFg, index + 2);
-        const bgLum = 0.299 * channel2(srcBg, index) + 0.587 * channel2(srcBg, index + 1) + 0.114 * channel2(srcBg, index + 2);
+        const fgLum = 0.299 * channel(srcFg, index) + 0.587 * channel(srcFg, index + 1) + 0.114 * channel(srcFg, index + 2);
+        const bgLum = 0.299 * channel(srcBg, index) + 0.587 * channel(srcBg, index + 1) + 0.114 * channel(srcBg, index + 2);
         const lum = Math.max(fgLum, bgLum);
         if (lum > threshold) {
           const intensity = (lum - threshold) / (1 - threshold + 1e-6);
@@ -1282,19 +1271,19 @@ var BloomEffect = class {
               const falloff = 1 - distSq / radiusSq;
               const bloomAmount = bright.intensity * strength * falloff;
               const destIndex = (sampleY * width + sampleX) * 4;
-              setRgb2(
+              setRgb(
                 destFg,
                 destIndex,
-                Math.min(1, channel2(destFg, destIndex) + bloomAmount),
-                Math.min(1, channel2(destFg, destIndex + 1) + bloomAmount),
-                Math.min(1, channel2(destFg, destIndex + 2) + bloomAmount)
+                Math.min(1, channel(destFg, destIndex) + bloomAmount),
+                Math.min(1, channel(destFg, destIndex + 1) + bloomAmount),
+                Math.min(1, channel(destFg, destIndex + 2) + bloomAmount)
               );
-              setRgb2(
+              setRgb(
                 destBg,
                 destIndex,
-                Math.min(1, channel2(destBg, destIndex) + bloomAmount),
-                Math.min(1, channel2(destBg, destIndex + 1) + bloomAmount),
-                Math.min(1, channel2(destBg, destIndex + 2) + bloomAmount)
+                Math.min(1, channel(destBg, destIndex) + bloomAmount),
+                Math.min(1, channel(destBg, destIndex + 1) + bloomAmount),
+                Math.min(1, channel(destBg, destIndex + 2) + bloomAmount)
               );
             }
           }
@@ -4228,21 +4217,22 @@ var DiffRenderable = class extends Renderable {
       }
     }
   }
+  lineColorConfig(gutter, override, fallback) {
+    return { gutter, content: override ?? fallback };
+  }
+  removeErrorRenderables() {
+    for (const errorRenderable of [this.errorTextRenderable, this.errorCodeRenderable]) {
+      if (!errorRenderable) continue;
+      const errorIndex = this.getChildren().indexOf(errorRenderable);
+      if (errorIndex !== -1) {
+        super.remove(errorRenderable.id);
+      }
+    }
+  }
   buildUnifiedView() {
     if (!this._parsedDiff) return;
     this.flexDirection = "column";
-    if (this.errorTextRenderable) {
-      const errorTextIndex = this.getChildren().indexOf(this.errorTextRenderable);
-      if (errorTextIndex !== -1) {
-        super.remove(this.errorTextRenderable.id);
-      }
-    }
-    if (this.errorCodeRenderable) {
-      const errorCodeIndex = this.getChildren().indexOf(this.errorCodeRenderable);
-      if (errorCodeIndex !== -1) {
-        super.remove(this.errorCodeRenderable.id);
-      }
-    }
+    this.removeErrorRenderables();
     const contentLines = [];
     const lineColors = /* @__PURE__ */ new Map();
     const lineSigns = /* @__PURE__ */ new Map();
@@ -4257,15 +4247,7 @@ var DiffRenderable = class extends Renderable {
         const content2 = line.slice(1);
         if (firstChar === "+") {
           contentLines.push(content2);
-          const config = {
-            gutter: this._addedLineNumberBg
-          };
-          if (this._addedContentBg) {
-            config.content = this._addedContentBg;
-          } else {
-            config.content = this._addedBg;
-          }
-          lineColors.set(lineIndex, config);
+          lineColors.set(lineIndex, this.lineColorConfig(this._addedLineNumberBg, this._addedContentBg, this._addedBg));
           lineSigns.set(lineIndex, {
             after: " +",
             afterColor: this._addedSignColor
@@ -4275,15 +4257,7 @@ var DiffRenderable = class extends Renderable {
           lineIndex++;
         } else if (firstChar === "-") {
           contentLines.push(content2);
-          const config = {
-            gutter: this._removedLineNumberBg
-          };
-          if (this._removedContentBg) {
-            config.content = this._removedContentBg;
-          } else {
-            config.content = this._removedBg;
-          }
-          lineColors.set(lineIndex, config);
+          lineColors.set(lineIndex, this.lineColorConfig(this._removedLineNumberBg, this._removedContentBg, this._removedBg));
           lineSigns.set(lineIndex, {
             after: " -",
             afterColor: this._removedSignColor
@@ -4293,15 +4267,7 @@ var DiffRenderable = class extends Renderable {
           lineIndex++;
         } else if (firstChar === " ") {
           contentLines.push(content2);
-          const config = {
-            gutter: this._lineNumberBg
-          };
-          if (this._contextContentBg) {
-            config.content = this._contextContentBg;
-          } else {
-            config.content = this._contextBg;
-          }
-          lineColors.set(lineIndex, config);
+          lineColors.set(lineIndex, this.lineColorConfig(this._lineNumberBg, this._contextContentBg, this._contextBg));
           lineNumbers.set(lineIndex, newLineNum);
           oldLineNum++;
           newLineNum++;
@@ -4321,18 +4287,7 @@ var DiffRenderable = class extends Renderable {
   buildSplitView() {
     if (!this._parsedDiff) return;
     this.flexDirection = "row";
-    if (this.errorTextRenderable) {
-      const errorTextIndex = this.getChildren().indexOf(this.errorTextRenderable);
-      if (errorTextIndex !== -1) {
-        super.remove(this.errorTextRenderable.id);
-      }
-    }
-    if (this.errorCodeRenderable) {
-      const errorCodeIndex = this.getChildren().indexOf(this.errorCodeRenderable);
-      if (errorCodeIndex !== -1) {
-        super.remove(this.errorCodeRenderable.id);
-      }
-    }
+    this.removeErrorRenderables();
     const leftLogicalLines = [];
     const rightLogicalLines = [];
     const hunkFirstLeftLine = [];
@@ -4530,25 +4485,12 @@ var DiffRenderable = class extends Renderable {
         leftHideLineNumbers.add(index);
       }
       if (line.type === "remove") {
-        const config = {
-          gutter: this._removedLineNumberBg
-        };
-        if (this._removedContentBg) {
-          config.content = this._removedContentBg;
-        } else {
-          config.content = this._removedBg;
-        }
-        leftLineColors.set(index, config);
+        leftLineColors.set(
+          index,
+          this.lineColorConfig(this._removedLineNumberBg, this._removedContentBg, this._removedBg)
+        );
       } else if (line.type === "context") {
-        const config = {
-          gutter: this._lineNumberBg
-        };
-        if (this._contextContentBg) {
-          config.content = this._contextContentBg;
-        } else {
-          config.content = this._contextBg;
-        }
-        leftLineColors.set(index, config);
+        leftLineColors.set(index, this.lineColorConfig(this._lineNumberBg, this._contextContentBg, this._contextBg));
       }
       if (line.sign) {
         leftLineSigns.set(index, line.sign);
@@ -4562,25 +4504,9 @@ var DiffRenderable = class extends Renderable {
         rightHideLineNumbers.add(index);
       }
       if (line.type === "add") {
-        const config = {
-          gutter: this._addedLineNumberBg
-        };
-        if (this._addedContentBg) {
-          config.content = this._addedContentBg;
-        } else {
-          config.content = this._addedBg;
-        }
-        rightLineColors.set(index, config);
+        rightLineColors.set(index, this.lineColorConfig(this._addedLineNumberBg, this._addedContentBg, this._addedBg));
       } else if (line.type === "context") {
-        const config = {
-          gutter: this._lineNumberBg
-        };
-        if (this._contextContentBg) {
-          config.content = this._contextContentBg;
-        } else {
-          config.content = this._contextBg;
-        }
-        rightLineColors.set(index, config);
+        rightLineColors.set(index, this.lineColorConfig(this._lineNumberBg, this._contextContentBg, this._contextBg));
       }
       if (line.sign) {
         rightLineSigns.set(index, line.sign);
@@ -9626,12 +9552,15 @@ var SelectRenderable = class extends Renderable {
   get showDescription() {
     return this._showDescription;
   }
+  updateLinesPerItem() {
+    this.linesPerItem = this._showDescription ? this._font ? this.fontHeight + 1 : 2 : this._font ? this.fontHeight : 1;
+    this.linesPerItem += this._itemSpacing;
+    this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem));
+  }
   set showDescription(show) {
     if (this._showDescription !== show) {
       this._showDescription = show;
-      this.linesPerItem = this._showDescription ? this._font ? this.fontHeight + 1 : 2 : this._font ? this.fontHeight : 1;
-      this.linesPerItem += this._itemSpacing;
-      this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem));
+      this.updateLinesPerItem();
       this.updateScrollOffset();
       this.requestRender();
     }
@@ -9701,17 +9630,13 @@ var SelectRenderable = class extends Renderable {
   set font(font) {
     this._font = font;
     this.fontHeight = measureText({ text: "A", font: this._font }).height;
-    this.linesPerItem = this._showDescription ? this._font ? this.fontHeight + 1 : 2 : this._font ? this.fontHeight : 1;
-    this.linesPerItem += this._itemSpacing;
-    this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem));
+    this.updateLinesPerItem();
     this.updateScrollOffset();
     this.requestRender();
   }
   set itemSpacing(spacing) {
     this._itemSpacing = spacing;
-    this.linesPerItem = this._showDescription ? this._font ? this.fontHeight + 1 : 2 : this._font ? this.fontHeight : 1;
-    this.linesPerItem += this._itemSpacing;
-    this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem));
+    this.updateLinesPerItem();
     this.updateScrollOffset();
     this.requestRender();
   }

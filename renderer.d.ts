@@ -382,6 +382,7 @@ export declare class CliRenderer extends EventEmitter implements RenderContext {
     private reportNativeRenderFailure;
     private scheduleRenderTimer;
     private scheduleRenderAfterBackpressure;
+    private scheduleNextLoop;
     requestRender(): void;
     private activateFrame;
     get consoleMode(): ConsoleMode;

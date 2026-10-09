@@ -480,23 +480,26 @@ export class DiffRenderable extends Renderable {
     }
   }
 
+  private lineColorConfig(gutter: RGBA, override: RGBA | null, fallback: RGBA): LineColorConfig {
+    return { gutter, content: override ?? fallback }
+  }
+
+  private removeErrorRenderables(): void {
+    for (const errorRenderable of [this.errorTextRenderable, this.errorCodeRenderable]) {
+      if (!errorRenderable) continue
+      const errorIndex = this.getChildren().indexOf(errorRenderable)
+      if (errorIndex !== -1) {
+        super.remove(errorRenderable.id)
+      }
+    }
+  }
+
   private buildUnifiedView(): void {
     if (!this._parsedDiff) return
 
     this.flexDirection = "column"
 
-    if (this.errorTextRenderable) {
-      const errorTextIndex = this.getChildren().indexOf(this.errorTextRenderable)
-      if (errorTextIndex !== -1) {
-        super.remove(this.errorTextRenderable.id)
-      }
-    }
-    if (this.errorCodeRenderable) {
-      const errorCodeIndex = this.getChildren().indexOf(this.errorCodeRenderable)
-      if (errorCodeIndex !== -1) {
-        super.remove(this.errorCodeRenderable.id)
-      }
-    }
+    this.removeErrorRenderables()
 
     const contentLines: string[] = []
     const lineColors = new Map<number, string | RGBA | LineColorConfig>()
@@ -518,15 +521,7 @@ export class DiffRenderable extends Renderable {
 
         if (firstChar === "+") {
           contentLines.push(content)
-          const config: LineColorConfig = {
-            gutter: this._addedLineNumberBg,
-          }
-          if (this._addedContentBg) {
-            config.content = this._addedContentBg
-          } else {
-            config.content = this._addedBg
-          }
-          lineColors.set(lineIndex, config)
+          lineColors.set(lineIndex, this.lineColorConfig(this._addedLineNumberBg, this._addedContentBg, this._addedBg))
           lineSigns.set(lineIndex, {
             after: " +",
             afterColor: this._addedSignColor,
@@ -536,15 +531,7 @@ export class DiffRenderable extends Renderable {
           lineIndex++
         } else if (firstChar === "-") {
           contentLines.push(content)
-          const config: LineColorConfig = {
-            gutter: this._removedLineNumberBg,
-          }
-          if (this._removedContentBg) {
-            config.content = this._removedContentBg
-          } else {
-            config.content = this._removedBg
-          }
-          lineColors.set(lineIndex, config)
+          lineColors.set(lineIndex, this.lineColorConfig(this._removedLineNumberBg, this._removedContentBg, this._removedBg))
           lineSigns.set(lineIndex, {
             after: " -",
             afterColor: this._removedSignColor,
@@ -554,15 +541,7 @@ export class DiffRenderable extends Renderable {
           lineIndex++
         } else if (firstChar === " ") {
           contentLines.push(content)
-          const config: LineColorConfig = {
-            gutter: this._lineNumberBg,
-          }
-          if (this._contextContentBg) {
-            config.content = this._contextContentBg
-          } else {
-            config.content = this._contextBg
-          }
-          lineColors.set(lineIndex, config)
+          lineColors.set(lineIndex, this.lineColorConfig(this._lineNumberBg, this._contextContentBg, this._contextBg))
           lineNumbers.set(lineIndex, newLineNum)
           oldLineNum++
           newLineNum++
@@ -589,18 +568,7 @@ export class DiffRenderable extends Renderable {
 
     this.flexDirection = "row"
 
-    if (this.errorTextRenderable) {
-      const errorTextIndex = this.getChildren().indexOf(this.errorTextRenderable)
-      if (errorTextIndex !== -1) {
-        super.remove(this.errorTextRenderable.id)
-      }
-    }
-    if (this.errorCodeRenderable) {
-      const errorCodeIndex = this.getChildren().indexOf(this.errorCodeRenderable)
-      if (errorCodeIndex !== -1) {
-        super.remove(this.errorCodeRenderable.id)
-      }
-    }
+    this.removeErrorRenderables()
 
     const leftLogicalLines: LogicalLine[] = []
     const rightLogicalLines: LogicalLine[] = []
@@ -837,25 +805,12 @@ export class DiffRenderable extends Renderable {
         leftHideLineNumbers.add(index)
       }
       if (line.type === "remove") {
-        const config: LineColorConfig = {
-          gutter: this._removedLineNumberBg,
-        }
-        if (this._removedContentBg) {
-          config.content = this._removedContentBg
-        } else {
-          config.content = this._removedBg
-        }
-        leftLineColors.set(index, config)
+        leftLineColors.set(
+          index,
+          this.lineColorConfig(this._removedLineNumberBg, this._removedContentBg, this._removedBg),
+        )
       } else if (line.type === "context") {
-        const config: LineColorConfig = {
-          gutter: this._lineNumberBg,
-        }
-        if (this._contextContentBg) {
-          config.content = this._contextContentBg
-        } else {
-          config.content = this._contextBg
-        }
-        leftLineColors.set(index, config)
+        leftLineColors.set(index, this.lineColorConfig(this._lineNumberBg, this._contextContentBg, this._contextBg))
       }
       if (line.sign) {
         leftLineSigns.set(index, line.sign)
@@ -870,25 +825,9 @@ export class DiffRenderable extends Renderable {
         rightHideLineNumbers.add(index)
       }
       if (line.type === "add") {
-        const config: LineColorConfig = {
-          gutter: this._addedLineNumberBg,
-        }
-        if (this._addedContentBg) {
-          config.content = this._addedContentBg
-        } else {
-          config.content = this._addedBg
-        }
-        rightLineColors.set(index, config)
+        rightLineColors.set(index, this.lineColorConfig(this._addedLineNumberBg, this._addedContentBg, this._addedBg))
       } else if (line.type === "context") {
-        const config: LineColorConfig = {
-          gutter: this._lineNumberBg,
-        }
-        if (this._contextContentBg) {
-          config.content = this._contextContentBg
-        } else {
-          config.content = this._contextBg
-        }
-        rightLineColors.set(index, config)
+        rightLineColors.set(index, this.lineColorConfig(this._lineNumberBg, this._contextContentBg, this._contextBg))
       }
       if (line.sign) {
         rightLineSigns.set(index, line.sign)

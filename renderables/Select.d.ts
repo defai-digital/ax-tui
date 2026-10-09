@@ -96,6 +96,7 @@ export declare class SelectRenderable extends Renderable {
     get showScrollIndicator(): boolean;
     set showScrollIndicator(show: boolean);
     get showDescription(): boolean;
+    private updateLinesPerItem;
     set showDescription(show: boolean);
     get wrapSelection(): boolean;
     set wrapSelection(wrap: boolean);

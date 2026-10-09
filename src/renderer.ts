@@ -1504,6 +1504,21 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     this.scheduleRenderTimer()
   }
 
+  private scheduleNextLoop(overallFrameTime: number): void {
+    if (this._isRunning || this.immediateRerenderRequested) {
+      const targetFrameTime = this.immediateRerenderRequested ? this.minTargetFrameTime : this.targetFrameTime
+      const delay = Math.max(1, targetFrameTime - Math.floor(overallFrameTime))
+      this.immediateRerenderRequested = false
+      this.renderTimeout = this.clock.setTimeout(() => {
+        this.renderTimeout = null
+        this.loop()
+      }, delay)
+    } else {
+      this.clock.clearTimeout(this.renderTimeout!)
+      this.renderTimeout = null
+    }
+  }
+
   public requestRender() {
     if (this._controlState === RendererControlState.EXPLICIT_SUSPENDED) {
       return
@@ -4490,33 +4505,11 @@ export class CliRenderer extends EventEmitter implements RenderContext {
             this.collectStatSample(overallFrameTime)
           }
 
-          if (this._isRunning || this.immediateRerenderRequested) {
-            const targetFrameTime = this.immediateRerenderRequested ? this.minTargetFrameTime : this.targetFrameTime
-            const delay = Math.max(1, targetFrameTime - Math.floor(overallFrameTime))
-            this.immediateRerenderRequested = false
-            this.renderTimeout = this.clock.setTimeout(() => {
-              this.renderTimeout = null
-              this.loop()
-            }, delay)
-          } else {
-            this.clock.clearTimeout(this.renderTimeout!)
-            this.renderTimeout = null
-          }
+          this.scheduleNextLoop(overallFrameTime)
         } else if (nativeStatus === "blocked") {
           const overallFrameTime = performance.now() - overallStart
 
-          if (this._isRunning || this.immediateRerenderRequested) {
-            const targetFrameTime = this.immediateRerenderRequested ? this.minTargetFrameTime : this.targetFrameTime
-            const delay = Math.max(1, targetFrameTime - Math.floor(overallFrameTime))
-            this.immediateRerenderRequested = false
-            this.renderTimeout = this.clock.setTimeout(() => {
-              this.renderTimeout = null
-              this.loop()
-            }, delay)
-          } else {
-            this.clock.clearTimeout(this.renderTimeout!)
-            this.renderTimeout = null
-          }
+          this.scheduleNextLoop(overallFrameTime)
         } else if (nativeStatus === "backpressured") {
           this.scheduleRenderAfterBackpressure()
         } else if (nativeStatus === "retryable-skip") {

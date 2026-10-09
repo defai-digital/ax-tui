@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-I2EDPWUM.js";
+} from "./index-FMUCVBTF.js";
 
 // src/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -5769,6 +5769,20 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     }
     this.scheduleRenderTimer();
   }
+  scheduleNextLoop(overallFrameTime) {
+    if (this._isRunning || this.immediateRerenderRequested) {
+      const targetFrameTime = this.immediateRerenderRequested ? this.minTargetFrameTime : this.targetFrameTime;
+      const delay = Math.max(1, targetFrameTime - Math.floor(overallFrameTime));
+      this.immediateRerenderRequested = false;
+      this.renderTimeout = this.clock.setTimeout(() => {
+        this.renderTimeout = null;
+        this.loop();
+      }, delay);
+    } else {
+      this.clock.clearTimeout(this.renderTimeout);
+      this.renderTimeout = null;
+    }
+  }
   requestRender() {
     if (this._controlState === "explicit_suspended" /* EXPLICIT_SUSPENDED */) {
       return;
@@ -8006,32 +8020,10 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
           if (this.gatherStats) {
             this.collectStatSample(overallFrameTime);
           }
-          if (this._isRunning || this.immediateRerenderRequested) {
-            const targetFrameTime = this.immediateRerenderRequested ? this.minTargetFrameTime : this.targetFrameTime;
-            const delay = Math.max(1, targetFrameTime - Math.floor(overallFrameTime));
-            this.immediateRerenderRequested = false;
-            this.renderTimeout = this.clock.setTimeout(() => {
-              this.renderTimeout = null;
-              this.loop();
-            }, delay);
-          } else {
-            this.clock.clearTimeout(this.renderTimeout);
-            this.renderTimeout = null;
-          }
+          this.scheduleNextLoop(overallFrameTime);
         } else if (nativeStatus === "blocked") {
           const overallFrameTime = performance.now() - overallStart;
-          if (this._isRunning || this.immediateRerenderRequested) {
-            const targetFrameTime = this.immediateRerenderRequested ? this.minTargetFrameTime : this.targetFrameTime;
-            const delay = Math.max(1, targetFrameTime - Math.floor(overallFrameTime));
-            this.immediateRerenderRequested = false;
-            this.renderTimeout = this.clock.setTimeout(() => {
-              this.renderTimeout = null;
-              this.loop();
-            }, delay);
-          } else {
-            this.clock.clearTimeout(this.renderTimeout);
-            this.renderTimeout = null;
-          }
+          this.scheduleNextLoop(overallFrameTime);
         } else if (nativeStatus === "backpressured") {
           this.scheduleRenderAfterBackpressure();
         } else if (nativeStatus === "retryable-skip") {

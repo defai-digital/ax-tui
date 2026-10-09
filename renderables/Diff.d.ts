@@ -88,6 +88,8 @@ export declare class DiffRenderable extends Renderable {
     private buildErrorView;
     private createOrUpdateCodeRenderable;
     private createOrUpdateSide;
+    private lineColorConfig;
+    private removeErrorRenderables;
     private buildUnifiedView;
     private buildSplitView;
     get diff(): string;

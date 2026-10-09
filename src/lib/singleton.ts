@@ -26,9 +26,3 @@ export function destroySingleton(key: string): void {
     delete bag[key]
   }
 }
-
-export function hasSingleton(key: string): boolean {
-  // @ts-expect-error this symbol is only used in this file and is not part of the public API
-  const bag = globalThis[singletonCacheSymbol]
-  return bag && key in bag
-}

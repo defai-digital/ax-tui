@@ -127,6 +127,8 @@ export class SelectRenderable extends Renderable {
     this._itemSpacing = options.itemSpacing || this._defaultOptions.itemSpacing
 
     this.fontHeight = this._font ? measureText({ text: "A", font: this._font }).height : 1
+    // Assigned inline rather than via updateLinesPerItem() so the strict
+    // declaration build sees linesPerItem/maxVisibleItems as initialized.
     this.linesPerItem = this._showDescription
       ? this._font
         ? this.fontHeight + 1
@@ -368,19 +370,22 @@ export class SelectRenderable extends Renderable {
     return this._showDescription
   }
 
+  private updateLinesPerItem(): void {
+    this.linesPerItem = this._showDescription
+      ? this._font
+        ? this.fontHeight + 1
+        : 2
+      : this._font
+        ? this.fontHeight
+        : 1
+    this.linesPerItem += this._itemSpacing
+    this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem))
+  }
+
   public set showDescription(show: boolean) {
     if (this._showDescription !== show) {
       this._showDescription = show
-      this.linesPerItem = this._showDescription
-        ? this._font
-          ? this.fontHeight + 1
-          : 2
-        : this._font
-          ? this.fontHeight
-          : 1
-      this.linesPerItem += this._itemSpacing
-
-      this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem))
+      this.updateLinesPerItem()
       this.updateScrollOffset()
       this.requestRender()
     }
@@ -461,30 +466,14 @@ export class SelectRenderable extends Renderable {
   public set font(font: keyof typeof fonts) {
     this._font = font
     this.fontHeight = measureText({ text: "A", font: this._font }).height
-    this.linesPerItem = this._showDescription
-      ? this._font
-        ? this.fontHeight + 1
-        : 2
-      : this._font
-        ? this.fontHeight
-        : 1
-    this.linesPerItem += this._itemSpacing
-    this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem))
+    this.updateLinesPerItem()
     this.updateScrollOffset()
     this.requestRender()
   }
 
   public set itemSpacing(spacing: number) {
     this._itemSpacing = spacing
-    this.linesPerItem = this._showDescription
-      ? this._font
-        ? this.fontHeight + 1
-        : 2
-      : this._font
-        ? this.fontHeight
-        : 1
-    this.linesPerItem += this._itemSpacing
-    this.maxVisibleItems = Math.max(1, Math.floor(this.height / this.linesPerItem))
+    this.updateLinesPerItem()
     this.updateScrollOffset()
     this.requestRender()
   }

@@ -4167,9 +4167,9 @@ function clamp(value, min, max) {
 }
 
 // src/lib/yoga.options.ts
-function parseAlign(value) {
+function parseAlignWithFallback(value, fallback) {
   if (value == null) {
-    return 0 /* Auto */;
+    return fallback;
   }
   switch (value.toLowerCase()) {
     case "auto":
@@ -4191,35 +4191,14 @@ function parseAlign(value) {
     case "space-evenly":
       return 8 /* SpaceEvenly */;
     default:
-      return 0 /* Auto */;
+      return fallback;
   }
 }
+function parseAlign(value) {
+  return parseAlignWithFallback(value, 0 /* Auto */);
+}
 function parseAlignItems(value) {
-  if (value == null) {
-    return 4 /* Stretch */;
-  }
-  switch (value.toLowerCase()) {
-    case "auto":
-      return 0 /* Auto */;
-    case "flex-start":
-      return 1 /* FlexStart */;
-    case "center":
-      return 2 /* Center */;
-    case "flex-end":
-      return 3 /* FlexEnd */;
-    case "stretch":
-      return 4 /* Stretch */;
-    case "baseline":
-      return 5 /* Baseline */;
-    case "space-between":
-      return 6 /* SpaceBetween */;
-    case "space-around":
-      return 7 /* SpaceAround */;
-    case "space-evenly":
-      return 8 /* SpaceEvenly */;
-    default:
-      return 4 /* Stretch */;
-  }
+  return parseAlignWithFallback(value, 4 /* Stretch */);
 }
 function parseBoxSizing(value) {
   if (value == null) {
@@ -6311,16 +6290,10 @@ var SyntaxStyle = class _SyntaxStyle {
   }
   getStyle(name) {
     this.guard();
-    if (Object.prototype.hasOwnProperty.call(this.styleDefs, name)) {
-      return void 0;
-    }
     const style = this.styleDefs.get(name);
     if (style) return style;
     if (name.includes(".")) {
       const baseName = name.split(".")[0];
-      if (Object.prototype.hasOwnProperty.call(this.styleDefs, baseName)) {
-        return void 0;
-      }
       return this.styleDefs.get(baseName);
     }
     return void 0;
