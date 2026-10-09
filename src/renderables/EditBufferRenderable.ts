@@ -5,7 +5,7 @@ import { EditorView, type VisualCursor } from "../editor-view.js"
 import { RGBA, parseColor } from "../lib/RGBA.js"
 import type { RenderContext, Highlight, CursorStyleOptions, LineInfoProvider, LineInfo } from "../types.js"
 import type { OptimizedBuffer } from "../buffer.js"
-import { MeasureMode } from "../yoga.js"
+import { createTextMeasureFunc } from "../lib/text-measure.js"
 import type { SyntaxStyle } from "../syntax-style.js"
 
 const BrandedEditBufferRenderable: unique symbol = Symbol.for("ax-tui/EditBufferRenderable")
@@ -940,51 +940,8 @@ export abstract class EditBufferRenderable extends Renderable implements LineInf
     return true
   }
 
-  // Undefined = 0,
-  // Exactly = 1,
-  // AtMost = 2
   private setupMeasureFunc(): void {
-    const measureFunc = (
-      width: number,
-      widthMode: MeasureMode,
-      height: number,
-      heightMode: MeasureMode,
-    ): { width: number; height: number } => {
-      // When widthMode is Undefined, Yoga is asking for the intrinsic/natural width
-      // Pass width=0 to measureForDimensions to signal we want max-content (no wrapping)
-      // The Zig code treats width=0 with wrap_mode != none as null wrap_width,
-      // which triggers no-wrap mode and returns the text's intrinsic width
-      let effectiveWidth: number
-      if (widthMode === MeasureMode.Undefined || isNaN(width)) {
-        effectiveWidth = 0
-      } else {
-        effectiveWidth = width
-      }
-
-      const effectiveHeight = isNaN(height) ? 1 : height
-
-      const measureResult = this.editorView.measureForDimensions(
-        Math.floor(effectiveWidth),
-        Math.floor(effectiveHeight),
-      )
-
-      const measuredWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1
-      const measuredHeight = measureResult ? Math.max(1, measureResult.lineCount) : 1
-
-      if (widthMode === MeasureMode.AtMost && this._positionType !== "absolute") {
-        return {
-          width: Math.min(effectiveWidth, measuredWidth),
-          height: Math.min(effectiveHeight, measuredHeight),
-        }
-      }
-
-      return {
-        width: measuredWidth,
-        height: measuredHeight,
-      }
-    }
-
-    this.yogaNode.setMeasureFunc(measureFunc)
+    this.yogaNode.setMeasureFunc(createTextMeasureFunc(this.editorView, () => this._positionType === "absolute"))
   }
 
   render(buffer: OptimizedBuffer, deltaTime: number): void {

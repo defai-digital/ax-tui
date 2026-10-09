@@ -2,7 +2,7 @@
 import {
   ANSI,
   CliRenderer
-} from "./index-V3UD5SVV.js";
+} from "./index-5L3DDIYK.js";
 import {
   SystemClock,
   TreeSitterClient

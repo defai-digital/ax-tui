@@ -985,6 +985,32 @@ var BoxRenderable = class extends Renderable {
   }
 };
 
+// src/lib/text-measure.ts
+function createTextMeasureFunc(view, isAbsolute) {
+  return (width, widthMode, height, heightMode) => {
+    let effectiveWidth;
+    if (widthMode === 0 /* Undefined */ || isNaN(width)) {
+      effectiveWidth = 0;
+    } else {
+      effectiveWidth = width;
+    }
+    const effectiveHeight = isNaN(height) ? 1 : height;
+    const measureResult = view.measureForDimensions(Math.floor(effectiveWidth), Math.floor(effectiveHeight));
+    const measuredWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1;
+    const measuredHeight = measureResult ? Math.max(1, measureResult.lineCount) : 1;
+    if (widthMode === 2 /* AtMost */ && !isAbsolute()) {
+      return {
+        width: Math.min(effectiveWidth, measuredWidth),
+        height: Math.min(effectiveHeight, measuredHeight)
+      };
+    }
+    return {
+      width: measuredWidth,
+      height: measuredHeight
+    };
+  };
+}
+
 // src/renderables/TextBufferRenderable.ts
 var TextBufferRenderable = class extends Renderable {
   selectable = true;
@@ -1275,36 +1301,10 @@ var TextBufferRenderable = class extends Renderable {
     this.requestRender();
     this.emit("line-info-change");
   }
-  // Undefined = 0,
-  // Exactly = 1,
-  // AtMost = 2
   setupMeasureFunc() {
-    const measureFunc = (width, widthMode, height, heightMode) => {
-      let effectiveWidth;
-      if (widthMode === 0 /* Undefined */ || isNaN(width)) {
-        effectiveWidth = 0;
-      } else {
-        effectiveWidth = width;
-      }
-      const effectiveHeight = isNaN(height) ? 1 : height;
-      const measureResult = this.textBufferView.measureForDimensions(
-        Math.floor(effectiveWidth),
-        Math.floor(effectiveHeight)
-      );
-      const measuredWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1;
-      const measuredHeight = measureResult ? Math.max(1, measureResult.lineCount) : 1;
-      if (widthMode === 2 /* AtMost */ && this._positionType !== "absolute") {
-        return {
-          width: Math.min(effectiveWidth, measuredWidth),
-          height: Math.min(effectiveHeight, measuredHeight)
-        };
-      }
-      return {
-        width: measuredWidth,
-        height: measuredHeight
-      };
-    };
-    this.yogaNode.setMeasureFunc(measureFunc);
+    this.yogaNode.setMeasureFunc(
+      createTextMeasureFunc(this.textBufferView, () => this._positionType === "absolute")
+    );
   }
   shouldStartSelection(x, y) {
     if (!this.selectable) return false;
@@ -4309,36 +4309,8 @@ var EditBufferRenderable = class extends Renderable {
     this.requestRender();
     return true;
   }
-  // Undefined = 0,
-  // Exactly = 1,
-  // AtMost = 2
   setupMeasureFunc() {
-    const measureFunc = (width, widthMode, height, heightMode) => {
-      let effectiveWidth;
-      if (widthMode === 0 /* Undefined */ || isNaN(width)) {
-        effectiveWidth = 0;
-      } else {
-        effectiveWidth = width;
-      }
-      const effectiveHeight = isNaN(height) ? 1 : height;
-      const measureResult = this.editorView.measureForDimensions(
-        Math.floor(effectiveWidth),
-        Math.floor(effectiveHeight)
-      );
-      const measuredWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1;
-      const measuredHeight = measureResult ? Math.max(1, measureResult.lineCount) : 1;
-      if (widthMode === 2 /* AtMost */ && this._positionType !== "absolute") {
-        return {
-          width: Math.min(effectiveWidth, measuredWidth),
-          height: Math.min(effectiveHeight, measuredHeight)
-        };
-      }
-      return {
-        width: measuredWidth,
-        height: measuredHeight
-      };
-    };
-    this.yogaNode.setMeasureFunc(measureFunc);
+    this.yogaNode.setMeasureFunc(createTextMeasureFunc(this.editorView, () => this._positionType === "absolute"));
   }
   render(buffer, deltaTime) {
     if (!this.visible) return;
