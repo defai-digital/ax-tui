@@ -26,8 +26,17 @@ import { createTestRenderer, MockTreeSitterClient } from "ax-tui/testing"
 import { MarkdownRenderable, SyntaxStyle } from "ax-tui"
 
 const NL = String.fromCharCode(10)
+const collectHighlighting = (node, pending) => {
+  if (node?.highlightingDone?.then) pending.push(node.highlightingDone)
+  for (const child of node?.getChildren?.() ?? []) collectHighlighting(child, pending)
+}
+// Code blocks stay blank until tree-sitter resolves. A fixed delay loses that
+// race on a busy Windows runner, so wait for the promises the render started.
 const settle = async (setup) => {
-  await new Promise((resolve) => setTimeout(resolve, 25))
+  await setup.renderOnce()
+  const pending = []
+  collectHighlighting(setup.renderer.root, pending)
+  await Promise.all(pending)
   await setup.renderOnce()
 }
 `
