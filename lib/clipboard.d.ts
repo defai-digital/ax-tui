@@ -1,4 +1,4 @@
-import type { RendererHandle, RenderLib } from "../zig.js";
+import type { RendererHandle, RenderLib } from "../core/zig.js";
 export declare enum ClipboardTarget {
     Clipboard = 0,
     Primary = 1,

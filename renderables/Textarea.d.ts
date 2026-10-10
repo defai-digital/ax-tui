@@ -1,6 +1,6 @@
-import type { KeyEvent, PasteEvent } from "../lib/KeyHandler.js";
-import { RGBA, type ColorInput } from "../lib/RGBA.js";
-import { type RenderContext } from "../types.js";
+import type { KeyEvent, PasteEvent } from "../lib/key-handler.js";
+import { RGBA, type ColorInput } from "../lib/rgba.js";
+import { type RenderContext } from "../core/types.js";
 import { EditBufferRenderable, type EditBufferOptions } from "./EditBufferRenderable.js";
 import { type KeyBinding as BaseKeyBinding } from "../lib/keybinding.internal.js";
 import { type StyledText } from "../lib/styled-text.js";

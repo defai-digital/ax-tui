@@ -1,10 +1,10 @@
-import { Renderable, type RenderableOptions } from "../Renderable.js";
-import type { RenderContext } from "../types.js";
+import { Renderable, type RenderableOptions } from "../core/renderable.js";
+import type { RenderContext } from "../core/types.js";
 import { type LineColorConfig } from "./LineNumberRenderable.js";
-import { RGBA } from "../lib/RGBA.js";
-import { SyntaxStyle } from "../syntax-style.js";
+import { RGBA } from "../lib/rgba.js";
+import { SyntaxStyle } from "../core/syntax-style.js";
 import type { TreeSitterClient } from "../lib/tree-sitter/index.js";
-import type { MouseEvent } from "../renderer.js";
+import type { MouseEvent } from "../core/renderer.js";
 export interface DiffRenderableOptions extends RenderableOptions<DiffRenderable> {
     diff?: string;
     syncScroll?: boolean;

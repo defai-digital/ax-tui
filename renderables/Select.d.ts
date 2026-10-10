@@ -1,9 +1,9 @@
-import { OptimizedBuffer } from "../buffer.js";
+import { OptimizedBuffer } from "../core/buffer.js";
 import { fonts } from "../lib/ascii.font.js";
-import type { KeyEvent } from "../lib/KeyHandler.js";
-import { type ColorInput } from "../lib/RGBA.js";
-import { Renderable, type RenderableOptions } from "../Renderable.js";
-import type { RenderContext } from "../types.js";
+import type { KeyEvent } from "../lib/key-handler.js";
+import { type ColorInput } from "../lib/rgba.js";
+import { Renderable, type RenderableOptions } from "../core/renderable.js";
+import type { RenderContext } from "../core/types.js";
 import { type KeyBinding as BaseKeyBinding } from "../lib/keybinding.internal.js";
 type KeyAliasMap = Record<string, string>;
 export interface SelectOption {

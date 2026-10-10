@@ -1,6 +1,6 @@
-import type { PasteEvent } from "../lib/KeyHandler.js"
+import type { PasteEvent } from "../lib/key-handler.js"
 import { decodePasteBytes, stripAnsiSequences } from "../lib/paste.js"
-import type { RenderContext } from "../types.js"
+import type { RenderContext } from "../core/types.js"
 import {
   TextareaRenderable,
   type TextareaOptions,

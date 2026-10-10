@@ -1,8 +1,8 @@
-import { BaseRenderable } from "../Renderable.js"
+import { BaseRenderable } from "../core/renderable.js"
 import { stringToStyledText, StyledText } from "../lib/styled-text.js"
-import { type TextChunk } from "../text-buffer.js"
-import { RGBA } from "../lib/RGBA.js"
-import { type RenderContext } from "../types.js"
+import { type TextChunk } from "../core/text-buffer.js"
+import { RGBA } from "../lib/rgba.js"
+import { type RenderContext } from "../core/types.js"
 import { RootTextNodeRenderable, TextNodeRenderable } from "./TextNode.js"
 import { TextBufferRenderable, type TextBufferOptions } from "./TextBufferRenderable.js"
 

@@ -4,13 +4,13 @@ import {
   type CliRendererConfig,
   type CliRendererExternalOutputEvent,
   type CliRendererFrameEvent,
-} from "../renderer.js"
-import type { NativeSpanFeed } from "../NativeSpanFeed.js"
-import type { NativeRenderStats } from "../zig.js"
+} from "../core/renderer.js"
+import type { NativeSpanFeed } from "../core/native-span-feed.js"
+import type { NativeRenderStats } from "../core/zig.js"
 import { createMockKeys } from "./mock-keys.js"
 import { createMockMouse } from "./mock-mouse.js"
 import { createTestStdin, createTestStdout } from "./test-streams.js"
-import type { CapturedFrame } from "../types.js"
+import type { CapturedFrame } from "../core/types.js"
 
 export interface TestRendererOptions extends CliRendererConfig {
   width?: number

@@ -1,8 +1,8 @@
-import { CliRenderer, type CliRendererConfig } from "../renderer.js";
-import type { NativeRenderStats } from "../zig.js";
+import { CliRenderer, type CliRendererConfig } from "../core/renderer.js";
+import type { NativeRenderStats } from "../core/zig.js";
 import { createMockKeys } from "./mock-keys.js";
 import { createMockMouse } from "./mock-mouse.js";
-import type { CapturedFrame } from "../types.js";
+import type { CapturedFrame } from "../core/types.js";
 export interface TestRendererOptions extends CliRendererConfig {
     width?: number;
     height?: number;

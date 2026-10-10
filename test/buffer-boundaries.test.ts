@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from "vitest"
-vi.mock("../src/zig.js", () => ({ resolveRenderLib: vi.fn() }))
+vi.mock("../src/core/zig.js", () => ({ resolveRenderLib: vi.fn() }))
 vi.mock("../src/platform/ffi.js", () => ({
   ptr: () => 1,
   toPointer: (p: unknown) => p,
   toArrayBuffer: vi.fn(),
 }))
-import { OptimizedBuffer } from "../src/buffer.js"
-import { RGBA } from "../src/lib/RGBA.js"
+import { OptimizedBuffer } from "../src/core/buffer.js"
+import { RGBA } from "../src/lib/rgba.js"
 
 function buffer() {
   const native = {

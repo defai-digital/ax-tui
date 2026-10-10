@@ -75,6 +75,7 @@
       "spinner/src",
       "chart/dist",
       "chart/src",
+      "core",
       "renderables",
       "platform",
       "plugins",

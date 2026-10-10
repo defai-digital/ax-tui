@@ -1,8 +1,8 @@
 import { type KeyEvent } from "../lib/index.js";
 import { type ScrollAcceleration } from "../lib/scroll-acceleration.js";
-import type { Renderable, RenderableOptions } from "../Renderable.js";
-import type { MouseEvent } from "../renderer.js";
-import type { RenderContext } from "../types.js";
+import type { Renderable, RenderableOptions } from "../core/renderable.js";
+import type { MouseEvent } from "../core/renderer.js";
+import type { RenderContext } from "../core/types.js";
 import { BoxRenderable, type BoxOptions } from "./Box.js";
 import type { VNode } from "./composition/vnode.js";
 import { ScrollBarRenderable, type ScrollBarOptions, type ScrollUnit } from "./ScrollBar.js";

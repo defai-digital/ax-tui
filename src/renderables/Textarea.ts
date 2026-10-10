@@ -1,7 +1,7 @@
-import type { KeyEvent, PasteEvent } from "../lib/KeyHandler.js"
+import type { KeyEvent, PasteEvent } from "../lib/key-handler.js"
 import { decodePasteBytes, stripAnsiSequences } from "../lib/paste.js"
-import { RGBA, parseColor, type ColorInput } from "../lib/RGBA.js"
-import { type RenderContext } from "../types.js"
+import { RGBA, parseColor, type ColorInput } from "../lib/rgba.js"
+import { type RenderContext } from "../core/types.js"
 import { EditBufferRenderable, type EditBufferOptions } from "./EditBufferRenderable.js"
 import {
   type KeyBinding as BaseKeyBinding,

@@ -1,5 +1,5 @@
-import type { PasteEvent } from "../lib/KeyHandler.js";
-import type { RenderContext } from "../types.js";
+import type { PasteEvent } from "../lib/key-handler.js";
+import type { RenderContext } from "../core/types.js";
 import { TextareaRenderable, type TextareaOptions, type TextareaAction, type KeyBinding as TextareaKeyBinding } from "./Textarea.js";
 export type InputAction = TextareaAction;
 export type InputKeyBinding = TextareaKeyBinding;

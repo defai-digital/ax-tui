@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-5L3DDIYK.js";
+} from "./index-4IW25A2O.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-SB7JUKJS.js";
+} from "./index-5TUEBHVO.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -2717,7 +2717,7 @@ var SlotRenderable = class extends Renderable {
   }
 };
 
-// src/audio.ts
+// src/core/audio.ts
 import { EventEmitter } from "events";
 import { readFile } from "node:fs/promises";
 function statusToError(action, status) {
@@ -3324,7 +3324,7 @@ var vstyles = {
   styled: (attributes = 0, ...children) => StyledText2({ attributes }, ...children)
 };
 
-// src/renderables/composition/VRenderable.ts
+// src/renderables/composition/v-renderable.ts
 var VRenderable = class extends Renderable {
   options;
   constructor(ctx, options) {

@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events"
 import { describe, expect, test, vi } from "vitest"
 import { createMockKeys } from "../src/testing/mock-keys.js"
-import type { CliRenderer } from "../src/renderer.js"
+import type { CliRenderer } from "../src/core/renderer.js"
 
 function createHarness(options?: Parameters<typeof createMockKeys>[1]) {
   const stdin = new EventEmitter()

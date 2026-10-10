@@ -1,12 +1,12 @@
-import { Renderable, type RenderableOptions } from "../Renderable.js";
+import { Renderable, type RenderableOptions } from "../core/renderable.js";
 import { Selection, type LocalSelectionBounds } from "../lib/selection.js";
-import { TextBuffer } from "../text-buffer.js";
-import { TextBufferView } from "../text-buffer-view.js";
-import { RGBA } from "../lib/RGBA.js";
-import { type RenderContext, type LineInfoProvider } from "../types.js";
-import type { OptimizedBuffer } from "../buffer.js";
-import type { LineInfo } from "../zig.js";
-import { SyntaxStyle } from "../syntax-style.js";
+import { TextBuffer } from "../core/text-buffer.js";
+import { TextBufferView } from "../core/text-buffer-view.js";
+import { RGBA } from "../lib/rgba.js";
+import { type RenderContext, type LineInfoProvider } from "../core/types.js";
+import type { OptimizedBuffer } from "../core/buffer.js";
+import type { LineInfo } from "../core/zig.js";
+import { SyntaxStyle } from "../core/syntax-style.js";
 export interface TextBufferOptions extends RenderableOptions<TextBufferRenderable> {
     fg?: string | RGBA;
     bg?: string | RGBA;

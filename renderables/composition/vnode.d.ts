@@ -1,5 +1,5 @@
-import { Renderable, type RenderableOptions } from "../../Renderable.js";
-import type { RenderContext } from "../../types.js";
+import { Renderable, type RenderableOptions } from "../../core/renderable.js";
+import type { RenderContext } from "../../core/types.js";
 export type VChild = VNode | Renderable | VChild[] | null | undefined | false;
 export interface PendingCall {
     method: string;

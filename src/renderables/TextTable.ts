@@ -1,6 +1,6 @@
 import { MeasureMode } from "../yoga.js"
-import { type RenderableOptions, Renderable } from "../Renderable.js"
-import type { OptimizedBuffer } from "../buffer.js"
+import { type RenderableOptions, Renderable } from "../core/renderable.js"
+import type { OptimizedBuffer } from "../core/buffer.js"
 import { type BorderStyle, BorderCharArrays, parseBorderStyle } from "../lib/border.js"
 import {
   fitColumnWidthsBalanced,
@@ -9,11 +9,11 @@ import {
 } from "../lib/table-columns.js"
 import { convertGlobalToLocalSelection, type Selection, type LocalSelectionBounds } from "../lib/selection.js"
 import { StyledText, stringToStyledText } from "../lib/styled-text.js"
-import { RGBA, parseColor, type ColorInput } from "../lib/RGBA.js"
-import { SyntaxStyle } from "../syntax-style.js"
-import { type TextChunk, TextBuffer } from "../text-buffer.js"
-import { TextBufferView } from "../text-buffer-view.js"
-import type { RenderContext } from "../types.js"
+import { RGBA, parseColor, type ColorInput } from "../lib/rgba.js"
+import { SyntaxStyle } from "../core/syntax-style.js"
+import { type TextChunk, TextBuffer } from "../core/text-buffer.js"
+import { TextBufferView } from "../core/text-buffer-view.js"
+import type { RenderContext } from "../core/types.js"
 
 // Large sentinel height for text measurement. The Zig measure path currently
 // ignores height, but we pass an effectively unbounded value so if height-aware

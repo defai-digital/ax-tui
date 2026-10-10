@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest"
 // The widget boundary tests below run headlessly against a stubbed Renderable
 // base: the scroll/slider state machines under test live in the renderable
 // subclasses themselves, not in the native-backed base class.
-vi.mock("../src/Renderable.js", () => {
+vi.mock("../src/core/renderable.js", () => {
   class StubRenderable {
     width = 0
     height = 0

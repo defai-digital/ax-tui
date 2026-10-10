@@ -1,8 +1,8 @@
-import { Renderable, type RenderableOptions } from "../Renderable.js"
-import { OptimizedBuffer } from "../buffer.js"
-import { RGBA, parseColor, type ColorInput } from "../lib/RGBA.js"
-import type { KeyEvent } from "../lib/KeyHandler.js"
-import type { RenderContext } from "../types.js"
+import { Renderable, type RenderableOptions } from "../core/renderable.js"
+import { OptimizedBuffer } from "../core/buffer.js"
+import { RGBA, parseColor, type ColorInput } from "../lib/rgba.js"
+import type { KeyEvent } from "../lib/key-handler.js"
+import type { RenderContext } from "../core/types.js"
 import {
   type KeyBinding as BaseKeyBinding,
   mergeKeyBindings,

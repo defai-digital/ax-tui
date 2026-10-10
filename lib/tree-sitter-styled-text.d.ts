@@ -1,6 +1,6 @@
-import type { TextChunk } from "../text-buffer.js";
+import type { TextChunk } from "../core/text-buffer.js";
 import { StyledText } from "./styled-text.js";
-import { SyntaxStyle } from "../syntax-style.js";
+import { SyntaxStyle } from "../core/syntax-style.js";
 import { TreeSitterClient } from "./tree-sitter/client.js";
 import type { SimpleHighlight } from "./tree-sitter/types.js";
 interface TextChunkOptions {

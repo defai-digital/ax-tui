@@ -1,5 +1,5 @@
-import type { TextChunk } from "../text-buffer.js";
-import { type ColorInput } from "./RGBA.js";
+import type { TextChunk } from "../core/text-buffer.js";
+import { type ColorInput } from "./rgba.js";
 declare const BrandedStyledText: unique symbol;
 export type Color = ColorInput;
 export interface StyleAttrs {

@@ -1,12 +1,12 @@
-import { Renderable, type RenderableOptions } from "../Renderable.js"
+import { Renderable, type RenderableOptions } from "../core/renderable.js"
 import { convertGlobalToLocalSelection, Selection, type LocalSelectionBounds } from "../lib/selection.js"
-import { EditBuffer, type LogicalCursor } from "../edit-buffer.js"
-import { EditorView, type VisualCursor } from "../editor-view.js"
-import { RGBA, parseColor } from "../lib/RGBA.js"
-import type { RenderContext, Highlight, CursorStyleOptions, LineInfoProvider, LineInfo } from "../types.js"
-import type { OptimizedBuffer } from "../buffer.js"
+import { EditBuffer, type LogicalCursor } from "../core/edit-buffer.js"
+import { EditorView, type VisualCursor } from "../core/editor-view.js"
+import { RGBA, parseColor } from "../lib/rgba.js"
+import type { RenderContext, Highlight, CursorStyleOptions, LineInfoProvider, LineInfo } from "../core/types.js"
+import type { OptimizedBuffer } from "../core/buffer.js"
 import { createTextMeasureFunc } from "../lib/text-measure.js"
-import type { SyntaxStyle } from "../syntax-style.js"
+import type { SyntaxStyle } from "../core/syntax-style.js"
 
 const BrandedEditBufferRenderable: unique symbol = Symbol.for("ax-tui/EditBufferRenderable")
 

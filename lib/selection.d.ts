@@ -1,5 +1,5 @@
-import { Renderable } from "../Renderable.js";
-import type { ViewportBounds } from "../types.js";
+import { Renderable } from "../core/renderable.js";
+import type { ViewportBounds } from "../core/types.js";
 import { fonts } from "./ascii.font.js";
 export declare class Selection {
     private _anchor;

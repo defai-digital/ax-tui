@@ -1,4 +1,4 @@
-import type { CliRenderer } from "../renderer.js";
+import type { CliRenderer } from "../core/renderer.js";
 export type PluginContext = object;
 export type SlotMode = "append" | "replace" | "single_winner";
 export type PluginErrorPhase = "setup" | "render" | "dispose" | "error_placeholder";

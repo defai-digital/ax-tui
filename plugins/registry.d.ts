@@ -1,4 +1,4 @@
-import type { CliRenderer } from "../renderer.js";
+import type { CliRenderer } from "../core/renderer.js";
 import type { Plugin, PluginContext, PluginErrorEvent, PluginErrorReport, ResolvedSlotRenderer, SlotRenderer } from "./types.js";
 export interface SlotRegistryOptions {
     onPluginError?: (event: PluginErrorEvent) => void;

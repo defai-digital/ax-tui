@@ -1,6 +1,6 @@
-import { BaseRenderable, Renderable, type RenderableOptions } from "../Renderable.js"
-import type { CliRenderer } from "../renderer.js"
-import type { RenderContext } from "../types.js"
+import { BaseRenderable, Renderable, type RenderableOptions } from "../core/renderable.js"
+import type { CliRenderer } from "../core/renderer.js"
+import type { RenderContext } from "../core/types.js"
 import { createSlotRegistry, SlotRegistry, type SlotRegistryOptions } from "./registry.js"
 import type { Plugin, PluginContext, PluginErrorEvent, SlotMode } from "./types.js"
 

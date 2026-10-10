@@ -1,11 +1,11 @@
-import { type LineInfo, type RenderContext } from "../types.js";
+import { type LineInfo, type RenderContext } from "../core/types.js";
 import { StyledText } from "../lib/styled-text.js";
-import { SyntaxStyle } from "../syntax-style.js";
+import { SyntaxStyle } from "../core/syntax-style.js";
 import { TreeSitterClient } from "../lib/tree-sitter/index.js";
 import { TextBufferRenderable, type TextBufferOptions } from "./TextBufferRenderable.js";
-import type { OptimizedBuffer } from "../buffer.js";
+import type { OptimizedBuffer } from "../core/buffer.js";
 import type { SimpleHighlight } from "../lib/tree-sitter/types.js";
-import type { TextChunk } from "../text-buffer.js";
+import type { TextChunk } from "../core/text-buffer.js";
 export interface HighlightContext {
     content: string;
     filetype: string;
@@ -92,6 +92,6 @@ export declare class CodeRenderable extends TextBufferRenderable {
     private static isIdentityLineSources;
     private static getMergedConcealLineRanges;
     private getConcealLinesSourceMap;
-    getLineHighlights(lineIdx: number): import("../types.js").Highlight[];
+    getLineHighlights(lineIdx: number): import("../core/types.js").Highlight[];
     protected renderSelf(buffer: OptimizedBuffer): void;
 }

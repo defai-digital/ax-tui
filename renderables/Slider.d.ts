@@ -1,7 +1,7 @@
-import { type RenderableOptions, Renderable } from "../Renderable.js";
-import { type RenderContext } from "../types.js";
-import { type ColorInput, RGBA } from "../lib/RGBA.js";
-import { OptimizedBuffer } from "../buffer.js";
+import { type RenderableOptions, Renderable } from "../core/renderable.js";
+import { type RenderContext } from "../core/types.js";
+import { type ColorInput, RGBA } from "../lib/rgba.js";
+import { OptimizedBuffer } from "../core/buffer.js";
 export interface SliderOptions extends RenderableOptions<SliderRenderable> {
     orientation: "vertical" | "horizontal";
     value?: number;

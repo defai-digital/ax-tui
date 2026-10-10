@@ -1,4 +1,4 @@
-import type { CliRenderer } from "../renderer.js";
+import type { CliRenderer } from "../core/renderer.js";
 export declare function pasteBytes(text: string): Uint8Array;
 export declare const KeyCodes: {
     readonly RETURN: "\r";

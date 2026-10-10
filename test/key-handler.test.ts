@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest"
-import { InternalKeyHandler } from "../src/lib/KeyHandler.js"
-import type { KeyHandlerEventMap } from "../src/lib/KeyHandler.js"
+import { InternalKeyHandler } from "../src/lib/key-handler.js"
+import type { KeyHandlerEventMap } from "../src/lib/key-handler.js"
 import type { ParsedKey } from "../src/lib/parse.keypress.js"
 
 const parsedKey: ParsedKey = {

@@ -1,10 +1,10 @@
-import { type RenderableOptions, Renderable } from "../Renderable.js";
-import type { OptimizedBuffer } from "../buffer.js";
+import { type RenderableOptions, Renderable } from "../core/renderable.js";
+import type { OptimizedBuffer } from "../core/buffer.js";
 import { type BorderStyle } from "../lib/border.js";
 import { type Selection } from "../lib/selection.js";
-import { RGBA, type ColorInput } from "../lib/RGBA.js";
-import { type TextChunk } from "../text-buffer.js";
-import type { RenderContext } from "../types.js";
+import { RGBA, type ColorInput } from "../lib/rgba.js";
+import { type TextChunk } from "../core/text-buffer.js";
+import type { RenderContext } from "../core/types.js";
 export type TextTableCellContent = TextChunk[] | null | undefined;
 export type TextTableContent = TextTableCellContent[][];
 export type TextTableColumnWidthMode = "content" | "full";

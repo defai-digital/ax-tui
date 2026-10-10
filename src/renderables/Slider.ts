@@ -1,8 +1,8 @@
-import { type RenderableOptions, Renderable } from "../Renderable.js"
+import { type RenderableOptions, Renderable } from "../core/renderable.js"
 import { clamp } from "../lib/clamp.js"
-import { type RenderContext } from "../types.js"
-import { type ColorInput, RGBA, parseColor } from "../lib/RGBA.js"
-import { OptimizedBuffer } from "../buffer.js"
+import { type RenderContext } from "../core/types.js"
+import { type ColorInput, RGBA, parseColor } from "../lib/rgba.js"
+import { OptimizedBuffer } from "../core/buffer.js"
 
 const defaultThumbBackgroundColor = RGBA.fromHex("#9a9ea3")
 const defaultTrackBackgroundColor = RGBA.fromHex("#252527")

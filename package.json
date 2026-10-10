@@ -16,6 +16,7 @@
     "lib",
     "spinner/dist",
     "chart/dist",
+    "core",
     "renderables",
     "platform",
     "vendor",

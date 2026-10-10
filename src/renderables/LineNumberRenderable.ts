@@ -1,7 +1,7 @@
-import { Renderable, type RenderableOptions } from "../Renderable.js"
-import { OptimizedBuffer } from "../buffer.js"
-import type { RenderContext, LineInfoProvider } from "../types.js"
-import { RGBA, parseColor } from "../lib/RGBA.js"
+import { Renderable, type RenderableOptions } from "../core/renderable.js"
+import { OptimizedBuffer } from "../core/buffer.js"
+import type { RenderContext, LineInfoProvider } from "../core/types.js"
+import { RGBA, parseColor } from "../lib/rgba.js"
 import { stringWidth } from "../platform/runtime.js"
 import { MeasureMode } from "../yoga.js"
 

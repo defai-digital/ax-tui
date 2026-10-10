@@ -1,11 +1,11 @@
-import { type LineInfo, type RenderContext } from "../types.js"
+import { type LineInfo, type RenderContext } from "../core/types.js"
 import { StyledText } from "../lib/styled-text.js"
-import { SyntaxStyle } from "../syntax-style.js"
+import { SyntaxStyle } from "../core/syntax-style.js"
 import { getTreeSitterClient, TreeSitterClient } from "../lib/tree-sitter/index.js"
 import { TextBufferRenderable, type TextBufferOptions } from "./TextBufferRenderable.js"
-import type { OptimizedBuffer } from "../buffer.js"
+import type { OptimizedBuffer } from "../core/buffer.js"
 import type { SimpleHighlight } from "../lib/tree-sitter/types.js"
-import type { TextChunk } from "../text-buffer.js"
+import type { TextChunk } from "../core/text-buffer.js"
 import { treeSitterToTextChunks } from "../lib/tree-sitter-styled-text.js"
 
 export interface HighlightContext {

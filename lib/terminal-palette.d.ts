@@ -1,4 +1,4 @@
-import { RGBA } from "./RGBA.js";
+import { RGBA } from "./rgba.js";
 import { type Clock } from "./clock.js";
 type Hex = string | null;
 export type WriteFunction = (data: string | Buffer) => boolean;

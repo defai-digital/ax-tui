@@ -1,5 +1,5 @@
-import type { EditBuffer } from "../edit-buffer.js";
-import type { EditorView } from "../editor-view.js";
+import type { EditBuffer } from "../core/edit-buffer.js";
+import type { EditorView } from "../core/editor-view.js";
 export interface Extmark {
     id: number;
     start: number;

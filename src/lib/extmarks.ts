@@ -1,5 +1,5 @@
-import type { EditBuffer } from "../edit-buffer.js"
-import type { EditorView } from "../editor-view.js"
+import type { EditBuffer } from "../core/edit-buffer.js"
+import type { EditorView } from "../core/editor-view.js"
 import { stringWidth } from "../platform/runtime.js"
 import { ExtmarksHistory, type ExtmarksSnapshot } from "./extmarks-history.js"
 

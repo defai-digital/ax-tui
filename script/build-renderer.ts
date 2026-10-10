@@ -24,7 +24,7 @@ function declarations(config: string, outDir: string): void {
 const nativeDelivery: Plugin = {
   name: "ax-tui-native-delivery",
   setup(builder) {
-    builder.onResolve({ filter: /^\.\.\/native\/index\.js$/ }, () => ({ path: "./native/index.js", external: true }))
+    builder.onResolve({ filter: /^(?:\.\.\/)+native\/index\.js$/ }, () => ({ path: "./native/index.js", external: true }))
   },
 }
 

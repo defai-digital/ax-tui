@@ -1,4 +1,4 @@
-import type { RenderableOptions, Renderable } from "../Renderable.js";
+import type { RenderableOptions, Renderable } from "../core/renderable.js";
 import type { PositionTypeString, OverflowString } from "./yoga.options.js";
 export declare function validateOptions(id: string, options: RenderableOptions<Renderable>): void;
 export declare function isValidPercentage(value: any): value is `${number}%`;

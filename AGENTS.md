@@ -25,12 +25,13 @@ record; they are not part of the normal build workflow.
 
 ## Project map
 
-- `src/`: TypeScript renderer, renderables, FFI, input, workers, and testing utilities.
+- `src/`: public entries (`index`, `testing`, `yoga`, runtime plugins), `src/core/`
+  (renderer, buffers, and the text engine), renderables, FFI, input, and testing utilities.
 - `solid/source/`: TypeScript/TSX reconciler, JSX runtime, and build integration.
 - `native/source/`: TypeScript native delivery and verified download cache.
 - `native/renderer/`: Zig/C native renderer, Yoga bindings, and native tests.
 - `spinner/src/`, `chart/src/`: TypeScript widgets; their `dist/` output is committed.
-- Root `index*.js`, `*.d.ts`, `lib/`, `renderables/`, `platform/`, `testing/`,
+- Root `index*.js`, `*.d.ts`, `core/`, `lib/`, `renderables/`, `platform/`, `testing/`,
   `solid/*.js`, `solid/src/`, and `native/*.js`: generated runtime/declaration artifacts.
 - `renderer-artifacts.json`: exact generated renderer artifact inventory.
 - `assets/`: tree-sitter WASM and highlight grammars; the Zig grammar is omitted.

@@ -1,5 +1,5 @@
 import type { TestRenderer } from "./test-renderer.js"
-import { CliRenderEvents } from "../renderer.js"
+import { CliRenderEvents } from "../core/renderer.js"
 
 export interface RecordBuffersOptions {
   fg?: boolean

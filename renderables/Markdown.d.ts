@@ -1,13 +1,13 @@
-import { Renderable, type RenderableOptions } from "../Renderable.js";
-import { type RenderContext } from "../types.js";
-import { SyntaxStyle } from "../syntax-style.js";
+import { Renderable, type RenderableOptions } from "../core/renderable.js";
+import { type RenderContext } from "../core/types.js";
+import { SyntaxStyle } from "../core/syntax-style.js";
 import type { BorderStyle } from "../lib/border.js";
-import { RGBA, type ColorInput } from "../lib/RGBA.js";
+import { RGBA, type ColorInput } from "../lib/rgba.js";
 import { type MarkedToken, type Token, type Tokens } from "marked";
 import { type TextTableColumnFitter, type TextTableColumnWidthMode, type TextTableContent } from "./TextTable.js";
 import type { TreeSitterClient } from "../lib/tree-sitter/index.js";
 import { type ParseState } from "./markdown-parser.js";
-import type { OptimizedBuffer } from "../buffer.js";
+import type { OptimizedBuffer } from "../core/buffer.js";
 export type MarkdownTableStyle = "grid" | "columns";
 export interface MarkdownTableOptions {
     /**

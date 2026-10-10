@@ -1,8 +1,8 @@
-import type { OptimizedBuffer } from "../buffer.js";
+import type { OptimizedBuffer } from "../core/buffer.js";
 import { RGBA, type ColorInput } from "../lib/index.js";
-import type { KeyEvent } from "../lib/KeyHandler.js";
-import { Renderable, type RenderableOptions } from "../Renderable.js";
-import type { RenderContext } from "../types.js";
+import type { KeyEvent } from "../lib/key-handler.js";
+import { Renderable, type RenderableOptions } from "../core/renderable.js";
+import type { RenderContext } from "../core/types.js";
 import { SliderRenderable, type SliderOptions } from "./Slider.js";
 export interface ScrollBarOptions extends RenderableOptions<ScrollBarRenderable> {
     orientation: "vertical" | "horizontal";

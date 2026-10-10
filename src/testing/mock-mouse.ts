@@ -1,4 +1,4 @@
-import type { CliRenderer } from "../renderer.js"
+import type { CliRenderer } from "../core/renderer.js"
 
 export const MouseButtons = {
   LEFT: 0,

@@ -1,5 +1,5 @@
-import type { CliRenderer } from "../renderer.js"
-import type { TerminalCapabilities, TerminalInfo } from "../types.js"
+import type { CliRenderer } from "../core/renderer.js"
+import type { TerminalCapabilities, TerminalInfo } from "../core/types.js"
 
 export interface TerminalCapabilitiesOverrides extends Partial<Omit<TerminalCapabilities, "terminal">> {
   terminal?: Partial<TerminalInfo>

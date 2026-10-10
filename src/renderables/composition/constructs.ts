@@ -22,8 +22,8 @@ import {
 } from "..//index.js"
 import { TextNodeRenderable, type TextNodeOptions } from "../TextNode.js"
 import { h, type VChild } from "./vnode.js"
-import { TextAttributes } from "../../types.js"
-import type { RGBA } from "../../lib/RGBA.js"
+import { TextAttributes } from "../../core/types.js"
+import type { RGBA } from "../../lib/rgba.js"
 
 export function Generic(props?: VRenderableOptions, ...children: VChild[]) {
   return h(VRenderable, props || {}, ...children)

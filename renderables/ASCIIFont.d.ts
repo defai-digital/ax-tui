@@ -1,8 +1,8 @@
 import { type ASCIIFontName, type fonts } from "../lib/ascii.font.js";
-import { type ColorInput } from "../lib/RGBA.js";
+import { type ColorInput } from "../lib/rgba.js";
 import { Selection, type LocalSelectionBounds } from "../lib/selection.js";
-import type { RenderableOptions } from "../Renderable.js";
-import type { RenderContext } from "../types.js";
+import type { RenderableOptions } from "../core/renderable.js";
+import type { RenderContext } from "../core/types.js";
 import { FrameBufferRenderable } from "./FrameBuffer.js";
 export interface ASCIIFontOptions extends Omit<RenderableOptions<ASCIIFontRenderable>, "width" | "height"> {
     text?: string;

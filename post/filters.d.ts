@@ -1,4 +1,4 @@
-import type { OptimizedBuffer } from "../buffer.js";
+import type { OptimizedBuffer } from "../core/buffer.js";
 /**
  * Applies a scanline effect by darkening every nth row using native color matrix.
  * Only affects the background buffer to maintain text readability.

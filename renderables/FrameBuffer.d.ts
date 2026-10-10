@@ -1,6 +1,6 @@
-import { type RenderableOptions, Renderable } from "../Renderable.js";
-import { OptimizedBuffer } from "../buffer.js";
-import type { RenderContext } from "../types.js";
+import { type RenderableOptions, Renderable } from "../core/renderable.js";
+import { OptimizedBuffer } from "../core/buffer.js";
+import type { RenderContext } from "../core/types.js";
 export interface FrameBufferOptions extends RenderableOptions<FrameBufferRenderable> {
     width: number;
     height: number;

@@ -1,5 +1,5 @@
-import { OptimizedBuffer } from "../buffer.js";
-import { type ColorInput } from "./RGBA.js";
+import { OptimizedBuffer } from "../core/buffer.js";
+import { type ColorInput } from "./rgba.js";
 export type ASCIIFontName = "tiny" | "block" | "shade" | "slick" | "huge" | "grid" | "pallet";
 export declare const fonts: {
     tiny: {

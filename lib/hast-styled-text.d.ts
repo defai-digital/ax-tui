@@ -1,5 +1,5 @@
 import { StyledText } from "./styled-text.js";
-import { SyntaxStyle } from "../syntax-style.js";
+import { SyntaxStyle } from "../core/syntax-style.js";
 export interface HASTText {
     type: "text";
     value: string;
@@ -13,5 +13,5 @@ export interface HASTElement {
     children: HASTNode[];
 }
 export type HASTNode = HASTText | HASTElement;
-export type { StyleDefinition } from "../syntax-style.js";
+export type { StyleDefinition } from "../core/syntax-style.js";
 export declare function hastToStyledText(hast: HASTNode, syntaxStyle: SyntaxStyle): StyledText;

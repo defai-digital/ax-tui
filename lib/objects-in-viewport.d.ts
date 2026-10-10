@@ -1,4 +1,4 @@
-import type { ViewportBounds } from "../types.js";
+import type { ViewportBounds } from "../core/types.js";
 interface ViewportObject {
     screenX: number;
     screenY: number;

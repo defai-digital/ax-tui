@@ -1,6 +1,6 @@
-import type { TextChunk } from "../text-buffer.js"
+import type { TextChunk } from "../core/text-buffer.js"
 import { StyledText } from "./styled-text.js"
-import { SyntaxStyle } from "../syntax-style.js"
+import { SyntaxStyle } from "../core/syntax-style.js"
 
 export interface HASTText {
   type: "text"
@@ -18,7 +18,7 @@ export interface HASTElement {
 
 export type HASTNode = HASTText | HASTElement
 
-export type { StyleDefinition } from "../syntax-style.js"
+export type { StyleDefinition } from "../core/syntax-style.js"
 
 function hastToTextChunks(node: HASTNode, syntaxStyle: SyntaxStyle, parentStyles: string[] = []): TextChunk[] {
   const chunks: TextChunk[] = []

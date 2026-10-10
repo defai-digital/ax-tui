@@ -27,8 +27,8 @@ export function axRuntimeIdentityApplied(source: string): boolean {
 export function checkTuiPatches(root = ROOT): PatchStatus[] {
   const read = (name: string) => readFileSync(join(root, name), "utf8")
   const ffi = read("src/platform/ffi.ts")
-  const native = read("src/zig.ts")
-  const renderer = read("src/renderer.ts")
+  const native = read("src/core/zig.ts")
+  const renderer = read("src/core/renderer.ts")
   const parsers = read("src/lib/tree-sitter/default-parsers.ts")
   const catalogue = read("solid/source/src/elements/catalogue.ts")
   const sources = ["src", "solid/source", "native/source"].flatMap((directory) => sourceFiles(join(root, directory)))
@@ -55,27 +55,27 @@ export function checkTuiPatches(root = ROOT): PatchStatus[] {
     {
       id: "ffi-geometry-guard",
       ok: geometry && native.includes("if (width <= 0 || height <= 0) return"),
-      detail: "src/zig.ts",
+      detail: "src/core/zig.ts",
     },
     {
       id: "vendored-native-resolver",
       ok: native.includes("resolveVendoredNativeTarget()") && native.includes("AX_CODE_TUI_LIBC"),
-      detail: "src/zig.ts",
+      detail: "src/core/zig.ts",
     },
     {
       id: "native-asset-delivery",
       ok: native.includes("await prepareNativeLibrary(vendoredNativeTarget)"),
-      detail: "src/zig.ts",
+      detail: "src/core/zig.ts",
     },
     {
       id: "kitty-keyboard-opt-out",
       ok: renderer.includes("config.useKittyKeyboard === undefined ? {} : config.useKittyKeyboard"),
-      detail: "src/renderer.ts",
+      detail: "src/core/renderer.ts",
     },
     {
       id: "stdin-parser-timeout",
       ok: renderer.includes("timeoutMs: config.stdinParserTimeoutMs ?? 100"),
-      detail: "src/renderer.ts",
+      detail: "src/core/renderer.ts",
     },
     {
       id: "drop-zig-parser",

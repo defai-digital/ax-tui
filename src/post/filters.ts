@@ -1,4 +1,4 @@
-import type { OptimizedBuffer } from "../buffer.js"
+import type { OptimizedBuffer } from "../core/buffer.js"
 import { channel, setRgb, toU8 } from "./color-bytes.js"
 
 /**

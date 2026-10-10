@@ -1,11 +1,11 @@
-import { Renderable, type RenderableOptions } from "../Renderable.js";
+import { Renderable, type RenderableOptions } from "../core/renderable.js";
 import { Selection, type LocalSelectionBounds } from "../lib/selection.js";
-import { EditBuffer, type LogicalCursor } from "../edit-buffer.js";
-import { EditorView, type VisualCursor } from "../editor-view.js";
-import { RGBA } from "../lib/RGBA.js";
-import type { RenderContext, Highlight, CursorStyleOptions, LineInfoProvider, LineInfo } from "../types.js";
-import type { OptimizedBuffer } from "../buffer.js";
-import type { SyntaxStyle } from "../syntax-style.js";
+import { EditBuffer, type LogicalCursor } from "../core/edit-buffer.js";
+import { EditorView, type VisualCursor } from "../core/editor-view.js";
+import { RGBA } from "../lib/rgba.js";
+import type { RenderContext, Highlight, CursorStyleOptions, LineInfoProvider, LineInfo } from "../core/types.js";
+import type { OptimizedBuffer } from "../core/buffer.js";
+import type { SyntaxStyle } from "../core/syntax-style.js";
 declare const BrandedEditBufferRenderable: unique symbol;
 export type EditorCapture = "escape" | "navigate" | "submit" | "tab";
 export interface EditorTraits {

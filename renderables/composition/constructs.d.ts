@@ -1,7 +1,7 @@
 import { ASCIIFontRenderable, BoxRenderable, CodeRenderable, InputRenderable, ScrollBoxRenderable, SelectRenderable, TabSelectRenderable, TextRenderable, VRenderable, FrameBufferRenderable, type ASCIIFontOptions, type BoxOptions, type CodeOptions, type TextOptions, type VRenderableOptions, type InputRenderableOptions, type ScrollBoxOptions, type SelectRenderableOptions, type TabSelectRenderableOptions, type FrameBufferOptions } from "..//index.js";
 import { TextNodeRenderable } from "../TextNode.js";
 import { type VChild } from "./vnode.js";
-import type { RGBA } from "../../lib/RGBA.js";
+import type { RGBA } from "../../lib/rgba.js";
 export declare function Generic(props?: VRenderableOptions, ...children: VChild[]): import("./vnode.js").ProxiedVNode<typeof VRenderable>;
 export declare function Box(props?: BoxOptions, ...children: VChild[]): import("./vnode.js").ProxiedVNode<typeof BoxRenderable>;
 export declare function Text(props?: TextOptions & {

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { CliRenderer } from "../src/renderer.js"
+import { CliRenderer } from "../src/core/renderer.js"
 
 test.each([0, -1, NaN, Infinity, Number.MIN_VALUE])(
   "frame rate setters reject unsafe timers (%s) without changing state",

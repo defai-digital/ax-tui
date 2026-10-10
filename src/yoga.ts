@@ -9,7 +9,7 @@ import {
   type NativeYogaDirtiedCallback,
   type NativeYogaMeasureCallback,
   type RenderLib,
-} from "./zig.js"
+} from "./core/zig.js"
 import type { FFICallbackInstance, Pointer } from "./platform/ffi.js"
 
 export enum Align {
