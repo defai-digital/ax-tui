@@ -3,7 +3,7 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
-## [1.0.5] - 2026-10-17
+## [1.0.6] - 2026-10-17
 
 ### Fixed
 
@@ -11,6 +11,8 @@ All notable changes to ax-tui are documented here. The format is based on
   self-cancelling intervals to stop and runAll to finish.
 - Keep ManualClock time monotonic when pending zero-delay intervals fire
   during a later advance.
+- Handle Zig's multi-argument SDK queries and patch every macOS SDK symbol
+  section in an independent SDK copy.
 - Replace native build artifacts atomically so rebuilding a loaded macOS
   library does not invalidate mapped code-signature pages.
 
@@ -23,6 +25,8 @@ All notable changes to ax-tui are documented here. The format is based on
 - Run the pinned Zig suite in Linux, macOS, and Windows CI, and verify all
   22 TypeScript FFI struct layouts against their native definitions.
 - Rebuild all eight native targets with the updated source provenance.
+
+Version 1.0.5 was tagged but not published because release preflight failed.
 
 ## [1.0.4] - 2026-10-09
 

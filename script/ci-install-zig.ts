@@ -8,7 +8,17 @@
  */
 import { createHash } from "node:crypto"
 import { spawnSync } from "node:child_process"
-import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -83,13 +93,16 @@ function walkTbd(directory: string, files: string[] = []): string[] {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name)
     if (entry.isDirectory()) walkTbd(path, files)
-    else if (entry.name.endsWith(".tbd")) files.push(path)
+    else if (entry.isFile() && entry.name.endsWith(".tbd")) files.push(path)
   }
   return files
 }
 
 export function prepareMacosSdk(source: string, destination: string): string {
-  if (sdkIsCompatible(source)) return source
+  // A compatible top-level target list does not guarantee that every exported
+  // symbol section has arm64-macos targets. Patch the complete SDK copy.
+  source = realpathSync(source)
+  if (source === resolve(destination)) throw new Error("The SDK copy must not replace the source SDK")
   rmSync(destination, { recursive: true, force: true })
   const copied = spawnSync("cp", ["-cR", source, destination], { stdio: "inherit" })
   if (copied.status !== 0 || !existsSync(join(destination, "usr/lib"))) {
@@ -98,10 +111,28 @@ export function prepareMacosSdk(source: string, destination: string): string {
     if (fallback.status !== 0) throw new Error(`Failed to copy macOS SDK from ${source}`)
   }
   if (!existsSync(join(destination, "usr/lib"))) throw new Error(`Failed to copy macOS SDK from ${source}`)
-  for (const file of walkTbd(destination)) writeFileSync(file, patchTbdTargets(readFileSync(file, "utf8")))
+  for (const file of walkTbd(destination)) {
+    const original = readFileSync(file, "utf8")
+    const patched = patchTbdTargets(original)
+    if (patched === original) continue
+    chmodSync(file, statSync(file).mode | 0o200)
+    writeFileSync(file, patched)
+  }
   if (!sdkIsCompatible(destination)) throw new Error(`Patched macOS SDK still has no arm64-macos stub: ${destination}`)
   return destination
 }
+
+export const MACOS_XCRUN_WRAPPER = [
+  "#!/bin/sh",
+  "for arg in \"$@\"; do",
+  "  if [ \"$arg\" = \"--show-sdk-path\" ]; then",
+  "    printf '%s\\n' \"$AX_CODE_TUI_MACOS_SDK\"",
+  "    exit 0",
+  "  fi",
+  "done",
+  "exec /usr/bin/xcrun \"$@\"",
+  "",
+].join("\n")
 
 function installZig(version: string): string {
   const archive = zigArchive(process.platform, process.arch)
@@ -148,18 +179,7 @@ function main(): void {
     const wrapper = join(process.env.RUNNER_TEMP ?? tmpdir(), "ax-tui-xcrun")
     mkdirSync(wrapper, { recursive: true })
     const xcrun = join(wrapper, "xcrun")
-    writeFileSync(
-      xcrun,
-      [
-        "#!/bin/sh",
-        "if [ \"$1\" = \"--show-sdk-path\" ]; then",
-        "  printf '%s\\n' \"$AX_CODE_TUI_MACOS_SDK\"",
-        "  exit 0",
-        "fi",
-        "exec /usr/bin/xcrun \"$@\"",
-        "",
-      ].join("\n"),
-    )
+    writeFileSync(xcrun, MACOS_XCRUN_WRAPPER)
     chmodSync(xcrun, 0o755)
     appendFile(process.env.GITHUB_PATH, hostPath(wrapper))
     appendFile(process.env.GITHUB_ENV, `AX_CODE_TUI_MACOS_SDK=${hostPath(sdk)}`)

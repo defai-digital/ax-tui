@@ -21,13 +21,26 @@ test("native staging preserves the bytes held by an existing reader", () => {
   writeFileSync(file, "old library")
   const reader = openSync(file, "r")
   try {
-    writeNativeArtifact(file, Buffer.from("new library"))
+    if (process.platform === "win32") {
+      // Windows denies replacement while a reader holds the destination open.
+      // Fail without corrupting the old file or leaving staging files behind.
+      expect(() => writeNativeArtifact(file, Buffer.from("new library"))).toThrow()
+      expect(readFileSync(file, "utf8")).toBe("old library")
+    } else {
+      writeNativeArtifact(file, Buffer.from("new library"))
+      expect(readFileSync(file, "utf8")).toBe("new library")
+    }
     expect(readFileSync(reader, "utf8")).toBe("old library")
-    expect(readFileSync(file, "utf8")).toBe("new library")
     expect(readdirSync(fixture)).toEqual(["libaxtui.dylib"])
   } finally {
     closeSync(reader)
-    rmSync(fixture, { recursive: true, force: true })
+    try {
+      writeNativeArtifact(file, Buffer.from("replacement after close"))
+      expect(readFileSync(file, "utf8")).toBe("replacement after close")
+      expect(readdirSync(fixture)).toEqual(["libaxtui.dylib"])
+    } finally {
+      rmSync(fixture, { recursive: true, force: true })
+    }
   }
 })
 
