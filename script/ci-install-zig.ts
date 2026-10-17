@@ -180,6 +180,13 @@ function main(): void {
   const zigDir = dirname(zig)
   appendFile(process.env.GITHUB_PATH, hostPath(zigDir))
   appendFile(process.env.GITHUB_ENV, `AX_CODE_TUI_ZIG=${hostPath(zig)}`)
+  if (process.platform === "win32") {
+    // GitHub checks out on D: while Zig's default global cache is on C:.
+    // Zig 0.15.2 cannot form relative generator paths across drive letters.
+    const cache = join(ROOT, "native", "renderer", ".zig-cache", "global")
+    mkdirSync(cache, { recursive: true })
+    appendFile(process.env.GITHUB_ENV, `ZIG_GLOBAL_CACHE_DIR=${hostPath(cache)}`)
+  }
 
   if (process.platform === "darwin") {
     const destination = join(process.env.RUNNER_TEMP ?? tmpdir(), "ax-tui-macos-sdk", "MacOSX.sdk")
