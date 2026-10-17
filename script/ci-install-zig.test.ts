@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process"
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { MACOS_XCRUN_WRAPPER, patchTbdTargets, prepareMacosSdk, zigArchive } from "./ci-install-zig.js"
+import { extractZigArchive, MACOS_XCRUN_WRAPPER, patchTbdTargets, prepareMacosSdk, zigArchive } from "./ci-install-zig.js"
 
 test("pinned Zig archives cover the Quality workflow hosts", () => {
   expect(zigArchive("linux", "x64").name).toBe("zig-x86_64-linux-0.15.2.tar.xz")
@@ -36,7 +36,7 @@ test.skipIf(process.platform === "win32")("SDK preparation patches symbol target
   try {
     const source = join(fixture, "original.sdk")
     const alias = join(fixture, "MacOSX.sdk")
-    const destination = join(fixture, "patched.sdk")
+    const destination = join(fixture, "patched", "MacOSX.sdk")
     mkdirSync(join(source, "usr/lib"), { recursive: true })
     const stub = "targets: [ arm64-macos, arm64e-macos ]\nexports:\n  - targets: [ arm64e-macos ]\n"
     writeFileSync(join(source, "usr/lib/libSystem.tbd"), stub)
@@ -47,6 +47,21 @@ test.skipIf(process.platform === "win32")("SDK preparation patches symbol target
     expect(readFileSync(join(destination, "usr/lib/libSystem.tbd"), "utf8")).toBe(patchTbdTargets(stub))
     expect(readFileSync(join(source, "usr/lib/libSystem.tbd"), "utf8")).toBe(stub)
     expect(statSync(join(source, "usr/lib/libSystem.tbd")).mode & 0o777).toBe(0o444)
+  } finally {
+    rmSync(fixture, { recursive: true, force: true })
+  }
+})
+
+test.skipIf(process.platform === "linux")("native archive extraction accepts an absolute ZIP path", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ax-tui-zig-archive-"))
+  try {
+    const archive = join(fixture, "compiler.zip")
+    const zipped =
+      "UEsDBBQAAAAIANWZUV1KUWtsCQAAAAcAAAAXAAAAemlnLWZpeHR1cmUvdmVyc2lvbi50eHQz0DM01TPiAgBQSwECFAMUAAAACADV" +
+      "mVFdSlFrbAkAAAAHAAAAFwAAAAAAAAAAAAAAgAEAAAAAemlnLWZpeHR1cmUvdmVyc2lvbi50eHRQSwUGAAAAAAEAAQBFAAAAPgAAAAAA"
+    writeFileSync(archive, Buffer.from(zipped, "base64"))
+    extractZigArchive(archive, fixture)
+    expect(readFileSync(join(fixture, "zig-fixture/version.txt"), "utf8")).toBe("0.15.2\n")
   } finally {
     rmSync(fixture, { recursive: true, force: true })
   }

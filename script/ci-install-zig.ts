@@ -104,6 +104,7 @@ export function prepareMacosSdk(source: string, destination: string): string {
   source = realpathSync(source)
   if (source === resolve(destination)) throw new Error("The SDK copy must not replace the source SDK")
   rmSync(destination, { recursive: true, force: true })
+  mkdirSync(dirname(destination), { recursive: true })
   const copied = spawnSync("cp", ["-cR", source, destination], { stdio: "inherit" })
   if (copied.status !== 0 || !existsSync(join(destination, "usr/lib"))) {
     rmSync(destination, { recursive: true, force: true })
@@ -134,6 +135,14 @@ export const MACOS_XCRUN_WRAPPER = [
   "",
 ].join("\n")
 
+export function extractZigArchive(archivePath: string, destination: string): void {
+  // Git Bash's GNU tar treats a Windows drive letter as a remote host and
+  // cannot read ZIP archives. Windows' bundled bsdtar supports both.
+  const tar = process.platform === "win32" ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe") : "tar"
+  const extracted = spawnSync(tar, ["-xf", archivePath, "-C", destination], { stdio: "inherit" })
+  if (extracted.status !== 0) throw new Error(`Failed to extract ${archivePath}`)
+}
+
 function installZig(version: string): string {
   const archive = zigArchive(process.platform, process.arch)
   if (!archive.name.includes(version)) throw new Error(`${archive.name} is not Zig ${version}`)
@@ -149,8 +158,7 @@ function installZig(version: string): string {
   const bytes = readFileSync(archivePath)
   const actual = sha256(bytes)
   if (actual !== archive.sha256) throw new Error(`${archive.name} sha256 ${actual} != ${archive.sha256}`)
-  const extracted = spawnSync("tar", ["-xf", archivePath, "-C", root], { stdio: "inherit" })
-  if (extracted.status !== 0) throw new Error(`Failed to extract ${archive.name}`)
+  extractZigArchive(archivePath, root)
   const executable = join(
     root,
     archive.name.replace(/\.tar\.xz$|\.zip$/, ""),
@@ -174,7 +182,7 @@ function main(): void {
   appendFile(process.env.GITHUB_ENV, `AX_CODE_TUI_ZIG=${hostPath(zig)}`)
 
   if (process.platform === "darwin") {
-    const destination = join(process.env.RUNNER_TEMP ?? tmpdir(), "ax-tui-macos-sdk")
+    const destination = join(process.env.RUNNER_TEMP ?? tmpdir(), "ax-tui-macos-sdk", "MacOSX.sdk")
     const sdk = prepareMacosSdk(process.env.AX_CODE_TUI_MACOS_SDK || activeMacosSdk(), destination)
     const wrapper = join(process.env.RUNNER_TEMP ?? tmpdir(), "ax-tui-xcrun")
     mkdirSync(wrapper, { recursive: true })
