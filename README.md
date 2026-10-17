@@ -22,7 +22,7 @@ and is maintained and built independently, with MIT attribution preserved. See
 ## Install
 
 ```sh
-pnpm add ax-tui@jsr:@defai-digital/ax-tui solid-js@1.9.12
+pnpm add ax-tui@jsr:@defai-digital/ax-tui solid-js@1.9.17
 ```
 
 The command keeps `ax-tui` as the import alias for the JSR package. Native rendering on Node.js requires Node 26+

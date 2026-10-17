@@ -882,10 +882,8 @@ var ManualClock = class {
       if (!nextTimer || nextTimer.fireAt > targetTime) {
         break;
       }
-      this.timers.delete(nextTimer.id);
-      this.time = nextTimer.fireAt;
-      nextTimer.fn();
-      if (nextTimer.repeat && !this.timers.has(nextTimer.id)) {
+      this.time = Math.max(this.time, nextTimer.fireAt);
+      if (nextTimer.repeat) {
         if (nextTimer.delayMs === 0) {
           firedZeroDelayIntervals.add(nextTimer.id);
         }
@@ -894,7 +892,10 @@ var ManualClock = class {
           fireAt: this.time + nextTimer.delayMs,
           order: this.nextOrder++
         });
+      } else {
+        this.timers.delete(nextTimer.id);
       }
+      nextTimer.fn();
     }
     this.time = targetTime;
   }

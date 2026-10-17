@@ -1,9 +1,35 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, renameSync } from "node:fs"
+import {
+  closeSync,
+  mkdtempSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+  rmSync,
+  renameSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, test } from "vitest"
-import { selectNativeTargets } from "./build-native.js"
+import { selectNativeTargets, writeNativeArtifact } from "./build-native.js"
 import { nativeSourceDigest } from "./native-source.js"
+
+test("native staging preserves the bytes held by an existing reader", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "ax-tui-native-stage-"))
+  const file = join(fixture, "libaxtui.dylib")
+  writeFileSync(file, "old library")
+  const reader = openSync(file, "r")
+  try {
+    writeNativeArtifact(file, Buffer.from("new library"))
+    expect(readFileSync(reader, "utf8")).toBe("old library")
+    expect(readFileSync(file, "utf8")).toBe("new library")
+    expect(readdirSync(fixture)).toEqual(["libaxtui.dylib"])
+  } finally {
+    closeSync(reader)
+    rmSync(fixture, { recursive: true, force: true })
+  }
+})
 
 test("native build target selection requires an exact supported target", () => {
   expect(selectNativeTargets([], "linux-x64-musl").map((target) => target.zig)).toEqual(["x86_64-linux-musl"])

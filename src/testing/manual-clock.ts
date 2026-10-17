@@ -67,11 +67,8 @@ export class ManualClock implements Clock {
         break
       }
 
-      this.timers.delete(nextTimer.id)
-      this.time = nextTimer.fireAt
-      nextTimer.fn()
-
-      if (nextTimer.repeat && !this.timers.has(nextTimer.id)) {
+      this.time = Math.max(this.time, nextTimer.fireAt)
+      if (nextTimer.repeat) {
         if (nextTimer.delayMs === 0) {
           firedZeroDelayIntervals.add(nextTimer.id)
         }
@@ -80,7 +77,12 @@ export class ManualClock implements Clock {
           fireAt: this.time + nextTimer.delayMs,
           order: this.nextOrder++,
         })
+      } else {
+        this.timers.delete(nextTimer.id)
       }
+      // Keep the next interval registered while user code runs so cancellation
+      // from inside the callback removes it instead of being undone afterward.
+      nextTimer.fn()
     }
 
     this.time = targetTime

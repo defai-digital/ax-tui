@@ -126,10 +126,16 @@ Bun; the native renderer does not target web browsers or Cloudflare Workers.
 
 The Quality workflow runs on branch pushes, pull requests, and release preflight.
 It requires Node FFI support, then checks TypeScript, native/source provenance,
-all generated output, runtime regressions, and the Linux JSR dry-run. Linux,
-macOS, and Windows must pass before a release uploads immutable native assets.
-Native source changes also require `pnpm run test:native` locally and rebuilding
+the FFI struct-layout contract, all generated output, runtime regressions, and
+the Linux JSR dry-run. It installs Zig from `.zig-version` and runs `test:native`
+on Linux, macOS, and Windows. On macOS the installer copies the active SDK and
+adds `arm64-macos` beside `arm64e-macos` stub targets when Zig 0.15.2 would
+otherwise skip them. Linux, macOS, and Windows must pass before a release
+uploads immutable native assets. Native source changes also require rebuilding
 all eight targets. ABI 2 reports buffer resize failure; ABI 1 is incompatible.
+`check:abi` compares `src/core/zig-structs.ts` with `native/renderer/abi-layout.json`.
+The Zig suite compares that file with the native `extern` struct offsets. Update
+both sides, then run `pnpm exec tsx script/native-abi-layout.ts --write`.
 
 Use `node --experimental-ffi --import tsx script/benchmark-capture.ts` to measure
 span capture. It warms up 50 captures, then reports seven samples of 200 captures

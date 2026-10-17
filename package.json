@@ -1,13 +1,13 @@
 {
   "name": "ax-tui",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "SolidJS terminal UI framework with a TypeScript renderer and a locally built native backend",
   "license": "MIT",
   "type": "module",
   "module": "index.js",
   "main": "index.js",
   "types": "index.d.ts",
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "pnpm@10.34.7",
   "files": [
     "index.js",
     "index.d.ts",
@@ -171,7 +171,8 @@
     "check:patches": "tsx script/tui-patches.ts --check",
     "check:spinner-dist": "tsx script/check-tui-spinner-dist.ts",
     "check:chart-dist": "tsx script/check-tui-chart-dist.ts",
-    "check": "pnpm run check:independence && pnpm run check:vendor && pnpm run check:patches && pnpm run check:renderer-dist && pnpm run check:spinner-dist && pnpm run check:chart-dist",
+    "check:abi": "tsx script/native-abi-layout.ts --check",
+    "check": "pnpm run check:independence && pnpm run check:vendor && pnpm run check:patches && pnpm run check:abi && pnpm run check:renderer-dist && pnpm run check:spinner-dist && pnpm run check:chart-dist",
     "check:jsr": "jsr publish --dry-run",
     "publish:jsr": "jsr publish",
     "test": "vitest run",
@@ -183,29 +184,29 @@
     "check:independence": "tsx script/check-independence.ts"
   },
   "dependencies": {
-    "@babel/core": "7.29.6",
-    "@babel/preset-typescript": "7.27.1",
-    "babel-plugin-module-resolver": "5.0.2",
-    "babel-preset-solid": "1.9.12",
-    "bun-ffi-structs": "0.2.3",
+    "@babel/core": "7.29.7",
+    "@babel/preset-typescript": "7.29.7",
+    "babel-plugin-module-resolver": "5.0.3",
+    "babel-preset-solid": "1.9.16",
+    "bun-ffi-structs": "0.2.4",
     "diff": "9.0.0",
     "entities": "7.0.1",
-    "marked": "17.0.1",
+    "marked": "17.0.6",
     "string-width": "7.2.0",
-    "strip-ansi": "7.1.2"
+    "strip-ansi": "7.2.0"
   },
   "devDependencies": {
     "@types/babel__core": "7.20.5",
-    "@types/bun": "1.4.1",
-    "@types/node": "24.13.2",
+    "@types/bun": "1.4.3",
+    "@types/node": "24.19.2",
     "esbuild": "0.28.2",
     "jsr": "0.14.3",
-    "tsx": "4.22.4",
+    "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "vitest": "4.1.9"
+    "vitest": "4.1.12"
   },
   "peerDependencies": {
-    "solid-js": "1.9.12",
+    "solid-js": "1.9.17",
     "web-tree-sitter": "0.25.10"
   }
 }

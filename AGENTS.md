@@ -54,14 +54,14 @@ TypeScript 7.0.2 is the development compiler; Solid's JSX transform uses Babel.
 - `pnpm run build`: regenerate renderer JS/declarations and spinner/chart dist.
 - `pnpm run build:renderer`: regenerate only renderer, Solid, and native-delivery artifacts.
 - `pnpm run typecheck`: check core, Solid, native delivery, spinner, chart, and build-script sources.
-- `pnpm run check`: verify independence, native hashes/source provenance, AX contracts, and generated output.
+- `pnpm run check`: verify independence, native hashes/source provenance, AX contracts, FFI struct layout, and generated output.
 - `pnpm test`: Vitest over `test/**/*.test.ts` (framework and maintenance
   regressions) and `script/**/*.test.ts` (build/release tooling contracts);
   run one file with `pnpm exec vitest run <path>`.
 - `pnpm run build:native`: build the host's library with Zig pinned in `.zig-version`.
 - `pnpm run build:native --all`: build and stage all eight native targets.
 - `pnpm run build:native --target=linux-x64`: build one explicit target.
-- `pnpm run test:native`: run the native Zig suite.
+- `pnpm run test:native`: run the native Zig suite. Quality runs this on every push with Zig pinned in `.zig-version`.
 - `pnpm run check:jsr`: dry-run the JSR publication payload.
 
 `AX_CODE_TUI_ZIG` selects the compiler executable. `AX_CODE_TUI_MACOS_SDK`
@@ -90,7 +90,8 @@ Commit subjects use conventional-commit prefixes (`feat:`, `fix:`,
 ## Releases and CI
 
 Pushes, pull requests, and the release preflight run
-`.github/workflows/quality.yml` on Linux, macOS, and Windows. Pushing a
+`.github/workflows/quality.yml` on Linux, macOS, and Windows, including the Zig
+suite and the FFI struct-layout contract. Pushing a
 `v<version>` tag runs `.github/workflows/jsr.yml`: it stages
 manifest-verified native assets, publishes them to the matching GitHub
 release with byte-for-byte re-verification, and only then publishes the JSR

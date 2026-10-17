@@ -3,6 +3,27 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
+## [1.0.5] - 2026-10-17
+
+### Fixed
+
+- Honor interval cancellation from inside a ManualClock callback, allowing
+  self-cancelling intervals to stop and runAll to finish.
+- Keep ManualClock time monotonic when pending zero-delay intervals fire
+  during a later advance.
+- Replace native build artifacts atomically so rebuilding a loaded macOS
+  library does not invalidate mapped code-signature pages.
+
+### Changed
+
+- Upgrade compatible dependency releases, including Babel 7, Solid 1.9,
+  Marked 17, Vitest 4, and pnpm 10. Keep npm and JSR dependency pins aligned.
+- Refresh vulnerable transitive dependencies; the release dependency audit
+  reports no known vulnerabilities.
+- Run the pinned Zig suite in Linux, macOS, and Windows CI, and verify all
+  22 TypeScript FFI struct layouts against their native definitions.
+- Rebuild all eight native targets with the updated source provenance.
+
 ## [1.0.4] - 2026-10-09
 
 ### Fixed

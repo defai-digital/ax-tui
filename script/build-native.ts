@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { basename, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { NATIVE_TARGETS, type BuildTarget } from "./native-targets.js"
@@ -7,6 +7,18 @@ import { NATIVE_SOURCE_ROOT, nativeSourceDigest } from "./native-source.js"
 import { assertBinaryFormat, sha256, type NativeBuildEntry, type NativeBuildManifest } from "./vendor-tui-native.js"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
+
+/** Replace the inode so mapped native libraries keep their original signed pages. */
+export function writeNativeArtifact(file: string, bytes: string | Uint8Array): void {
+  const staging = mkdtempSync(join(dirname(file), ".native-stage-"))
+  try {
+    const temporary = join(staging, basename(file))
+    writeFileSync(temporary, bytes)
+    renameSync(temporary, file)
+  } finally {
+    rmSync(staging, { recursive: true, force: true })
+  }
+}
 
 export function selectNativeTargets(
   args: string[],
@@ -78,8 +90,8 @@ function run(): void {
   for (const { target, library, entry } of artifacts) {
     const directory = join(ROOT, "vendor", target.key)
     mkdirSync(directory, { recursive: true })
-    writeFileSync(join(directory, target.libFile), library)
-    writeFileSync(join(directory, "LICENSE"), license)
+    writeNativeArtifact(join(directory, target.libFile), library)
+    writeNativeArtifact(join(directory, "LICENSE"), license)
     const previousFile = previous?.targets?.[target.key]?.lib?.file
     if (typeof previousFile === "string" && previousFile !== target.libFile) {
       if (basename(previousFile) !== previousFile || !/\.(?:so|dylib|dll)$/.test(previousFile)) {
@@ -100,7 +112,7 @@ function run(): void {
     builtAt: new Date().toISOString(),
     targets: Object.fromEntries(Object.entries(entries).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
   }
-  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+  writeNativeArtifact(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
   console.log(`Built and verified ${targets.length} native libraries from local source ${sourceSha256.slice(0, 12)}`)
 }
 

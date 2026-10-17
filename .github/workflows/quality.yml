@@ -40,6 +40,12 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run check
       - run: pnpm test
+      - name: Install pinned Zig
+        shell: bash
+        run: pnpm exec tsx script/ci-install-zig.ts
+      - name: Run native tests
+        shell: bash
+        run: pnpm run test:native
       - name: Verify publication payload
         if: runner.os == 'Linux'
         run: pnpm run check:jsr
