@@ -611,6 +611,10 @@ function _insertNode(parent, node, anchor) {
     parent.add(node);
     return;
   }
+  if (parent instanceof TextRenderable2) {
+    parent.insertBefore(node, anchor);
+    return;
+  }
   parent.add(node, anchorIndex);
 }
 function _removeNode(parent, node) {

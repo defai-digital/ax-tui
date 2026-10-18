@@ -114,6 +114,14 @@ function _insertNode(parent: DomNode, node: DomNode, anchor?: DomNode): void {
     return
   }
 
+  // Text parents filter raw string children out of getNodeChildren, but add()
+  // indexes the unfiltered child array; insertBefore resolves the anchor by
+  // identity so the two index spaces cannot diverge.
+  if (parent instanceof TextRenderable) {
+    parent.insertBefore(node, anchor)
+    return
+  }
+
   parent.add(node, anchorIndex)
 }
 
