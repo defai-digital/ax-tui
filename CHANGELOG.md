@@ -5,11 +5,25 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-17
+
 ### Fixed
 
 - Preserve render requests queued by post-frame layout microtasks, preventing
   blank virtual-list rows after scrolling in on-demand rendering mode, and keep
   `idle()` waiting until the resulting follow-up repaint completes.
+- Report unexpected Node worker exits so pending operations can fail promptly;
+  emit the original failure only once when Node sends both error and exit events.
+- Keep virtual text spans atomic during right-arrow movement after wide Unicode
+  characters, clamp backward jumps before leading spans, and adjust delete-line
+  extmarks using native display offsets.
+- Preserve other held mouse buttons when one SGR button is released.
+- Interpret distortion, cloud, flame, and rainbow animation deltas consistently
+  as milliseconds, preserving configured durations and speeds.
+- Recreate Solid portal content when changing its mount and preserve renderable
+  internal children when reconciling JSX children.
+- Resolve release-note entry paths on Windows and paths containing spaces, and
+  use the final verdict marker in the optional review script.
 
 ### Added
 
