@@ -5,6 +5,7 @@ import { createRequire } from "node:module"
 import { createServer, type Socket } from "node:net"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import type { Worker } from "node:worker_threads"
 import xterm from "@xterm/headless"
 import unicode11 from "@xterm/addon-unicode11"
 import { spawn } from "node-pty"
@@ -226,13 +227,31 @@ export async function terminalQuality(tmux?: string) {
       transcript: transcript.slice(-16000) }))
     throw error
   } finally {
-    // On Windows child exit leaves the owned ConPTY transport open. Close it
-    // even after exit; on POSIX avoid signaling a potentially reused PID.
-    if (child && (process.platform === "win32" || !exit)) child.kill()
-    if (tmux) spawnSync(tmux, ["-L", tmuxSocket, "kill-server"], { stdio: "ignore", timeout: 5000 })
-    control?.destroy()
-    await new Promise<void>(resolve => server.close(() => resolve()))
-    terminal.dispose()
+    try {
+      if (child && process.platform === "win32") {
+        // node-pty 1.1.0's bundled ConPTY kill path disposes its worker only
+        // after another data event. An already drained child emits no more data.
+        // Use that pinned development dependency's drain-aware disposer directly.
+        const connection = (child as unknown as {
+          _agent: { _conoutSocketWorker: { dispose(): void, _worker: Worker } }
+        })._agent._conoutSocketWorker
+        child.kill()
+        connection.dispose()
+        const cleanupDeadline = Date.now() + 3000
+        while (connection._worker.threadId !== -1 && Date.now() < cleanupDeadline) {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        }
+        assert.equal(connection._worker.threadId, -1, "ConPTY output worker failed to stop")
+      } else if (child && !exit) {
+        // On POSIX avoid signaling a potentially reused PID after child exit.
+        child.kill()
+      }
+    } finally {
+      if (tmux) spawnSync(tmux, ["-L", tmuxSocket, "kill-server"], { stdio: "ignore", timeout: 5000 })
+      control?.destroy()
+      await new Promise<void>(resolve => server.close(() => resolve()))
+      terminal.dispose()
+    }
   }
 }
 

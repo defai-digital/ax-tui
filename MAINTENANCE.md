@@ -188,7 +188,11 @@ showed that the legacy system host drops wide emoji and shifts combining-mark
 rows, while the bundled host preserves the full Unicode contract. This qualifies
 the bundled host; older Windows console hosts are not covered by that result.
 The runner closes the Windows PTY transport even after the application exits,
-so node-pty's worker and pipe handles cannot keep the test process alive.
+then explicitly invokes the pinned node-pty connection's drain-aware worker
+disposer and waits for termination. Its public kill path otherwise requires
+another output event to dispose that worker, which an already drained child
+does not produce. Recheck this private development-only cleanup when upgrading
+node-pty; the framework runtime does not depend on it.
 It checks CJK, combining marks, Greek, wide emoji, truecolor (direct path),
 fragmented paste and escape sequences, editing, Tab/Shift-Tab focus, wheel
 direction, bounded mounted rows/repaints, 200 asynchronous tail updates, three
