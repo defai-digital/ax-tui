@@ -78,10 +78,13 @@ export class AutocompleteController {
   async request(request: AutocompleteRequest): Promise<AutocompleteResult | null> {
     if (this.disposed) return null
     validateRequest(request)
-    this.cancel()
-    const pending = new AbortController()
-    this.pending = pending
     const snapshot = Object.freeze({ ...request })
+    const previous = this.pending
+    const pending = new AbortController()
+    // Reserve this request before aborting: abort listeners can request again or dispose us.
+    this.pending = pending
+    previous?.abort()
+    if (this.disposed || pending.signal.aborted || this.pending !== pending) return null
     try {
       const result = await this.provider(snapshot, pending.signal)
       if (pending.signal.aborted || this.pending !== pending) return null
@@ -98,8 +101,9 @@ export class AutocompleteController {
   }
 
   cancel(): void {
-    this.pending?.abort()
+    const pending = this.pending
     this.pending = undefined
+    pending?.abort()
   }
 
   dispose(): void {

@@ -11337,10 +11337,12 @@ var AutocompleteController = class {
   async request(request) {
     if (this.disposed) return null;
     validateRequest(request);
-    this.cancel();
+    const snapshot2 = Object.freeze({ ...request });
+    const previous = this.pending;
     const pending = new AbortController();
     this.pending = pending;
-    const snapshot2 = Object.freeze({ ...request });
+    previous?.abort();
+    if (this.disposed || pending.signal.aborted || this.pending !== pending) return null;
     try {
       const result = await this.provider(snapshot2, pending.signal);
       if (pending.signal.aborted || this.pending !== pending) return null;
@@ -11356,8 +11358,9 @@ var AutocompleteController = class {
     }
   }
   cancel() {
-    this.pending?.abort();
+    const pending = this.pending;
     this.pending = void 0;
+    pending?.abort();
   }
   dispose() {
     this.disposed = true;

@@ -5,7 +5,16 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-10-18
+
 ### Fixed
+
+- Preserve requests started by autocomplete abort callbacks, prevent superseded
+  work from starting, and honor disposal during cancellation.
+- Bound select, tab-select, slider, and image options, and preserve constructor
+  focusability and selection offsets when updating text.
+- Clean up native event subscriptions and empty diff panes, and resolve Solid
+  text anchors by identity when inserting children.
 
 - Release editor-view storage when overlapping inputs and command palettes are
   destroyed out of creation order, instead of retaining it in the process arena.

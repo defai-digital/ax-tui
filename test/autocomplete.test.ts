@@ -186,3 +186,58 @@ test.skipIf(process.platform === "win32")("file completion excludes terminal con
   const result = await createFilePathProvider({ cwd })({ text: "bad", cursor: 3 }, signal)
   expect(result?.items).toEqual([])
 })
+
+
+test("a replacement request does not start work after an abort callback disposes the controller", async () => {
+  const calls: string[] = []
+  const controller = new AutocompleteController((request, signal) => {
+    calls.push(request.text)
+    signal.addEventListener("abort", () => controller.dispose(), { once: true })
+    return { request, start: 0, end: request.cursor, items: [] }
+  })
+  const first = controller.request({ text: "first", cursor: 5 })
+  const replacement = controller.request({ text: "replacement", cursor: 11 })
+  expect(await first).toBeNull()
+  expect(await replacement).toBeNull()
+  expect(calls).toEqual(["first"])
+})
+
+test("requests started by abort callbacks supersede the request that triggered cancellation", async () => {
+  const calls: string[] = []
+  let latest: Promise<AutocompleteResult | null> | undefined
+  const controller = new AutocompleteController((request, signal) => {
+    calls.push(request.text)
+    if (request.text === "first") {
+      signal.addEventListener("abort", () => {
+        latest = controller.request({ text: "latest", cursor: 6 })
+      }, { once: true })
+    }
+    return { request, start: 0, end: request.cursor, items: [] }
+  })
+  const first = controller.request({ text: "first", cursor: 5 })
+  const replacement = controller.request({ text: "replacement", cursor: 11 })
+  expect(await first).toBeNull()
+  expect(await replacement).toBeNull()
+  expect((await latest)?.request.text).toBe("latest")
+  expect(calls).toEqual(["first", "latest"])
+  controller.dispose()
+})
+
+test("cancel preserves a new request started by the cancelled provider's abort callback", async () => {
+  let latest: Promise<AutocompleteResult | null> | undefined
+  let latestSignal: AbortSignal | undefined
+  const controller = new AutocompleteController((request, signal) => {
+    if (request.text === "first") {
+      signal.addEventListener("abort", () => {
+        latest = controller.request({ text: "latest", cursor: 6 })
+      }, { once: true })
+    } else latestSignal = signal
+    return { request, start: 0, end: request.cursor, items: [] }
+  })
+  const first = controller.request({ text: "first", cursor: 5 })
+  controller.cancel()
+  expect(await first).toBeNull()
+  expect(latestSignal?.aborted).toBe(false)
+  expect((await latest)?.request.text).toBe("latest")
+  controller.dispose()
+})

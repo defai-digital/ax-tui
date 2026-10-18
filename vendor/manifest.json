@@ -6,7 +6,7 @@
     "commit": "b7e0bb9c3d2a75c2bc267d2af27b7237f734d13b",
     "license": "MIT"
   },
-  "builtAt": "2026-10-18T07:07:29.257Z",
+  "builtAt": "2026-10-18T10:48:32.941Z",
   "targets": {
     "darwin-arm64": {
       "os": "darwin",
@@ -19,8 +19,8 @@
       },
       "lib": {
         "file": "libaxtui.dylib",
-        "size": 3755264,
-        "sha256": "c0548a88a14eb10e6efe17a5a3349c4c89c7252712d56c90a7ca712f59afd7f9"
+        "size": 3755440,
+        "sha256": "279095fd7d572166a465b09ea663b0bd12ffb5b37f1a8ecef8c020d478a8e9a6"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -35,8 +35,8 @@
       },
       "lib": {
         "file": "libaxtui.dylib",
-        "size": 3732247,
-        "sha256": "f8e1f646fae2ef69656f2d4af2286bb93fa8f5eed90bd669d188d3d93eb13663"
+        "size": 3732423,
+        "sha256": "926ecae31f95686f5a3d6c463d254040bf050b116677257b3541dcf64f83ac6b"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -51,8 +51,8 @@
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13798864,
-        "sha256": "3140271ec0c635c32b7d165bcb33a4e980096fd0db426fc9757adf87473c13b8"
+        "size": 13807896,
+        "sha256": "52506cff79e66abd35612ca22257ec596eb7208d437e485beaffd786128aa57a"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -68,8 +68,8 @@
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13666912,
-        "sha256": "6a465ffbee240de091b903d8f8fb4cc58a513c3eb3e80b566619eb607c532102"
+        "size": 13673720,
+        "sha256": "af16fe425ddb1b3c2cfa58bc3f845fd88761ebdfca0c3d6c2b244abeb07dfbaf"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -84,8 +84,8 @@
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13562968,
-        "sha256": "f7491d9cdc75160fae99dbba68cd674c82c2b7aad2ddad176ec5dac0681b20d9"
+        "size": 13571928,
+        "sha256": "aff295077ad703865b1879f9e068bb2d2ffa8b7b191ab118f8a284927f338eb0"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -101,8 +101,8 @@
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13432800,
-        "sha256": "059a796906420f868c5ba809f77a32165ccff714313f12815a702aeb6794d002"
+        "size": 13439592,
+        "sha256": "df7d5024f08789856c16cedcf089d1f12503f335acea6c9343c0912efac9a951"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -118,7 +118,7 @@
       "lib": {
         "file": "axtui.dll",
         "size": 3524096,
-        "sha256": "dca415a5aeed226f74d6448a0485643713ce2bd56280f1561559bd0aed1792d6"
+        "sha256": "e9554503292523130f888549513681c4d082ebc7cae883958aa35e4cb5742c85"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -134,7 +134,7 @@
       "lib": {
         "file": "axtui.dll",
         "size": 3741184,
-        "sha256": "2b9313c05035d3e9cc7b5bff9b9a65cd84ab5b88c49b330d9a5974354d37bfa1"
+        "sha256": "0fcee907c8127d75fc4ac573d80d694ff2a70ba0241cee4ac7fbd4d3346e62bc"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     }
