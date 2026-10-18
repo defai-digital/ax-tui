@@ -40,6 +40,14 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run check
       - run: pnpm test
+      - name: Validate terminal behavior through tmux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux
+          node script/terminal-quality.ts --tmux
+      - name: Run application soak
+        run: node --experimental-ffi --expose-gc script/stress-application.ts 1000
       - name: Install pinned Zig
         shell: bash
         run: pnpm exec tsx script/ci-install-zig.ts

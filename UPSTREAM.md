@@ -38,6 +38,11 @@ Future fixes are developed here. Adopting external changes is a deliberate
 source review, with attribution and regression coverage, rather than a bundle
 refresh. There is no automatic upstream sync or native-package download step.
 
+Optional performance qualification runs a separately installed, exactly pinned
+OpenTUI package in isolated child processes. It is a comparison subject only;
+its code and binaries never enter AX TUI's build, runtime, or distribution.
+See `MAINTENANCE.md` for the shared workloads and reproducibility limits.
+
 ## Other dependencies and influences
 
 Native build dependencies remain hash-pinned in `native/renderer/build.zig.zon`:

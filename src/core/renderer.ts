@@ -1914,6 +1914,8 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   public set useKittyKeyboard(use: boolean) {
     const flags = use ? KITTY_FLAG_DISAMBIGUATE | KITTY_FLAG_ALTERNATE_KEYS : 0
     this.lib.setKittyKeyboardFlags(this.rendererPtr, flags)
+    // The stdin parser only decodes Kitty sequences while the protocol is on.
+    this.updateStdinParserProtocolContext({ kittyKeyboardEnabled: use }, !use)
   }
 
   public createScrollbackSurface(options: ScrollbackSurfaceOptions = {}): ScrollbackSurface {

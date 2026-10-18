@@ -355,6 +355,7 @@ describe("StdinParser", () => {
       ["home", "\x1bOH", [k("home", { raw: "\x1bOH" })]],
       ["end", "\x1bOF", [k("end", { raw: "\x1bOF" })]],
       ["clear", "\x1bOE", [k("clear", { raw: "\x1bOE" })]],
+      ["ctrl+up (parameterized)", "\x1bO1;5A", [k("up", { raw: "\x1bO1;5A", ctrl: true })]],
     ])
 
     test("SS3 interrupted by embedded ESC flushes partial then restarts", () => {
@@ -579,6 +580,17 @@ describe("StdinParser", () => {
       ["ctrl+delete", "\x1b[3;5:1~", [k("delete", { raw: "\x1b[3;5:1~", ctrl: true })]],
       ["insert release", "\x1b[2;1:3~", [k("insert", { raw: "\x1b[2;1:3~", eventType: "release" })]],
     ])
+
+    test("runtime protocol activation enables Kitty decoding", () => {
+      const p = createParser({ useKittyKeyboard: false })
+      try {
+        p.updateProtocolContext({ kittyKeyboardEnabled: true })
+        p.push(Buffer.from("\x1b[99;5u"))
+        expect(snap(p)).toEqual([k("c", { raw: "\x1b[99;5u", ctrl: true })])
+      } finally {
+        p.destroy()
+      }
+    })
   })
 
   describe("modifyOtherKeys", () => {
@@ -590,6 +602,15 @@ describe("StdinParser", () => {
       ["shift+space", "\x1b[27;2;32~", [k("space", { raw: "\x1b[27;2;32~", shift: true })]],
       ["ctrl+backspace", "\x1b[27;5;127~", [k("backspace", { raw: "\x1b[27;5;127~", ctrl: true })]],
       ["shift+digit 5", "\x1b[27;2;53~", [k("5", { raw: "\x1b[27;2;53~", shift: true })]],
+      ["alt+emoji", "\x1b[27;3;128512~", [k("😀", { raw: "\x1b[27;3;128512~", meta: true })]],
+    ])
+  })
+
+  describe("alt+Unicode", () => {
+    table([
+      ["alt+é", "\x1bé", [k("é", { raw: "\x1bé", meta: true })]],
+      ["alt+中", "\x1b中", [k("中", { raw: "\x1b中", meta: true })]],
+      ["alt+emoji", "\x1b😀", [k("😀", { raw: "\x1b😀", meta: true })]],
     ])
   })
 
@@ -2077,6 +2098,9 @@ describe("StdinParser", () => {
       "\x1b[1;5A", // ctrl+up
       "\x1b[97u", // kitty key
       "\x1b[27;2;13~", // modifyOtherKeys
+      "\x1bO1;5A", // parameterized SS3
+      "\x1b中", // alt+Unicode
+      "\x1b😀", // alt+supplementary plane
     ]
 
     for (const seq of sequences) {

@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-EKFJR2OF.js";
+} from "./index-QU4BAXUW.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -6068,6 +6068,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   set useKittyKeyboard(use) {
     const flags = use ? KITTY_FLAG_DISAMBIGUATE | KITTY_FLAG_ALTERNATE_KEYS : 0;
     this.lib.setKittyKeyboardFlags(this.rendererPtr, flags);
+    this.updateStdinParserProtocolContext({ kittyKeyboardEnabled: use }, !use);
   }
   createScrollbackSurface(options = {}) {
     if (this._screenMode !== "split-footer" || this._externalOutputMode !== "capture-stdout") {

@@ -45,7 +45,7 @@ export declare class StdinParser {
     private readonly maxPendingBytes;
     private readonly armTimeouts;
     private readonly onTimeoutFlush;
-    private readonly useKittyKeyboard;
+    private useKittyKeyboard;
     private readonly mouseParser;
     private readonly clock;
     private protocolContext;

@@ -82,6 +82,46 @@ assert.equal(renderer.currentFocusedRenderable, base)
 `)
 })
 
+test.skipIf(!supportsFfi)("modal Tab containment handles empty scopes, throwing predicates and nesting", () => {
+  scenario(`
+const base = new InputRenderable(renderer, { id: "base" })
+renderer.root.add(base); base.focus()
+const focus = getFocusManager(renderer)
+const removeRoot = focus.registerScope(renderer.root)
+let leaked = 0
+renderer.keyInput.on("keypress", event => { if (!event.defaultPrevented) leaked++ })
+const empty = new BoxRenderable(renderer, {})
+renderer.root.add(empty)
+const removeEmpty = focus.registerScope(empty, { modal: true })
+mockInput.pressTab()
+assert.equal(leaked, 0, "Tab escaped an empty modal scope")
+assert.equal(renderer.currentFocusedRenderable, base)
+removeEmpty()
+
+const broken = new BoxRenderable(renderer, {})
+const inside = new InputRenderable(renderer, { id: "inside" })
+broken.add(inside); renderer.root.add(broken)
+const removeBroken = focus.registerScope(broken, { enabled: () => { throw new Error("expected") } })
+mockInput.pressTab()
+assert.equal(renderer.currentFocusedRenderable, inside)
+removeBroken()
+
+const outer = new BoxRenderable(renderer, {})
+const inner = new BoxRenderable(renderer, {})
+const outerFirst = new InputRenderable(renderer, { id: "outer-first" })
+const innerFirst = new InputRenderable(renderer, { id: "inner-first" })
+const innerSecond = new InputRenderable(renderer, { id: "inner-second" })
+outer.add(outerFirst); outer.add(inner); inner.add(innerFirst); inner.add(innerSecond)
+renderer.root.add(outer)
+const removeInner = focus.registerScope(inner, { modal: true })
+const removeOuter = focus.registerScope(outer, { modal: true })
+innerSecond.focus()
+mockInput.pressTab()
+assert.equal(renderer.currentFocusedRenderable, innerFirst, "Outer modal stole Tab from the inner modal")
+removeInner(); removeOuter(); removeRoot()
+`)
+})
+
 test.skipIf(!supportsFfi)("commands use live registrations, immutable Unicode metadata and explicit async results", () => {
   scenario(`
 const input = new InputRenderable(renderer, {})

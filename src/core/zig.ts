@@ -44,6 +44,7 @@ import {
   NativeSpanFeedOptionsStruct,
   NativeSpanFeedStatsStruct,
   ReserveInfoStruct,
+  SpanInfoStruct,
   AudioCreateOptionsStruct,
   AudioStartOptionsStruct,
   AudioVoiceOptionsStruct,
@@ -5040,6 +5041,10 @@ class FFIRenderLib implements RenderLib {
   }
 
   public streamDrainSpans(stream: Pointer, outBuffer: Uint8Array, maxSpans: number): number {
+    const capacity = Math.floor(outBuffer.byteLength / SpanInfoStruct.size)
+    if (!Number.isSafeInteger(maxSpans) || maxSpans < 0 || maxSpans > capacity) {
+      throw new RangeError(`maxSpans must be an integer from 0 to the output capacity (${capacity})`)
+    }
     const count = this.native.symbols.streamDrainSpans(stream, ptr(outBuffer), maxSpans)
     return toNumber(count)
   }

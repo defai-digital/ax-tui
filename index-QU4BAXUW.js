@@ -7020,11 +7020,16 @@ var parseKeypress = (s = "", options = {}) => {
     } else if (charCode === 127 || charCode === 8) {
       key.name = "backspace";
     } else {
-      const char = String.fromCharCode(charCode);
-      key.name = char;
-      key.sequence = char;
-      if (charCode >= 48 && charCode <= 57) {
-        key.number = true;
+      if (charCode >= 0 && charCode <= 1114111 && (charCode < 55296 || charCode > 57343)) {
+        const char = String.fromCodePoint(charCode);
+        key.name = char;
+        key.sequence = char;
+        if (charCode >= 48 && charCode <= 57) {
+          key.number = true;
+        }
+      } else {
+        key.name = "";
+        key.sequence = s;
       }
     }
     return key;
@@ -7059,6 +7064,13 @@ var parseKeypress = (s = "", options = {}) => {
     key.shift = true;
   } else if (s.length === 1 || s.length === 2 && s.codePointAt(0) > 65535) {
     key.name = s;
+  } else if (s.length > 1 && s.charCodeAt(0) === 27 && s.codePointAt(1) > 127) {
+    const char = s.slice(1);
+    const codePoint = char.codePointAt(0);
+    if (char.length === (codePoint > 65535 ? 2 : 1)) {
+      key.meta = true;
+      key.name = char;
+    }
   } else if (parts = metaKeyCodeRe.exec(s)) {
     key.meta = true;
     const char = parts[1];
@@ -8055,6 +8067,9 @@ var StdinParser = class {
   }
   updateProtocolContext(patch) {
     this.ensureAlive();
+    if (patch.kittyKeyboardEnabled !== void 0) {
+      this.useKittyKeyboard = patch.kittyKeyboardEnabled;
+    }
     this.protocolContext = { ...this.protocolContext, ...patch };
     this.reconcileDeferredStateWithProtocolContext();
     this.reconcileTimeoutState();
@@ -8347,13 +8362,47 @@ var StdinParser = class {
             case ESC:
               this.cursor += 1;
               continue;
-            default:
+            default: {
               this.cursor += 1;
+              const expected = byte >= 128 ? utf8SequenceLength(byte) : 0;
+              if (expected > 1) {
+                this.state = { tag: "esc_utf8", expected, seen: 1 };
+                continue;
+              }
               this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)));
               this.state = { tag: "ground" };
               this.consumePrefix(this.cursor);
               continue;
+            }
           }
+        }
+        case "esc_utf8": {
+          if (this.cursor >= bytes.length) {
+            if (!this.forceFlush) {
+              this.markPending();
+              return;
+            }
+            this.emitOpaqueResponse("unknown", bytes.subarray(this.unitStart, this.cursor));
+            this.state = { tag: "ground" };
+            this.consumePrefix(this.cursor);
+            continue;
+          }
+          if ((byte & 192) !== 128) {
+            this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)));
+            this.state = { tag: "ground" };
+            this.consumePrefix(this.cursor);
+            continue;
+          }
+          const seen = this.state.seen + 1;
+          this.cursor += 1;
+          if (seen < this.state.expected) {
+            this.state = { tag: "esc_utf8", expected: this.state.expected, seen };
+            continue;
+          }
+          this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)));
+          this.state = { tag: "ground" };
+          this.consumePrefix(this.cursor);
+          continue;
         }
         case "ss3": {
           if (this.cursor >= bytes.length) {
@@ -8370,6 +8419,38 @@ var StdinParser = class {
             this.emitOpaqueResponse("unknown", bytes.subarray(this.unitStart, this.cursor));
             this.state = { tag: "ground" };
             this.consumePrefix(this.cursor);
+            continue;
+          }
+          if (byte >= 48 && byte <= 57) {
+            this.cursor += 1;
+            this.state = { tag: "ss3_params" };
+            continue;
+          }
+          this.cursor += 1;
+          this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)));
+          this.state = { tag: "ground" };
+          this.consumePrefix(this.cursor);
+          continue;
+        }
+        case "ss3_params": {
+          if (this.cursor >= bytes.length) {
+            if (!this.forceFlush) {
+              this.markPending();
+              return;
+            }
+            this.emitOpaqueResponse("unknown", bytes.subarray(this.unitStart, this.cursor));
+            this.state = { tag: "ground" };
+            this.consumePrefix(this.cursor);
+            continue;
+          }
+          if (byte === ESC) {
+            this.emitOpaqueResponse("unknown", bytes.subarray(this.unitStart, this.cursor));
+            this.state = { tag: "ground" };
+            this.consumePrefix(this.cursor);
+            continue;
+          }
+          if (byte >= 48 && byte <= 57 || byte === 59 || byte === 58) {
+            this.cursor += 1;
             continue;
           }
           this.cursor += 1;
@@ -16326,6 +16407,10 @@ var FFIRenderLib = class {
     return this.native.symbols.streamCommit(stream);
   }
   streamDrainSpans(stream, outBuffer, maxSpans) {
+    const capacity = Math.floor(outBuffer.byteLength / SpanInfoStruct.size);
+    if (!Number.isSafeInteger(maxSpans) || maxSpans < 0 || maxSpans > capacity) {
+      throw new RangeError(`maxSpans must be an integer from 0 to the output capacity (${capacity})`);
+    }
     const count = this.native.symbols.streamDrainSpans(stream, ptr(outBuffer), maxSpans);
     return toNumber(count);
   }

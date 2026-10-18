@@ -347,12 +347,19 @@ export const parseKeypress = (s: Buffer | string = "", options: ParseKeypressOpt
     } else if (charCode === 127 || charCode === 8) {
       key.name = "backspace"
     } else {
-      // For other character codes, use the character itself
-      const char = String.fromCharCode(charCode)
-      key.name = char
-      key.sequence = char
-      if (charCode >= 48 && charCode <= 57) {
-        key.number = true
+      // For other character codes, use the character itself. fromCodePoint is
+      // required for supplementary-plane values such as emoji; fromCharCode
+      // would truncate them to 16 bits.
+      if (charCode >= 0 && charCode <= 0x10ffff && (charCode < 0xd800 || charCode > 0xdfff)) {
+        const char = String.fromCodePoint(charCode)
+        key.name = char
+        key.sequence = char
+        if (charCode >= 48 && charCode <= 57) {
+          key.number = true
+        }
+      } else {
+        key.name = ""
+        key.sequence = s
       }
     }
 
@@ -400,6 +407,16 @@ export const parseKeypress = (s: Buffer | string = "", options: ParseKeypressOpt
   } else if (s.length === 1 || (s.length === 2 && s.codePointAt(0)! > 0xffff)) {
     // Single character (including emoji/surrogate pairs above BMP)
     key.name = s
+  } else if (s.length > 1 && s.charCodeAt(0) === 0x1b && s.codePointAt(1)! > 0x7f) {
+    // Alt/Option + non-ASCII character. The scanner emits ESC plus one whole
+    // UTF-8 codepoint, so keep it as a single meta key instead of a broken
+    // replacement character followed by separate bytes.
+    const char = s.slice(1)
+    const codePoint = char.codePointAt(0)!
+    if (char.length === (codePoint > 0xffff ? 2 : 1)) {
+      key.meta = true
+      key.name = char
+    }
   } else if ((parts = metaKeyCodeRe.exec(s))) {
     // meta+character key
     key.meta = true

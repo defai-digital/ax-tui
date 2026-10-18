@@ -66,7 +66,9 @@ type ParserState =
   | { tag: "ground" }
   | { tag: "utf8"; expected: number; seen: number }
   | { tag: "esc" }
+  | { tag: "esc_utf8"; expected: number; seen: number }
   | { tag: "ss3" }
+  | { tag: "ss3_params" }
   | { tag: "csi" }
   | { tag: "csi_sgr_mouse"; part: number; hasDigit: boolean }
   | { tag: "csi_sgr_mouse_deferred"; part: number; hasDigit: boolean }
@@ -570,7 +572,7 @@ export class StdinParser {
   private readonly maxPendingBytes: number
   private readonly armTimeouts: boolean
   private readonly onTimeoutFlush: (() => void) | null
-  private readonly useKittyKeyboard: boolean
+  private useKittyKeyboard: boolean
   private readonly mouseParser = new MouseParser()
   private readonly clock: Clock
   private protocolContext: StdinParserProtocolContext
@@ -618,6 +620,11 @@ export class StdinParser {
 
   public updateProtocolContext(patch: Partial<StdinParserProtocolContext>): void {
     this.ensureAlive()
+    if (patch.kittyKeyboardEnabled !== undefined) {
+      // The terminal only emits Kitty sequences while the protocol is active,
+      // so decoding must follow runtime enable/disable calls.
+      this.useKittyKeyboard = patch.kittyKeyboardEnabled
+    }
     this.protocolContext = { ...this.protocolContext, ...patch }
     this.reconcileDeferredStateWithProtocolContext()
     this.reconcileTimeoutState()
@@ -989,13 +996,58 @@ export class StdinParser {
             case ESC:
               this.cursor += 1
               continue
-            default:
+            default: {
               this.cursor += 1
+              // Alt/Option combined with a non-ASCII character arrives as an
+              // ESC prefix followed by one UTF-8 codepoint. Consume the whole
+              // codepoint instead of splitting it after the lead byte.
+              const expected = byte >= 0x80 ? utf8SequenceLength(byte) : 0
+              if (expected > 1) {
+                this.state = { tag: "esc_utf8", expected, seen: 1 }
+                continue
+              }
+
               this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)))
               this.state = { tag: "ground" }
               this.consumePrefix(this.cursor)
               continue
+            }
           }
+        }
+
+        case "esc_utf8": {
+          if (this.cursor >= bytes.length) {
+            if (!this.forceFlush) {
+              this.markPending()
+              return
+            }
+
+            this.emitOpaqueResponse("unknown", bytes.subarray(this.unitStart, this.cursor))
+            this.state = { tag: "ground" }
+            this.consumePrefix(this.cursor)
+            continue
+          }
+
+          if ((byte & 0xc0) !== 0x80) {
+            // Not a continuation byte: emit the collected ESC prefix and
+            // reparse this byte as the start of a new unit.
+            this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)))
+            this.state = { tag: "ground" }
+            this.consumePrefix(this.cursor)
+            continue
+          }
+
+          const seen = this.state.seen + 1
+          this.cursor += 1
+          if (seen < this.state.expected) {
+            this.state = { tag: "esc_utf8", expected: this.state.expected, seen }
+            continue
+          }
+
+          this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)))
+          this.state = { tag: "ground" }
+          this.consumePrefix(this.cursor)
+          continue
         }
 
         case "ss3": {
@@ -1018,6 +1070,14 @@ export class StdinParser {
             continue
           }
 
+          if (byte >= 0x30 && byte <= 0x39) {
+            // Parameterized SS3 (for example ESC O 1;5A for Ctrl+Up) continues
+            // until a final byte, so it cannot be treated as a two-byte unit.
+            this.cursor += 1
+            this.state = { tag: "ss3_params" }
+            continue
+          }
+
           this.cursor += 1
           this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)))
           this.state = { tag: "ground" }
@@ -1025,6 +1085,37 @@ export class StdinParser {
           continue
         }
 
+        case "ss3_params": {
+          if (this.cursor >= bytes.length) {
+            if (!this.forceFlush) {
+              this.markPending()
+              return
+            }
+
+            this.emitOpaqueResponse("unknown", bytes.subarray(this.unitStart, this.cursor))
+            this.state = { tag: "ground" }
+            this.consumePrefix(this.cursor)
+            continue
+          }
+
+          if (byte === ESC) {
+            this.emitOpaqueResponse("unknown", bytes.subarray(this.unitStart, this.cursor))
+            this.state = { tag: "ground" }
+            this.consumePrefix(this.cursor)
+            continue
+          }
+
+          if ((byte >= 0x30 && byte <= 0x39) || byte === 0x3b || byte === 0x3a) {
+            this.cursor += 1
+            continue
+          }
+
+          this.cursor += 1
+          this.emitKeyOrResponse("unknown", decodeUtf8(bytes.subarray(this.unitStart, this.cursor)))
+          this.state = { tag: "ground" }
+          this.consumePrefix(this.cursor)
+          continue
+        }
         // Narrow recovery path for delayed mouse continuations after a
         // timeout-flushed lone ESC. Wait for either `<` (SGR) or `M` (X10); if
         // neither arrives, flush `[` as a normal key.

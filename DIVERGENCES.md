@@ -54,6 +54,10 @@ and terminal suites, and the source renderer integration guard this boundary.
 
 ## Stability and boundary contracts
 
+- `editor-view-lifetime`: independently disposed editor views use a reclaiming
+  allocator instead of the process-lifetime arena. Overlapping non-LIFO teardown
+  must not grow that arena. Guard: `test/editor-view-lifecycle.test.ts`; the mixed
+  application soak also bounds arena growth after warmup.
 - `atomic-buffer-resize`: native allocation failure preserves old storage and
   dimensions. ABI 2 returns a resize success flag; TypeScript throws on failure.
   Guards: `native/renderer/tests/buffer_test.zig`, `test/buffer-boundaries.test.ts`.

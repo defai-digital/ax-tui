@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-TZ3KQ5AX.js";
+} from "./index-AF6FEMVB.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-EKFJR2OF.js";
+} from "./index-QU4BAXUW.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -11952,22 +11952,30 @@ var FocusManager = class _FocusManager {
     try {
       const initialFocus = this.renderer.currentFocusedRenderable;
       const active = [...this.scopes].filter((scope) => {
-        const enabled = scope.options.enabled?.() !== false;
+        let enabled = true;
+        try {
+          enabled = scope.options.enabled?.() !== false;
+        } catch {
+          enabled = false;
+        }
         return enabled && !this.disposed && this.scopes.includes(scope) && this.attached(scope.root);
       });
       if (this.disposed || this.renderer.currentFocusedRenderable !== initialFocus) return false;
       const current = this.renderer.currentFocusedRenderable;
-      const modal = active.findLast((scope) => scope.options.modal);
       const depth = (scope) => {
         let count = 0;
         for (let node = scope.root.parent; node; node = node.parent) count++;
         return count;
       };
+      const modal = active.filter((scope) => scope.options.modal).sort((a, b) => depth(b) - depth(a) || b.serial - a.serial)[0];
       const scopes = modal ? [modal] : active.filter((scope) => !current || contains3(scope.root, current)).sort((a, b) => depth(b) - depth(a) || b.serial - a.serial);
       for (const scope of scopes) {
         if (!this.scopes.includes(scope) || !this.attached(scope.root)) continue;
         const nodes = this.candidates(scope);
-        if (!nodes.length) continue;
+        if (!nodes.length) {
+          if (scope.options.modal) return true;
+          continue;
+        }
         const index = current ? nodes.indexOf(current) : -1;
         let next = index < 0 ? direction === 1 ? 0 : nodes.length - 1 : index + direction;
         const wraps = scope.options.modal || scope.root === this.renderer.root;

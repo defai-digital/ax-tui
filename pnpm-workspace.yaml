@@ -1,2 +1,6 @@
 # Standalone workspace root: keeps this repo detached from any parent
 # pnpm workspace and makes the dependency set self-contained.
+
+# PTY tests use N-API prebuilds on macOS/Windows and compile locally on Linux.
+onlyBuiltDependencies:
+  - node-pty

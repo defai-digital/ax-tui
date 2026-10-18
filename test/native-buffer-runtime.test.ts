@@ -15,7 +15,7 @@ test.skipIf(!supportsFfi)(
         "-e",
         `
 import assert from "node:assert/strict"
-import { OptimizedBuffer, RGBA } from "ax-tui"
+import { OptimizedBuffer, RGBA, resolveRenderLib } from "ax-tui"
 const fg = RGBA.fromIndex(1)
 const bg = RGBA.defaultBackground()
 for (const method of ["unicode", "wcwidth"]) {
@@ -57,6 +57,12 @@ try {
   narrow.drawGrayscaleBuffer(-2147483648, -2147483648, new Float32Array(4), 2, 2)
   narrow.drawGrayscaleBuffer(0, 0, new Float32Array([NaN, Infinity, -Infinity, 1]), 2, 2)
 } finally { narrow.destroy() }
+const lib = resolveRenderLib()
+const stream = lib.createNativeSpanFeed()
+try {
+  assert.throws(() => lib.streamDrainSpans(stream, new Uint8Array(8), 100), RangeError)
+  assert.equal(lib.streamDrainSpans(stream, new Uint8Array(48), 2), 0)
+} finally { lib.destroyNativeSpanFeed(stream) }
 console.log("Native buffer regression passed")
 `,
       ],

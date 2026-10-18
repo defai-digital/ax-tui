@@ -2061,7 +2061,9 @@ export fn editBufferClear(edit_handle: NativeHandle) void {
 
 export fn createEditorView(edit_handle: NativeHandle, viewport_width: u32, viewport_height: u32) NativeHandle {
     const object_ptr = acquireEditBuffer(edit_handle) orelse return INVALID_HANDLE;
-    const view = editor_view.EditorView.init(globalArena, object_ptr, viewport_width, viewport_height) catch return INVALID_HANDLE;
+    // Views have independent lifetimes. Arena frees cannot reclaim storage when
+    // inputs/palettes are destroyed in a different order from their creation.
+    const view = editor_view.EditorView.init(globalAllocator, object_ptr, viewport_width, viewport_height) catch return INVALID_HANDLE;
     const view_handle = handles.insertOwnedChild(.editor_view, erasePtr(view), edit_handle) catch {
         view.deinit();
         return INVALID_HANDLE;

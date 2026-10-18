@@ -5,6 +5,30 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- Release editor-view storage when overlapping inputs and command palettes are
+  destroyed out of creation order, instead of retaining it in the process arena.
+- Decode Alt/Option-prefixed non-ASCII input as one key event instead of
+  splitting the UTF-8 codepoint after its lead byte.
+- Consume parameterized SS3 sequences such as Ctrl+Up through their final byte
+  instead of emitting the prefix and modifier bytes as separate keys.
+- Follow runtime Kitty keyboard enable/disable changes when decoding input.
+- Preserve supplementary-plane characters in modifyOtherKeys sequences instead
+  of truncating them to 16 bits.
+- Reject a native span drain whose requested span count exceeds the output
+  buffer capacity, preventing a native write past the supplied view.
+- Keep Tab contained in an active modal focus scope even when it has no
+  focusable candidates, isolate throwing `enabled` predicates, and select the
+  innermost modal scope by tree depth rather than registration order.
+- Require the PTY fixture to confirm clean shutdown over its control channel,
+  so tmux's client exit status cannot hide a crashing application.
+
+### Added
+
+- Add xterm.js screen validation over real PTY/ConPTY transport, a tmux CI lane,
+  seeded application soak checks, and isolated paired OpenTUI performance comparisons.
+
 ## [2.1.0] - 2026-10-18
 
 ### Added

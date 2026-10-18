@@ -170,3 +170,80 @@ Native raw buffer views alias native storage. Callers must reacquire `buffers`
 after successful resize and must not use retained views after destruction.
 Failed resizes retain the original storage and dimensions. Captured span colors
 are independent copies and remain valid after later draws, resize, or destroy.
+
+### Terminal compatibility and application soak
+
+```sh
+pnpm run test:terminal
+pnpm run test:terminal --tmux              # requires tmux 3.3 or newer
+pnpm run test:terminal --tmux /path/to/tmux
+pnpm run test:stress 10000                 # optional second argument: uint32 seed
+```
+
+The terminal runner uses node-pty with a real POSIX PTY or Windows ConPTY and
+an independent xterm.js 6.0.0 headless screen oracle with Unicode 11 widths.
+It checks CJK, combining marks, Greek, wide emoji, truecolor (direct path),
+fragmented paste and escape sequences, editing, Tab/Shift-Tab focus, wheel
+direction, bounded mounted rows/repaints, 200 asynchronous tail updates, three
+resizes, idle convergence, and successful shutdown with screen, paste mode and
+cursor restoration. OSC title barriers and a separate loopback control ACK
+ensure assertions run after terminal output has been parsed. The tmux path
+starts and removes its own server with only `test/fixtures/quality-tmux.conf`;
+it never attaches to existing sessions or reads user configuration.
+
+`pnpm test` requires this direct terminal test on all three CI operating systems;
+missing PTY/ConPTY support is a failure. Linux CI also requires the tmux path.
+These are protocol and screen-state checks, not font/pixel checks or a claim
+that every terminal application is compatible. ZWJ emoji clustering is checked
+in native-buffer application stress, not by the Unicode 11 xterm oracle.
+Manual qualification of Kitty/WezTerm/Ghostty, browser terminals, SSH sessions,
+and platform-specific IME behavior remains separate.
+
+The pinned node-pty development dependency builds locally on Linux and uses
+N-API prebuilds on macOS/Windows. Its lifecycle scripts are explicitly allowed
+in `pnpm-workspace.yaml`. Version 1.1.0's macOS spawn helper lacks its executable
+bit; the runner repairs only that development helper's file mode before use.
+Neither node-pty nor xterm.js is a production dependency or publication payload.
+
+The seeded soak mixes a bounded 10,000-item variable-height list with scrolling,
+resizing, editor updates, command execution, palette creation/disposal, focus
+restoration, and replacement/cancellation of asynchronous image sources. It
+asserts visible target rows and Unicode, bounded live renderables and mounts,
+stable subscription counts, idle convergence and complete renderable teardown.
+Every 100 iterations it samples RSS, post-GC JS heap, array buffers and native
+process-arena capacity, plus allocator counters and their validity flags. Output
+is drained through a native span feed to the test Writable; the test helper's
+default memory destination retains the whole ANSI transcript and is unsuitable
+for measuring sustained memory use. After warmup, arena growth must stay below 64 KiB; runs
+with at least 500 iterations and explicit GC also bound retained JS heap growth
+to 32 MiB. RSS is reported without a pass threshold because allocator residency
+is not the same as live allocation. CI runs 500 cycles inside the regular tests
+and an additional 1,000-cycle soak on each operating system. Longer local runs
+are useful evidence; they do not establish the absence of all leaks.
+
+### Paired performance comparison
+
+```sh
+mkdir -p .internal/quality-comparison
+npm install --prefix .internal/quality-comparison --save-exact --no-audit --no-fund @opentui/core@0.6.6
+pnpm run bench:compare .internal/quality-comparison .internal/performance-comparison.json
+```
+
+The reference is an optional, isolated installation, never a project dependency.
+Use an exact version and keep its `package-lock.json` with the raw report. Stop
+other CPU-heavy work before measuring. The runner does not install packages or
+modify either implementation. It alternates package order across seven pairs
+of fresh Node processes, with identical 120x40 geometry, warmup, iteration
+counts, public APIs and output assertions. Workloads measure ASCII span capture,
+Unicode span capture, and updating ten of forty text rows through completed
+scheduled frames. Assertions outside timing verify all forty rendered rows,
+Unicode content, capture counts, frame advancement and the final text update.
+
+The JSON report retains every sample and pair order, median times and paired
+ratios, package/runtime/CPU/OS versions, AX Git HEAD and tracked-diff hash,
+native-manifest hash, reference lock hash and harness hashes. Ratios below one
+mean AX took less time for that workload. Compare results on the same host and
+runtime. These memory-backed renderer measurements exclude terminal transport,
+startup and image decoding; they are not whole-application FPS, broad framework
+rankings, or evidence of statistical significance. Performance is measured
+explicitly rather than using noisy timing thresholds in regular CI.
