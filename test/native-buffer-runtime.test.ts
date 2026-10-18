@@ -67,3 +67,36 @@ console.log("Native buffer regression passed")
   },
   25_000,
 )
+
+test.skipIf(!supportsFfi)("drawText selection offsets are display columns, not UTF-16 indices", () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--experimental-ffi",
+      "--disable-warning=ExperimentalWarning",
+      "--input-type=module",
+      "-e",
+      `
+import assert from "node:assert/strict"
+import { OptimizedBuffer, RGBA } from "ax-tui"
+const fg = RGBA.fromIndex(1)
+const bg = RGBA.defaultBackground()
+const selection = { start: 0, end: 1, bgColor: RGBA.fromIndex(2) }
+const buffer = OptimizedBuffer.create(6, 1, "unicode")
+try {
+  buffer.clear(bg)
+  buffer.drawText("中a", 0, 0, fg, bg, 0, selection)
+  const chars = [...buffer.buffers.char.slice(0, 4)]
+  // "中" occupies display columns 0-1; "a" must land on column 2, not on the
+  // wide character's continuation cell at column 1.
+  assert.equal(chars[2], "a".codePointAt(0), "after-text drawn at the wrong column: " + chars)
+  assert.notEqual(chars[1], "a".codePointAt(0), "after-text overwrote the wide glyph: " + chars)
+} finally {
+  buffer.destroy()
+}
+`,
+    ],
+    { encoding: "utf8", timeout: 20_000 },
+  )
+  expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0)
+})

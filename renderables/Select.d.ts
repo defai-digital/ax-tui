@@ -14,6 +14,7 @@ export interface SelectOption {
 export type SelectAction = "move-up" | "move-down" | "move-up-fast" | "move-down-fast" | "select-current";
 export type SelectKeyBinding = BaseKeyBinding<SelectAction>;
 export interface SelectRenderableOptions extends RenderableOptions<SelectRenderable> {
+    focusable?: boolean;
     backgroundColor?: ColorInput;
     textColor?: ColorInput;
     focusedBackgroundColor?: ColorInput;

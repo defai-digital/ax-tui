@@ -38,6 +38,7 @@ const defaultSelectKeybindings: SelectKeyBinding[] = [
 ]
 
 export interface SelectRenderableOptions extends RenderableOptions<SelectRenderable> {
+  focusable?: boolean
   backgroundColor?: ColorInput
   textColor?: ColorInput
   focusedBackgroundColor?: ColorInput
@@ -110,6 +111,8 @@ export class SelectRenderable extends Renderable {
 
   constructor(ctx: RenderContext, options: SelectRenderableOptions) {
     super(ctx, { ...options, buffered: true })
+    // Subclass field initializers default this to true; honor an explicit false.
+    this._focusable = options.focusable ?? true
     this._options = options.options || []
     const requestedIndex = options.selectedIndex ?? this._defaultOptions.selectedIndex
     this._selectedIndex =

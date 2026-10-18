@@ -52,18 +52,19 @@ export class EditBuffer extends EventEmitter {
     EditBuffer.nativeEventsSubscribed = true
 
     lib.onAnyNativeEvent((name: string, data: ArrayBuffer) => {
-      const buffer = new Uint16Array(data)
+      // Filter before constructing a typed view: an odd-length payload would
+      // throw RangeError inside the native event pump.
+      if (!name.startsWith("eb_") || data.byteLength < 2) return
 
-      if (name.startsWith("eb_") && buffer.length >= 1) {
-        const id = buffer[0]
-        const instance = EditBuffer.registry.get(id)
+      const buffer = new Uint16Array(data, 0, 1)
+      const id = buffer[0]
+      const instance = EditBuffer.registry.get(id)
 
-        if (instance) {
-          // Strip the "eb_" prefix and forward the event
-          const eventName = name.slice(3)
-          const eventData = data.slice(2)
-          instance.emit(eventName, eventData)
-        }
+      if (instance) {
+        // Strip the "eb_" prefix and forward the event
+        const eventName = name.slice(3)
+        const eventData = data.slice(2)
+        instance.emit(eventName, eventData)
       }
     })
   }
@@ -86,7 +87,11 @@ export class EditBuffer extends EventEmitter {
     const textBytes = this.lib.encoder.encode(text)
 
     if (this._singleTextMemId !== null) {
-      this.lib.textBufferReplaceMemBuffer(this.textBufferPtr, this._singleTextMemId, textBytes, false)
+      if (!this.lib.textBufferReplaceMemBuffer(this.textBufferPtr, this._singleTextMemId, textBytes, false)) {
+        // The registered memory slot became invalid (for example a failed
+        // registration): re-register so setTextFromMem cannot silently no-op.
+        this._singleTextMemId = this.lib.textBufferRegisterMemBuffer(this.textBufferPtr, textBytes, false)
+      }
     } else {
       this._singleTextMemId = this.lib.textBufferRegisterMemBuffer(this.textBufferPtr, textBytes, false)
     }

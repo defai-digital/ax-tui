@@ -5,6 +5,7 @@ import { Renderable, type RenderableOptions } from "../core/renderable.js";
 import type { RenderContext } from "../core/types.js";
 import { SliderRenderable, type SliderOptions } from "./Slider.js";
 export interface ScrollBarOptions extends RenderableOptions<ScrollBarRenderable> {
+    focusable?: boolean;
     orientation: "vertical" | "horizontal";
     showArrows?: boolean;
     arrowOptions?: Omit<ArrowOptions, "direction">;

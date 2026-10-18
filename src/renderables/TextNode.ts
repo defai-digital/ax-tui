@@ -113,6 +113,10 @@ export class TextNodeRenderable extends BaseRenderable {
   }
 
   public replace(obj: TextNodeRenderable | string, index: number) {
+    const previous = this._children[index]
+    if (previous !== undefined && isTextNodeRenderable(previous) && previous !== obj) {
+      previous.parent = null
+    }
     this._children[index] = obj
     if (typeof obj !== "string") {
       obj.parent = this
@@ -165,6 +169,9 @@ export class TextNodeRenderable extends BaseRenderable {
   }
 
   public clear(): void {
+    for (const child of this._children) {
+      if (isTextNodeRenderable(child)) child.parent = null
+    }
     this._children = []
     this.requestRender()
   }

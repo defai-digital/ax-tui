@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-TZ3KQ5AX.js";
+} from "./index-CUGCTETG.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-EKFJR2OF.js";
+} from "./index-APGS3WKD.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -8313,6 +8313,7 @@ var ScrollBarRenderable = class extends Renderable {
       alignItems: "stretch",
       ...options
     });
+    this._focusable = options.focusable ?? true;
     this._onChange = options.onChange;
     this.orientation = orientation;
     this._showArrows = showArrows;
@@ -8792,6 +8793,7 @@ var ScrollBoxRenderable = class _ScrollBoxRenderable extends BoxRenderable {
       ...sanitizedRootBoxOptions,
       ...sanitizedRootOptions
     });
+    this._focusable = sanitizedRootOptions?.focusable ?? sanitizedRootBoxOptions.focusable ?? true;
     this.internalId = _ScrollBoxRenderable.idCounter++;
     this._stickyScroll = stickyScroll;
     this._stickyStart = stickyStart;
@@ -9311,6 +9313,7 @@ var SelectRenderable = class extends Renderable {
   };
   constructor(ctx, options) {
     super(ctx, { ...options, buffered: true });
+    this._focusable = options.focusable ?? true;
     this._options = options.options || [];
     const requestedIndex = options.selectedIndex ?? this._defaultOptions.selectedIndex;
     this._selectedIndex = this._options.length > 0 ? clamp(Number.isFinite(requestedIndex) ? requestedIndex : 0, 0, this._options.length - 1) : 0;
@@ -9672,6 +9675,7 @@ var TabSelectRenderable = class extends Renderable {
   constructor(ctx, options) {
     const calculatedHeight = calculateDynamicHeight(options.showUnderline ?? true, options.showDescription ?? true);
     super(ctx, { ...options, height: calculatedHeight, buffered: true });
+    this._focusable = options.focusable ?? true;
     this._backgroundColor = parseColor(options.backgroundColor || "transparent");
     this._textColor = parseColor(options.textColor || "#FFFFFF");
     this._focusedBackgroundColor = parseColor(options.focusedBackgroundColor || options.backgroundColor || "#1a1a1a");

@@ -343,7 +343,8 @@ function resolveModes(config: CliRendererConfig): {
   externalOutputMode: ExternalOutputMode
 } {
   let screenMode = config.screenMode ?? "alternate-screen"
-  if (process.env.AX_CODE_TUI_USE_ALTERNATE_SCREEN !== undefined) {
+  const screenModeForcedByEnv = process.env.AX_CODE_TUI_USE_ALTERNATE_SCREEN !== undefined
+  if (screenModeForcedByEnv) {
     screenMode = env.AX_CODE_TUI_USE_ALTERNATE_SCREEN ? "alternate-screen" : "main-screen"
   }
 
@@ -355,6 +356,12 @@ function resolveModes(config: CliRendererConfig): {
   if (process.env.AX_CODE_TUI_OVERRIDE_STDOUT !== undefined) {
     externalOutputMode =
       env.AX_CODE_TUI_OVERRIDE_STDOUT && screenMode === "split-footer" ? "capture-stdout" : "passthrough"
+  }
+
+  // An env-forced screen mode demotes split-footer, so stdout capture cannot
+  // apply; downgrade instead of failing the boot for a documented override.
+  if (screenModeForcedByEnv && screenMode !== "split-footer" && externalOutputMode === "capture-stdout") {
+    externalOutputMode = "passthrough"
   }
 
   if (externalOutputMode === "capture-stdout" && screenMode !== "split-footer") {
