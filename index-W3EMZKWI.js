@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-QU4BAXUW.js";
+} from "./index-V4VKOI4M.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -1228,6 +1228,8 @@ var TextBufferRenderable = class extends Renderable {
       if (value !== "none" && this.width > 0) {
         this.textBufferView.setWrapWidth(this.width);
       }
+      this.clampScrollOffsets();
+      this.updateViewportOffset();
       this.yogaNode.markDirty();
       this.requestRender();
     }
@@ -1268,10 +1270,17 @@ var TextBufferRenderable = class extends Renderable {
     }
   }
   onResize(width, height) {
-    this.textBufferView.setViewport(this._scrollX, this._scrollY, width, height);
+    this.clampScrollOffsets(width, height);
+    if (width > 0 && height > 0) {
+      this.textBufferView.setViewport(this._scrollX, this._scrollY, width, height);
+    }
     this.yogaNode.markDirty();
     this.requestRender();
     this.emit("line-info-change");
+  }
+  clampScrollOffsets(width = this.width, height = this.height) {
+    this._scrollX = clamp(this._scrollX, 0, Math.max(0, this.scrollWidth - width));
+    this._scrollY = clamp(this._scrollY, 0, Math.max(0, this.scrollHeight - height));
   }
   refreshLocalSelection() {
     if (this.lastLocalSelection) {

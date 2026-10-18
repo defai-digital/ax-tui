@@ -93,7 +93,7 @@ import {
   WRAP_WRAP_REVERSE,
   Wrap,
   yoga_default
-} from "./index-QU4BAXUW.js";
+} from "./index-V4VKOI4M.js";
 export {
   ALIGN_AUTO,
   ALIGN_BASELINE,

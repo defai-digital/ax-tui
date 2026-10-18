@@ -313,6 +313,12 @@ export class ScrollBoxRenderable extends BoxRenderable {
     this.internalId = ScrollBoxRenderable.idCounter++
     this._stickyScroll = stickyScroll
     this._stickyStart = stickyStart
+    if (this._stickyScroll && !this._stickyStart) {
+      // Without an explicit edge, keep the scroll origin sticky until the user
+      // scrolls to another edge and updateStickyState records it.
+      this._stickyScrollTop = true
+      this._stickyScrollLeft = true
+    }
     this.scrollAccel = scrollAcceleration ?? new LinearScrollAccel()
 
     this.wrapper = new BoxRenderable(ctx, {
@@ -473,25 +479,34 @@ export class ScrollBoxRenderable extends BoxRenderable {
   }
 
   private isAtStickyPosition(): boolean {
-    if (!this._stickyScroll || !this._stickyStart) {
+    if (!this._stickyScroll) {
       return false
     }
 
     const maxScrollTop = Math.max(0, this.scrollHeight - this.viewport.height)
     const maxScrollLeft = Math.max(0, this.scrollWidth - this.viewport.width)
 
-    switch (this._stickyStart) {
-      case "top":
-        return this.scrollTop === 0
-      case "bottom":
-        return this.scrollTop >= maxScrollTop
-      case "left":
-        return this.scrollLeft === 0
-      case "right":
-        return this.scrollLeft >= maxScrollLeft
-      default:
-        return false
+    if (this._stickyStart) {
+      switch (this._stickyStart) {
+        case "top":
+          return this.scrollTop === 0
+        case "bottom":
+          return this.scrollTop >= maxScrollTop
+        case "left":
+          return this.scrollLeft === 0
+        case "right":
+          return this.scrollLeft >= maxScrollLeft
+        default:
+          return false
+      }
     }
+
+    return (
+      (this._stickyScrollTop && this.scrollTop <= 0) ||
+      (this._stickyScrollBottom && this.scrollTop >= maxScrollTop) ||
+      (this._stickyScrollLeft && this.scrollLeft <= 0) ||
+      (this._stickyScrollRight && this.scrollLeft >= maxScrollLeft)
+    )
   }
 
   private isAtStickyReengagePoint(
@@ -740,6 +755,11 @@ export class ScrollBoxRenderable extends BoxRenderable {
     this._isApplyingStickyScroll = true
 
     try {
+      if (this._stickyScroll) {
+        // Capture the sticky edge against the pre-growth extent; after the
+        // new sizes are installed the old bottom position is no longer an edge.
+        this.updateStickyState()
+      }
       this.verticalScrollBar.scrollSize = this.content.height
       this.verticalScrollBar.viewportSize = this.viewport.height
       this.horizontalScrollBar.scrollSize = this.content.width

@@ -85,6 +85,7 @@ export declare abstract class TextBufferRenderable extends Renderable implements
     get truncate(): boolean;
     set truncate(value: boolean);
     protected onResize(width: number, height: number): void;
+    private clampScrollOffsets;
     protected refreshLocalSelection(): boolean;
     private updateLocalSelection;
     protected updateTextInfo(): void;

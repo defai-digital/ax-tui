@@ -37,6 +37,7 @@ export declare class ExtmarksController {
     private typeNameToId;
     private typeIdToName;
     private nextTypeId;
+    private readonly onContentChanged;
     private originalMoveCursorLeft;
     private originalMoveCursorRight;
     private originalSetCursorByOffset;
@@ -79,7 +80,9 @@ export declare class ExtmarksController {
     getAllForTypeId(typeId: number): Extmark[];
     clear(): void;
     private saveSnapshot;
+    private captureSnapshot;
     private restoreSnapshot;
+    private discardSnapshot;
     private wrapUndoRedo;
     registerType(typeName: string): number;
     getTypeId(typeName: string): number | null;

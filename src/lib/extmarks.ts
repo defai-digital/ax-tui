@@ -42,6 +42,9 @@ export class ExtmarksController {
   private typeNameToId = new Map<string, number>()
   private typeIdToName = new Map<number, string>()
   private nextTypeId = 1
+  private readonly onContentChanged = (): void => {
+    if (!this.destroyed) this.updateHighlights()
+  }
 
   private originalMoveCursorLeft: typeof EditBuffer.prototype.moveCursorLeft
   private originalMoveCursorRight: typeof EditBuffer.prototype.moveCursorRight
@@ -256,14 +259,9 @@ export class ExtmarksController {
       this.saveSnapshot()
 
       const currentOffset = this.editorView.getVisualCursor().offset
-      const hadSelection = this.editorView.hasSelection()
 
       if (currentOffset === 0) {
-        this.originalDeleteCharBackward()
-        return
-      }
-
-      if (hadSelection) {
+        this.discardSnapshot()
         this.originalDeleteCharBackward()
         return
       }
@@ -292,6 +290,8 @@ export class ExtmarksController {
       const deleteLength = currentOffset - deleteOffset
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength)
+      } else {
+        this.discardSnapshot()
       }
     }
 
@@ -304,13 +304,6 @@ export class ExtmarksController {
       this.saveSnapshot()
 
       const currentOffset = this.editorView.getVisualCursor().offset
-      const hadSelection = this.editorView.hasSelection()
-
-      if (hadSelection) {
-        this.originalDeleteChar()
-        return
-      }
-
       const targetOffset = currentOffset
       const virtualExtmark = this.findVirtualExtmarkContaining(targetOffset)
 
@@ -337,6 +330,8 @@ export class ExtmarksController {
 
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(currentOffset, deleteLength)
+      } else {
+        this.discardSnapshot()
       }
     }
 
@@ -348,12 +343,22 @@ export class ExtmarksController {
 
       this.saveSnapshot()
 
-      const startOffset = this.positionToOffset(startLine, startCol)
-      const endOffset = this.positionToOffset(endLine, endCol)
+      let start = { row: startLine, col: startCol }
+      let end = { row: endLine, col: endCol }
+      let startOffset = this.positionToOffset(start.row, start.col)
+      let endOffset = this.positionToOffset(end.row, end.col)
+      if (startOffset > endOffset) {
+        ;[start, end] = [end, start]
+        ;[startOffset, endOffset] = [endOffset, startOffset]
+      }
       const length = endOffset - startOffset
 
-      this.originalDeleteRange(startLine, startCol, endLine, endCol)
-      this.adjustExtmarksAfterDeletion(startOffset, length)
+      this.originalDeleteRange(start.row, start.col, end.row, end.col)
+      if (length > 0) {
+        this.adjustExtmarksAfterDeletion(startOffset, length)
+      } else {
+        this.discardSnapshot()
+      }
     }
 
     this.editBuffer.deleteLine = (): void => {
@@ -373,6 +378,7 @@ export class ExtmarksController {
       const lineCount = this.editBuffer.getLineCount()
 
       if (!position || position.row >= lineCount) {
+        this.discardSnapshot()
         this.originalDeleteLine()
         return
       }
@@ -397,6 +403,8 @@ export class ExtmarksController {
       this.originalDeleteLine()
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength)
+      } else {
+        this.discardSnapshot()
       }
     }
   }
@@ -415,6 +423,8 @@ export class ExtmarksController {
       const insertLength = this.editorView.getVisualCursor().offset - currentOffset
       if (insertLength > 0) {
         this.adjustExtmarksAfterInsertion(currentOffset, insertLength)
+      } else {
+        this.discardSnapshot()
       }
     }
 
@@ -431,6 +441,8 @@ export class ExtmarksController {
       const insertLength = this.editorView.getVisualCursor().offset - currentOffset
       if (insertLength > 0) {
         this.adjustExtmarksAfterInsertion(currentOffset, insertLength)
+      } else {
+        this.discardSnapshot()
       }
     }
 
@@ -488,8 +500,6 @@ export class ExtmarksController {
         return
       }
 
-      this.saveSnapshot()
-
       const selection = this.editorView.getSelection()
       if (!selection) {
         this.originalEditorViewDeleteSelectedText()
@@ -498,20 +508,20 @@ export class ExtmarksController {
 
       const deleteOffset = Math.min(selection.start, selection.end)
       const deleteLength = Math.abs(selection.end - selection.start)
+      this.saveSnapshot()
 
       this.originalEditorViewDeleteSelectedText()
 
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength)
+      } else {
+        this.discardSnapshot()
       }
     }
   }
 
   private setupContentChangeListener(): void {
-    this.editBuffer.on("content-changed", () => {
-      if (this.destroyed) return
-      this.updateHighlights()
-    })
+    this.editBuffer.on("content-changed", this.onContentChanged)
   }
 
   private deleteExtmarkById(id: number): void {
@@ -733,7 +743,7 @@ export class ExtmarksController {
     if (!ids) return []
     return Array.from(ids)
       .map((id) => this.extmarks.get(id))
-      .filter((e): e is Extmark => e !== undefined)
+      .filter((e): e is Extmark => e !== undefined && e.typeId === typeId)
   }
 
   public clear(): void {
@@ -746,13 +756,35 @@ export class ExtmarksController {
   }
 
   private saveSnapshot(): void {
-    this.history.saveSnapshot(this.extmarks, this.nextId)
+    this.history.saveSnapshot(this.extmarks, this.nextId, this.metadata)
+  }
+
+  private captureSnapshot(): ExtmarksSnapshot {
+    return {
+      extmarks: new Map(Array.from(this.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
+      nextId: this.nextId,
+      metadata: new Map(this.metadata),
+    }
   }
 
   private restoreSnapshot(snapshot: ExtmarksSnapshot): void {
     this.extmarks = new Map(Array.from(snapshot.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }]))
+    this.extmarksByTypeId.clear()
+    for (const extmark of this.extmarks.values()) {
+      let ids = this.extmarksByTypeId.get(extmark.typeId)
+      if (!ids) {
+        ids = new Set()
+        this.extmarksByTypeId.set(extmark.typeId, ids)
+      }
+      ids.add(extmark.id)
+    }
+    this.metadata = new Map(snapshot.metadata)
     this.nextId = snapshot.nextId
     this.updateHighlights()
+  }
+
+  private discardSnapshot(): void {
+    this.history.discardLastSnapshot()
   }
 
   private wrapUndoRedo(): void {
@@ -765,11 +797,7 @@ export class ExtmarksController {
         return this.originalUndo()
       }
 
-      const currentSnapshot: ExtmarksSnapshot = {
-        extmarks: new Map(Array.from(this.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
-        nextId: this.nextId,
-      }
-      this.history.pushRedo(currentSnapshot)
+      this.history.pushRedo(this.captureSnapshot())
 
       const snapshot = this.history.undo()!
       this.restoreSnapshot(snapshot)
@@ -786,11 +814,7 @@ export class ExtmarksController {
         return this.originalRedo()
       }
 
-      const currentSnapshot: ExtmarksSnapshot = {
-        extmarks: new Map(Array.from(this.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
-        nextId: this.nextId,
-      }
-      this.history.pushUndo(currentSnapshot)
+      this.history.pushUndo(this.captureSnapshot())
 
       const snapshot = this.history.redo()!
       this.restoreSnapshot(snapshot)
@@ -851,6 +875,7 @@ export class ExtmarksController {
     this.editorView.deleteSelectedText = this.originalEditorViewDeleteSelectedText
     this.editBuffer.undo = this.originalUndo
     this.editBuffer.redo = this.originalRedo
+    this.editBuffer.off("content-changed", this.onContentChanged)
 
     this.extmarks.clear()
     this.extmarksByTypeId.clear()

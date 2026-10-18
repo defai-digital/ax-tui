@@ -158,3 +158,119 @@ try {
 console.log("markdown-top-level ok")
 `)
 })
+
+test.skipIf(!supportsFfi)("markdown refreshStyles preserves custom renderNode blocks", () => {
+  runDriver(`
+${PREAMBLE}
+import { TextRenderable } from "ax-tui"
+
+const treeSitterClient = new MockTreeSitterClient({ autoResolveTimeout: 1 })
+const setup = await createTestRenderer({ width: 40, height: 12 })
+try {
+  let calls = 0
+  let latest
+  const markdown = new MarkdownRenderable(setup.renderer, {
+    syntaxStyle: SyntaxStyle.create(),
+    treeSitterClient,
+    content: "Fallback paragraph",
+    streaming: false,
+    renderNode(token) {
+      if (token.type !== "paragraph") return undefined
+      calls += 1
+      latest = new TextRenderable(setup.renderer, { content: "CUSTOM" })
+      return latest
+    },
+  })
+  setup.renderer.root.add(markdown)
+  await setup.renderOnce()
+  await settle(setup)
+  assert.ok(setup.captureCharFrame().includes("CUSTOM"))
+
+  markdown.refreshStyles()
+  await settle(setup)
+  assert.ok(setup.captureCharFrame().includes("CUSTOM"), "custom renderable was replaced by a default block")
+  assert.equal(calls, 2)
+  assert.equal(latest.isDestroyed, false)
+} finally {
+  setup.renderer.destroy()
+  await treeSitterClient.destroy()
+}
+console.log("markdown-render-node-refresh ok")
+`)
+})
+
+test.skipIf(!supportsFfi)("markdown preserves link href through nested inline styles", () => {
+  runDriver(`
+${PREAMBLE}
+const treeSitterClient = new MockTreeSitterClient({ autoResolveTimeout: 1 })
+const setup = await createTestRenderer({ width: 60, height: 10 })
+try {
+  const markdown = new MarkdownRenderable(setup.renderer, {
+    syntaxStyle: SyntaxStyle.create(),
+    treeSitterClient,
+    content: "A [**bold**](https://example.com) B **[*em link*](https://example.com)**",
+    streaming: false,
+  })
+  setup.renderer.root.add(markdown)
+  await setup.renderOnce()
+
+  const paragraph = markdown._parseState.tokens.find(token => token.type === "paragraph")
+  assert.ok(paragraph && paragraph.tokens)
+  const chunks = []
+  markdown.renderInlineContent(paragraph.tokens, chunks)
+  const bold = chunks.find(chunk => chunk.text === "bold")
+  const em = chunks.find(chunk => chunk.text === "em link")
+  assert.ok(bold, "bold link label chunk is missing")
+  assert.equal(bold.link?.url, "https://example.com")
+  assert.ok(em, "nested link label chunk is missing")
+  assert.equal(em.link?.url, "https://example.com")
+} finally {
+  setup.renderer.destroy()
+  await treeSitterClient.destroy()
+}
+console.log("markdown-nested-link ok")
+`)
+})
+
+test.skipIf(!supportsFfi)("markdown table options reach tables nested in list items", () => {
+  runDriver(`
+${PREAMBLE}
+import { TextTableRenderable } from "ax-tui"
+
+const treeSitterClient = new MockTreeSitterClient({ autoResolveTimeout: 1 })
+const setup = await createTestRenderer({ width: 50, height: 20 })
+try {
+  const markdown = new MarkdownRenderable(setup.renderer, {
+    syntaxStyle: SyntaxStyle.create(),
+    treeSitterClient,
+    content: ["- item", "", "  | A | B |", "  |---|---|", "  | 1 | 2 |"].join(NL),
+    streaming: false,
+    internalBlockMode: "top-level",
+    tableOptions: { borders: true },
+  })
+  setup.renderer.root.add(markdown)
+  await setup.renderOnce()
+  await settle(setup)
+
+  const findTable = node => {
+    if (node instanceof TextTableRenderable) return node
+    for (const child of node?.getChildren?.() ?? []) {
+      const found = findTable(child)
+      if (found) return found
+    }
+    return undefined
+  }
+  const table = findTable(markdown)
+  assert.ok(table, "nested table was not created")
+  assert.equal(table.border, true)
+
+  markdown.tableOptions = { borders: false }
+  assert.equal(table.border, false, "nested table did not receive tableOptions")
+  assert.equal(table.showBorders, false)
+} finally {
+  setup.renderer.destroy()
+  await treeSitterClient.destroy()
+}
+console.log("markdown-nested-table-options ok")
+`)
+})

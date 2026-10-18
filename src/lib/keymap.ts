@@ -148,7 +148,15 @@ export class Keymap {
   }
 
   private distance(layer: Layer): number {
-    if (!this.layers.includes(layer) || layer.options.enabled?.() === false) return -1
+    if (!this.layers.includes(layer)) return -1
+    let enabled = true
+    try {
+      enabled = layer.options.enabled?.() !== false
+    } catch {
+      // A broken predicate disables only its own layer.
+      enabled = false
+    }
+    if (!enabled) return -1
     // User predicates may synchronously unregister or dispose the manager.
     if (this.disposed || !this.layers.includes(layer)) return -1
     const target = layer.options.target

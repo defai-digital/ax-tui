@@ -287,6 +287,9 @@ export abstract class TextBufferRenderable extends Renderable implements LineInf
       if (value !== "none" && this.width > 0) {
         this.textBufferView.setWrapWidth(this.width)
       }
+      // Re-wrapping changes the scrollable extent; drop offsets past the new end.
+      this.clampScrollOffsets()
+      this.updateViewportOffset()
       // Changing wrap mode can change dimensions, so mark yoga node dirty to trigger re-measurement
       this.yogaNode.markDirty()
       this.requestRender()
@@ -335,10 +338,18 @@ export abstract class TextBufferRenderable extends Renderable implements LineInf
   }
 
   protected onResize(width: number, height: number): void {
-    this.textBufferView.setViewport(this._scrollX, this._scrollY, width, height)
+    this.clampScrollOffsets(width, height)
+    if (width > 0 && height > 0) {
+      this.textBufferView.setViewport(this._scrollX, this._scrollY, width, height)
+    }
     this.yogaNode.markDirty()
     this.requestRender()
     this.emit("line-info-change")
+  }
+
+  private clampScrollOffsets(width = this.width, height = this.height): void {
+    this._scrollX = clamp(this._scrollX, 0, Math.max(0, this.scrollWidth - width))
+    this._scrollY = clamp(this._scrollY, 0, Math.max(0, this.scrollHeight - height))
   }
 
   protected refreshLocalSelection(): boolean {

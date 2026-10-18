@@ -3,19 +3,26 @@ import type { Extmark } from "./extmarks.js"
 export interface ExtmarksSnapshot {
   extmarks: Map<number, Extmark>
   nextId: number
+  metadata: Map<number, any>
 }
 
 export class ExtmarksHistory {
   private undoStack: ExtmarksSnapshot[] = []
   private redoStack: ExtmarksSnapshot[] = []
 
-  saveSnapshot(extmarks: Map<number, Extmark>, nextId: number): void {
+  saveSnapshot(extmarks: Map<number, Extmark>, nextId: number, metadata: Map<number, any>): void {
     const snapshot: ExtmarksSnapshot = {
       extmarks: new Map(Array.from(extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
       nextId,
+      metadata: new Map(metadata),
     }
     this.undoStack.push(snapshot)
     this.redoStack = []
+  }
+
+  /** Drop the snapshot just recorded for an edit that turned out to be a no-op. */
+  discardLastSnapshot(): void {
+    this.undoStack.pop()
   }
 
   undo(): ExtmarksSnapshot | null {

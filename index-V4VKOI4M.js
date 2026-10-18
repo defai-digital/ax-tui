@@ -11068,13 +11068,18 @@ async function destroyTreeSitterClient() {
 var ExtmarksHistory = class {
   undoStack = [];
   redoStack = [];
-  saveSnapshot(extmarks, nextId) {
+  saveSnapshot(extmarks, nextId, metadata) {
     const snapshot = {
       extmarks: new Map(Array.from(extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
-      nextId
+      nextId,
+      metadata: new Map(metadata)
     };
     this.undoStack.push(snapshot);
     this.redoStack = [];
+  }
+  /** Drop the snapshot just recorded for an edit that turned out to be a no-op. */
+  discardLastSnapshot() {
+    this.undoStack.pop();
   }
   undo() {
     if (this.undoStack.length === 0) return null;
@@ -11115,6 +11120,9 @@ var ExtmarksController = class {
   typeNameToId = /* @__PURE__ */ new Map();
   typeIdToName = /* @__PURE__ */ new Map();
   nextTypeId = 1;
+  onContentChanged = () => {
+    if (!this.destroyed) this.updateHighlights();
+  };
   originalMoveCursorLeft;
   originalMoveCursorRight;
   originalSetCursorByOffset;
@@ -11291,12 +11299,8 @@ var ExtmarksController = class {
       }
       this.saveSnapshot();
       const currentOffset = this.editorView.getVisualCursor().offset;
-      const hadSelection = this.editorView.hasSelection();
       if (currentOffset === 0) {
-        this.originalDeleteCharBackward();
-        return;
-      }
-      if (hadSelection) {
+        this.discardSnapshot();
         this.originalDeleteCharBackward();
         return;
       }
@@ -11318,6 +11322,8 @@ var ExtmarksController = class {
       const deleteLength = currentOffset - deleteOffset;
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength);
+      } else {
+        this.discardSnapshot();
       }
     };
     this.editBuffer.deleteChar = () => {
@@ -11327,11 +11333,6 @@ var ExtmarksController = class {
       }
       this.saveSnapshot();
       const currentOffset = this.editorView.getVisualCursor().offset;
-      const hadSelection = this.editorView.hasSelection();
-      if (hadSelection) {
-        this.originalDeleteChar();
-        return;
-      }
       const targetOffset = currentOffset;
       const virtualExtmark = this.findVirtualExtmarkContaining(targetOffset);
       if (virtualExtmark && currentOffset === virtualExtmark.start) {
@@ -11350,6 +11351,8 @@ var ExtmarksController = class {
       this.originalDeleteChar();
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(currentOffset, deleteLength);
+      } else {
+        this.discardSnapshot();
       }
     };
     this.editBuffer.deleteRange = (startLine, startCol, endLine, endCol) => {
@@ -11358,11 +11361,22 @@ var ExtmarksController = class {
         return;
       }
       this.saveSnapshot();
-      const startOffset = this.positionToOffset(startLine, startCol);
-      const endOffset = this.positionToOffset(endLine, endCol);
+      let start = { row: startLine, col: startCol };
+      let end = { row: endLine, col: endCol };
+      let startOffset = this.positionToOffset(start.row, start.col);
+      let endOffset = this.positionToOffset(end.row, end.col);
+      if (startOffset > endOffset) {
+        ;
+        [start, end] = [end, start];
+        [startOffset, endOffset] = [endOffset, startOffset];
+      }
       const length = endOffset - startOffset;
-      this.originalDeleteRange(startLine, startCol, endLine, endCol);
-      this.adjustExtmarksAfterDeletion(startOffset, length);
+      this.originalDeleteRange(start.row, start.col, end.row, end.col);
+      if (length > 0) {
+        this.adjustExtmarksAfterDeletion(startOffset, length);
+      } else {
+        this.discardSnapshot();
+      }
     };
     this.editBuffer.deleteLine = () => {
       if (this.destroyed) {
@@ -11373,6 +11387,7 @@ var ExtmarksController = class {
       const position = this.editBuffer.offsetToPosition(this.editorView.getVisualCursor().offset);
       const lineCount = this.editBuffer.getLineCount();
       if (!position || position.row >= lineCount) {
+        this.discardSnapshot();
         this.originalDeleteLine();
         return;
       }
@@ -11394,6 +11409,8 @@ var ExtmarksController = class {
       this.originalDeleteLine();
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength);
+      } else {
+        this.discardSnapshot();
       }
     };
   }
@@ -11409,6 +11426,8 @@ var ExtmarksController = class {
       const insertLength = this.editorView.getVisualCursor().offset - currentOffset;
       if (insertLength > 0) {
         this.adjustExtmarksAfterInsertion(currentOffset, insertLength);
+      } else {
+        this.discardSnapshot();
       }
     };
     this.editBuffer.insertChar = (char) => {
@@ -11422,6 +11441,8 @@ var ExtmarksController = class {
       const insertLength = this.editorView.getVisualCursor().offset - currentOffset;
       if (insertLength > 0) {
         this.adjustExtmarksAfterInsertion(currentOffset, insertLength);
+      } else {
+        this.discardSnapshot();
       }
     };
     this.editBuffer.setText = (text) => {
@@ -11467,7 +11488,6 @@ var ExtmarksController = class {
         this.originalEditorViewDeleteSelectedText();
         return;
       }
-      this.saveSnapshot();
       const selection = this.editorView.getSelection();
       if (!selection) {
         this.originalEditorViewDeleteSelectedText();
@@ -11475,17 +11495,17 @@ var ExtmarksController = class {
       }
       const deleteOffset = Math.min(selection.start, selection.end);
       const deleteLength = Math.abs(selection.end - selection.start);
+      this.saveSnapshot();
       this.originalEditorViewDeleteSelectedText();
       if (deleteLength > 0) {
         this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength);
+      } else {
+        this.discardSnapshot();
       }
     };
   }
   setupContentChangeListener() {
-    this.editBuffer.on("content-changed", () => {
-      if (this.destroyed) return;
-      this.updateHighlights();
-    });
+    this.editBuffer.on("content-changed", this.onContentChanged);
   }
   deleteExtmarkById(id) {
     const extmark = this.extmarks.get(id);
@@ -11660,7 +11680,7 @@ var ExtmarksController = class {
     if (this.destroyed) return [];
     const ids = this.extmarksByTypeId.get(typeId);
     if (!ids) return [];
-    return Array.from(ids).map((id) => this.extmarks.get(id)).filter((e) => e !== void 0);
+    return Array.from(ids).map((id) => this.extmarks.get(id)).filter((e) => e !== void 0 && e.typeId === typeId);
   }
   clear() {
     if (this.destroyed) return;
@@ -11670,12 +11690,32 @@ var ExtmarksController = class {
     this.updateHighlights();
   }
   saveSnapshot() {
-    this.history.saveSnapshot(this.extmarks, this.nextId);
+    this.history.saveSnapshot(this.extmarks, this.nextId, this.metadata);
+  }
+  captureSnapshot() {
+    return {
+      extmarks: new Map(Array.from(this.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
+      nextId: this.nextId,
+      metadata: new Map(this.metadata)
+    };
   }
   restoreSnapshot(snapshot) {
     this.extmarks = new Map(Array.from(snapshot.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }]));
+    this.extmarksByTypeId.clear();
+    for (const extmark of this.extmarks.values()) {
+      let ids = this.extmarksByTypeId.get(extmark.typeId);
+      if (!ids) {
+        ids = /* @__PURE__ */ new Set();
+        this.extmarksByTypeId.set(extmark.typeId, ids);
+      }
+      ids.add(extmark.id);
+    }
+    this.metadata = new Map(snapshot.metadata);
     this.nextId = snapshot.nextId;
     this.updateHighlights();
+  }
+  discardSnapshot() {
+    this.history.discardLastSnapshot();
   }
   wrapUndoRedo() {
     this.editBuffer.undo = () => {
@@ -11685,11 +11725,7 @@ var ExtmarksController = class {
       if (!this.history.canUndo()) {
         return this.originalUndo();
       }
-      const currentSnapshot = {
-        extmarks: new Map(Array.from(this.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
-        nextId: this.nextId
-      };
-      this.history.pushRedo(currentSnapshot);
+      this.history.pushRedo(this.captureSnapshot());
       const snapshot = this.history.undo();
       this.restoreSnapshot(snapshot);
       return this.originalUndo();
@@ -11701,11 +11737,7 @@ var ExtmarksController = class {
       if (!this.history.canRedo()) {
         return this.originalRedo();
       }
-      const currentSnapshot = {
-        extmarks: new Map(Array.from(this.extmarks.entries()).map(([id, extmark]) => [id, { ...extmark }])),
-        nextId: this.nextId
-      };
-      this.history.pushUndo(currentSnapshot);
+      this.history.pushUndo(this.captureSnapshot());
       const snapshot = this.history.redo();
       this.restoreSnapshot(snapshot);
       return this.originalRedo();
@@ -11756,6 +11788,7 @@ var ExtmarksController = class {
     this.editorView.deleteSelectedText = this.originalEditorViewDeleteSelectedText;
     this.editBuffer.undo = this.originalUndo;
     this.editBuffer.redo = this.originalRedo;
+    this.editBuffer.off("content-changed", this.onContentChanged);
     this.extmarks.clear();
     this.extmarksByTypeId.clear();
     this.metadata.clear();

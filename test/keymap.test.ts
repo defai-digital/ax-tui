@@ -120,5 +120,12 @@ remove = keymap.register({ enabled: () => { remove(); return true },
   bindings: [{ id: "removed", keys: "r", handler: () => calls++ }] })
 assert.equal(send("r").defaultPrevented, false)
 assert.equal(calls, 3)
+let broken = 0, afterBroken = 0
+keymap.register({ enabled: () => { throw new Error("expected") },
+  bindings: [{ id: "broken", keys: "b", handler: () => broken++ }] })
+keymap.register({ priority: -1, bindings: [{ id: "after-broken", keys: "b", handler: () => afterBroken++ }] })
+assert.equal(send("b").defaultPrevented, true)
+assert.equal(broken, 0)
+assert.equal(afterBroken, 1)
 `)
 })

@@ -23,6 +23,17 @@ All notable changes to ax-tui are documented here. The format is based on
   innermost modal scope by tree depth rather than registration order.
 - Require the PTY fixture to confirm clean shutdown over its control channel,
   so tmux's client exit status cannot hide a crashing application.
+- Keep keymap dispatch alive when an `enabled` predicate throws, disabling only
+  that layer instead of aborting all key routing.
+- Restore extmark type and metadata indexes after undo, keep no-op edits from
+  consuming a later text undo, follow native cursor deletion when a selection
+  exists, and remove the content-change listener on destroy.
+- Keep `stickyScroll` anchored without an explicit `stickyStart` when content
+  grows.
+- Rebuild custom `renderNode` blocks on forced Markdown refreshes, preserve link
+  targets through nested inline styles, and apply table options to tables nested
+  inside list items.
+- Re-clamp text-buffer scroll offsets after resize and wrap-mode changes.
 
 ### Added
 

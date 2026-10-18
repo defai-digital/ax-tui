@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-AF6FEMVB.js";
+} from "./index-W3EMZKWI.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-QU4BAXUW.js";
+} from "./index-V4VKOI4M.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -6713,8 +6713,8 @@ var MarkdownRenderable = class extends Renderable {
       link: link2
     };
   }
-  createDefaultChunk(text) {
-    return this.createChunk(text, "default");
+  createDefaultChunk(text, link2) {
+    return this.createChunk(text, "default", link2);
   }
   createInitialStyledText(token) {
     if (!this._streaming) return void 0;
@@ -6727,59 +6727,59 @@ var MarkdownRenderable = class extends Renderable {
     }
     return chunks.length > 0 ? new StyledText(chunks) : void 0;
   }
-  renderInlineContent(tokens, chunks) {
+  renderInlineContent(tokens, chunks, link2) {
     for (const token of tokens) {
-      this.renderInlineToken(token, chunks);
+      this.renderInlineToken(token, chunks, link2);
     }
   }
-  renderInlineToken(token, chunks) {
+  renderInlineToken(token, chunks, link2) {
     switch (token.type) {
       case "text":
-        chunks.push(this.createDefaultChunk(token.text));
+        chunks.push(this.createDefaultChunk(token.text, link2));
         break;
       case "escape":
-        chunks.push(this.createDefaultChunk(token.text));
+        chunks.push(this.createDefaultChunk(token.text, link2));
         break;
       case "codespan":
         if (this._conceal) {
-          chunks.push(this.createChunk(token.text, "markup.raw"));
+          chunks.push(this.createChunk(token.text, "markup.raw", link2));
         } else {
-          chunks.push(this.createChunk("`", "markup.raw"));
-          chunks.push(this.createChunk(token.text, "markup.raw"));
-          chunks.push(this.createChunk("`", "markup.raw"));
+          chunks.push(this.createChunk("`", "markup.raw", link2));
+          chunks.push(this.createChunk(token.text, "markup.raw", link2));
+          chunks.push(this.createChunk("`", "markup.raw", link2));
         }
         break;
       case "strong":
         if (!this._conceal) {
-          chunks.push(this.createChunk("**", "markup.strong"));
+          chunks.push(this.createChunk("**", "markup.strong", link2));
         }
         for (const child of token.tokens) {
-          this.renderInlineTokenWithStyle(child, chunks, "markup.strong");
+          this.renderInlineTokenWithStyle(child, chunks, "markup.strong", link2);
         }
         if (!this._conceal) {
-          chunks.push(this.createChunk("**", "markup.strong"));
+          chunks.push(this.createChunk("**", "markup.strong", link2));
         }
         break;
       case "em":
         if (!this._conceal) {
-          chunks.push(this.createChunk("*", "markup.italic"));
+          chunks.push(this.createChunk("*", "markup.italic", link2));
         }
         for (const child of token.tokens) {
-          this.renderInlineTokenWithStyle(child, chunks, "markup.italic");
+          this.renderInlineTokenWithStyle(child, chunks, "markup.italic", link2);
         }
         if (!this._conceal) {
-          chunks.push(this.createChunk("*", "markup.italic"));
+          chunks.push(this.createChunk("*", "markup.italic", link2));
         }
         break;
       case "del":
         if (!this._conceal) {
-          chunks.push(this.createChunk("~~", "markup.strikethrough"));
+          chunks.push(this.createChunk("~~", "markup.strikethrough", link2));
         }
         for (const child of token.tokens) {
-          this.renderInlineTokenWithStyle(child, chunks, "markup.strikethrough");
+          this.renderInlineTokenWithStyle(child, chunks, "markup.strikethrough", link2);
         }
         if (!this._conceal) {
-          chunks.push(this.createChunk("~~", "markup.strikethrough"));
+          chunks.push(this.createChunk("~~", "markup.strikethrough", link2));
         }
         break;
       case "link": {
@@ -6820,9 +6820,9 @@ var MarkdownRenderable = class extends Renderable {
         break;
       default:
         if ("tokens" in token && Array.isArray(token.tokens)) {
-          this.renderInlineContent(token.tokens, chunks);
+          this.renderInlineContent(token.tokens, chunks, link2);
         } else if ("text" in token && typeof token.text === "string") {
-          chunks.push(this.createDefaultChunk(token.text));
+          chunks.push(this.createDefaultChunk(token.text, link2));
         }
         break;
     }
@@ -6845,7 +6845,7 @@ var MarkdownRenderable = class extends Renderable {
         }
         break;
       default:
-        this.renderInlineToken(token, chunks);
+        this.renderInlineToken(token, chunks, link2);
         break;
     }
   }
@@ -7432,12 +7432,15 @@ var MarkdownRenderable = class extends Renderable {
   applyTableOptionsToBlocks() {
     const options = this.resolveTableRenderableOptions();
     let updated = false;
-    for (const state of this._blockStates) {
-      if (state.renderable instanceof TextTableRenderable) {
-        this.applyTableRenderableOptions(state.renderable, options);
+    const visit = (renderable) => {
+      if (renderable instanceof TextTableRenderable) {
+        this.applyTableRenderableOptions(renderable, options);
         updated = true;
+        return;
       }
-    }
+      for (const child of renderable.getChildren()) visit(child);
+    };
+    for (const state of this._blockStates) visit(state.renderable);
     if (updated) {
       this.requestRender();
     }
@@ -7804,6 +7807,10 @@ var MarkdownRenderable = class extends Renderable {
       this._stableBlockCount = 0;
       return;
     }
+    if (forceTableRefresh && this._renderNode && this._internalBlockMode !== "top-level") {
+      this.clearBlockStates();
+      forceTableRefresh = false;
+    }
     const trailingUnstable = this._streaming ? 2 : 0;
     this._parseState = parseMarkdownIncremental(this._content, this._parseState, trailingUnstable);
     const tokens = this._parseState.tokens;
@@ -7942,7 +7949,7 @@ var MarkdownRenderable = class extends Renderable {
    * Used when only style/conceal changes - much faster than full rebuild.
    */
   rerenderBlocks() {
-    if (this._internalBlockMode === "top-level") {
+    if (this._renderNode || this._internalBlockMode === "top-level") {
       this.updateBlocks(true);
       return;
     }
@@ -8794,6 +8801,10 @@ var ScrollBoxRenderable = class _ScrollBoxRenderable extends BoxRenderable {
     this.internalId = _ScrollBoxRenderable.idCounter++;
     this._stickyScroll = stickyScroll;
     this._stickyStart = stickyStart;
+    if (this._stickyScroll && !this._stickyStart) {
+      this._stickyScrollTop = true;
+      this._stickyScrollLeft = true;
+    }
     this.scrollAccel = scrollAcceleration ?? new LinearScrollAccel();
     this.wrapper = new BoxRenderable(ctx, {
       flexDirection: "column",
@@ -8922,23 +8933,26 @@ var ScrollBoxRenderable = class _ScrollBoxRenderable extends BoxRenderable {
     }
   }
   isAtStickyPosition() {
-    if (!this._stickyScroll || !this._stickyStart) {
+    if (!this._stickyScroll) {
       return false;
     }
     const maxScrollTop = Math.max(0, this.scrollHeight - this.viewport.height);
     const maxScrollLeft = Math.max(0, this.scrollWidth - this.viewport.width);
-    switch (this._stickyStart) {
-      case "top":
-        return this.scrollTop === 0;
-      case "bottom":
-        return this.scrollTop >= maxScrollTop;
-      case "left":
-        return this.scrollLeft === 0;
-      case "right":
-        return this.scrollLeft >= maxScrollLeft;
-      default:
-        return false;
+    if (this._stickyStart) {
+      switch (this._stickyStart) {
+        case "top":
+          return this.scrollTop === 0;
+        case "bottom":
+          return this.scrollTop >= maxScrollTop;
+        case "left":
+          return this.scrollLeft === 0;
+        case "right":
+          return this.scrollLeft >= maxScrollLeft;
+        default:
+          return false;
+      }
     }
+    return this._stickyScrollTop && this.scrollTop <= 0 || this._stickyScrollBottom && this.scrollTop >= maxScrollTop || this._stickyScrollLeft && this.scrollLeft <= 0 || this._stickyScrollRight && this.scrollLeft >= maxScrollLeft;
   }
   isAtStickyReengagePoint(stickyStart, maxScrollTop, maxScrollLeft) {
     switch (stickyStart) {
@@ -9138,6 +9152,9 @@ var ScrollBoxRenderable = class _ScrollBoxRenderable extends BoxRenderable {
     const wasApplyingStickyScroll = this._isApplyingStickyScroll;
     this._isApplyingStickyScroll = true;
     try {
+      if (this._stickyScroll) {
+        this.updateStickyState();
+      }
       this.verticalScrollBar.scrollSize = this.content.height;
       this.verticalScrollBar.viewportSize = this.viewport.height;
       this.horizontalScrollBar.scrollSize = this.content.width;
@@ -11764,7 +11781,14 @@ var Keymap = class _Keymap {
     return layer.remove;
   }
   distance(layer) {
-    if (!this.layers.includes(layer) || layer.options.enabled?.() === false) return -1;
+    if (!this.layers.includes(layer)) return -1;
+    let enabled = true;
+    try {
+      enabled = layer.options.enabled?.() !== false;
+    } catch {
+      enabled = false;
+    }
+    if (!enabled) return -1;
     if (this.disposed || !this.layers.includes(layer)) return -1;
     const target = layer.options.target;
     if (!target) return Number.MAX_SAFE_INTEGER;

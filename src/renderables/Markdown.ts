@@ -490,8 +490,8 @@ export class MarkdownRenderable extends Renderable {
     }
   }
 
-  private createDefaultChunk(text: string): TextChunk {
-    return this.createChunk(text, "default")
+  private createDefaultChunk(text: string, link?: { url: string }): TextChunk {
+    return this.createChunk(text, "default", link)
   }
 
   private createInitialStyledText(token: MarkedToken): StyledText | undefined {
@@ -509,65 +509,65 @@ export class MarkdownRenderable extends Renderable {
     return chunks.length > 0 ? new StyledText(chunks) : undefined
   }
 
-  private renderInlineContent(tokens: Token[], chunks: TextChunk[]): void {
+  private renderInlineContent(tokens: Token[], chunks: TextChunk[], link?: { url: string }): void {
     for (const token of tokens) {
-      this.renderInlineToken(token as MarkedToken, chunks)
+      this.renderInlineToken(token as MarkedToken, chunks, link)
     }
   }
 
-  private renderInlineToken(token: MarkedToken, chunks: TextChunk[]): void {
+  private renderInlineToken(token: MarkedToken, chunks: TextChunk[], link?: { url: string }): void {
     switch (token.type) {
       case "text":
-        chunks.push(this.createDefaultChunk(token.text))
+        chunks.push(this.createDefaultChunk(token.text, link))
         break
 
       case "escape":
-        chunks.push(this.createDefaultChunk(token.text))
+        chunks.push(this.createDefaultChunk(token.text, link))
         break
 
       case "codespan":
         if (this._conceal) {
-          chunks.push(this.createChunk(token.text, "markup.raw"))
+          chunks.push(this.createChunk(token.text, "markup.raw", link))
         } else {
-          chunks.push(this.createChunk("`", "markup.raw"))
-          chunks.push(this.createChunk(token.text, "markup.raw"))
-          chunks.push(this.createChunk("`", "markup.raw"))
+          chunks.push(this.createChunk("`", "markup.raw", link))
+          chunks.push(this.createChunk(token.text, "markup.raw", link))
+          chunks.push(this.createChunk("`", "markup.raw", link))
         }
         break
 
       case "strong":
         if (!this._conceal) {
-          chunks.push(this.createChunk("**", "markup.strong"))
+          chunks.push(this.createChunk("**", "markup.strong", link))
         }
         for (const child of token.tokens) {
-          this.renderInlineTokenWithStyle(child as MarkedToken, chunks, "markup.strong")
+          this.renderInlineTokenWithStyle(child as MarkedToken, chunks, "markup.strong", link)
         }
         if (!this._conceal) {
-          chunks.push(this.createChunk("**", "markup.strong"))
+          chunks.push(this.createChunk("**", "markup.strong", link))
         }
         break
 
       case "em":
         if (!this._conceal) {
-          chunks.push(this.createChunk("*", "markup.italic"))
+          chunks.push(this.createChunk("*", "markup.italic", link))
         }
         for (const child of token.tokens) {
-          this.renderInlineTokenWithStyle(child as MarkedToken, chunks, "markup.italic")
+          this.renderInlineTokenWithStyle(child as MarkedToken, chunks, "markup.italic", link)
         }
         if (!this._conceal) {
-          chunks.push(this.createChunk("*", "markup.italic"))
+          chunks.push(this.createChunk("*", "markup.italic", link))
         }
         break
 
       case "del":
         if (!this._conceal) {
-          chunks.push(this.createChunk("~~", "markup.strikethrough"))
+          chunks.push(this.createChunk("~~", "markup.strikethrough", link))
         }
         for (const child of token.tokens) {
-          this.renderInlineTokenWithStyle(child as MarkedToken, chunks, "markup.strikethrough")
+          this.renderInlineTokenWithStyle(child as MarkedToken, chunks, "markup.strikethrough", link)
         }
         if (!this._conceal) {
-          chunks.push(this.createChunk("~~", "markup.strikethrough"))
+          chunks.push(this.createChunk("~~", "markup.strikethrough", link))
         }
         break
 
@@ -612,9 +612,9 @@ export class MarkdownRenderable extends Renderable {
 
       default:
         if ("tokens" in token && Array.isArray(token.tokens)) {
-          this.renderInlineContent(token.tokens, chunks)
+          this.renderInlineContent(token.tokens, chunks, link)
         } else if ("text" in token && typeof token.text === "string") {
-          chunks.push(this.createDefaultChunk(token.text))
+          chunks.push(this.createDefaultChunk(token.text, link))
         }
         break
     }
@@ -646,7 +646,7 @@ export class MarkdownRenderable extends Renderable {
         break
 
       default:
-        this.renderInlineToken(token, chunks)
+        this.renderInlineToken(token, chunks, link)
         break
     }
   }
@@ -1396,12 +1396,16 @@ export class MarkdownRenderable extends Renderable {
     const options = this.resolveTableRenderableOptions()
     let updated = false
 
-    for (const state of this._blockStates) {
-      if (state.renderable instanceof TextTableRenderable) {
-        this.applyTableRenderableOptions(state.renderable, options)
+    const visit = (renderable: Renderable) => {
+      if (renderable instanceof TextTableRenderable) {
+        this.applyTableRenderableOptions(renderable, options)
         updated = true
+        return
       }
+      for (const child of renderable.getChildren()) visit(child)
     }
+
+    for (const state of this._blockStates) visit(state.renderable)
 
     if (updated) {
       this.requestRender()
@@ -1887,6 +1891,13 @@ export class MarkdownRenderable extends Renderable {
       return
     }
 
+    if (forceTableRefresh && this._renderNode && this._internalBlockMode !== "top-level") {
+      // Custom renderables cannot be force-updated in place. Rebuild through
+      // the normal creation path so every block still honors renderNode.
+      this.clearBlockStates()
+      forceTableRefresh = false
+    }
+
     const trailingUnstable = this._streaming ? 2 : 0
     this._parseState = parseMarkdownIncremental(this._content, this._parseState, trailingUnstable)
 
@@ -2043,7 +2054,8 @@ export class MarkdownRenderable extends Renderable {
    * Used when only style/conceal changes - much faster than full rebuild.
    */
   private rerenderBlocks(): void {
-    if (this._internalBlockMode === "top-level") {
+    if (this._renderNode || this._internalBlockMode === "top-level") {
+      // Custom renderables cannot be updated in place.
       this.updateBlocks(true)
       return
     }
