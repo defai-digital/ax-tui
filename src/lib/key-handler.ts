@@ -134,8 +134,15 @@ export class KeyHandler extends EventEmitter<KeyHandlerEventMap> {
 export class InternalKeyHandler extends KeyHandler {
   private renderableHandlers: Map<keyof KeyHandlerEventMap, Set<Function>> = new Map()
 
-  public emit<K extends keyof KeyHandlerEventMap>(event: K, ...args: KeyHandlerEventMap[K]): boolean {
-    return this.emitWithPriority(event, ...args)
+  public emit<K extends keyof KeyHandlerEventMap>(event: K, ...args: KeyHandlerEventMap[K]): boolean
+  public emit(event: string | symbol, ...args: unknown[]): boolean
+  public emit(event: string | symbol, ...args: unknown[]): boolean {
+    // Node's emitter also dispatches lifecycle events and supports symbols.
+    // Preserve those semantics; only keyboard and paste events need priority routing.
+    if (event === "keypress" || event === "keyrelease" || event === "paste") {
+      return this.emitWithPriority(event, ...args as KeyHandlerEventMap[typeof event])
+    }
+    return super.emit(event, ...args)
   }
 
   private emitWithPriority<K extends keyof KeyHandlerEventMap>(event: K, ...args: KeyHandlerEventMap[K]): boolean {

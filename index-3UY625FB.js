@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-I6I64Z4M.js";
+} from "./index-BUSAXULS.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {

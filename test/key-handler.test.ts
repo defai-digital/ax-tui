@@ -16,6 +16,28 @@ const parsedKey: ParsedKey = {
   source: "raw",
 }
 
+test("non-input events preserve Node EventEmitter lifecycle, symbol and error semantics", () => {
+  const handler = new InternalKeyHandler()
+  const added = vi.fn()
+  const removed = vi.fn()
+  handler.on("newListener", added)
+  handler.on("removeListener", removed)
+  const symbol = Symbol("diagnostic")
+  const listener = vi.fn()
+  handler.once(symbol, listener)
+  expect(added).toHaveBeenCalledWith(symbol, listener)
+  expect(handler.emit(symbol, "payload")).toBe(true)
+  expect(listener).toHaveBeenCalledWith("payload")
+  expect(removed).toHaveBeenCalledWith(symbol, listener)
+  expect(handler.emit(symbol, "again")).toBe(false)
+  const error = new Error("unhandled diagnostic")
+  expect(() => handler.emit("error", error)).toThrow(error)
+  const onError = vi.fn()
+  handler.once("error", onError)
+  expect(handler.emit("error", error)).toBe(true)
+  expect(onError).toHaveBeenCalledWith(error)
+})
+
 function dispatch(handler: InternalKeyHandler, event: keyof KeyHandlerEventMap): void {
   if (event === "paste") {
     handler.processPaste(new Uint8Array([65]))

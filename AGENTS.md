@@ -46,8 +46,9 @@ record; they are not part of the normal build workflow.
 
 ## Commands
 
-Use Node.js >= 24 and pnpm via Corepack. Native rendering on Node requires
-Node 26+ with `--experimental-ffi`. All direct dependency versions are pinned.
+Use Node.js >= 26 (`nvm use` selects the repository's Node 26 line) and pnpm
+via Corepack. Native rendering on Node requires `--experimental-ffi`.
+All direct dependency versions are pinned.
 TypeScript 7.0.2 is the development compiler; Solid's JSX transform uses Babel.
 
 - `pnpm install`: install dependencies.

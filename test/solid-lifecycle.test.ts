@@ -10,6 +10,59 @@ const root = fileURLToPath(new URL("../", import.meta.url))
 const solidEntry = path.join(root, "solid/source/index.ts")
 const supportsFfi = spawnSync(process.execPath, ["--experimental-ffi", "-e", "require('node:ffi')"]).status === 0
 
+test.skipIf(!supportsFfi)("Solid shortcut help reacts to metadata and stops updates on external destruction", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal, Show } from "solid-js"
+import { testRender, KeymapHelp } from "ax-tui/solid"
+import { Renderable } from "ax-tui"
+let help, updateBindings, updateQuery, updateWidth, toggle
+const setup = await testRender(() => {
+  const [bindings, setBindings] = createSignal([{ id: "save", keys: ["ctrl+s"], description: "Save document" }])
+  const [query, setQuery] = createSignal("")
+  const [width, setWidth] = createSignal(30)
+  const [visible, setVisible] = createSignal(true)
+  updateBindings = setBindings
+  updateQuery = setQuery
+  updateWidth = setWidth
+  toggle = setVisible
+  return <Show when={visible()}><KeymapHelp ref={node => help = node} bindings={bindings()}
+    query={query()} width={width()} emptyText="No results" /></Show>
+}, { width: 40, height: 10 })
+try {
+  await setup.renderOnce()
+  assert.ok(setup.captureCharFrame().includes("Ctrl+s  Save document"))
+  updateQuery("missing")
+  await setup.renderOnce()
+  assert.ok(setup.captureCharFrame().includes("No results"))
+  updateBindings([{ id: "missing", keys: ["return"], description: "Open record" }])
+  await setup.renderOnce()
+  assert.ok(setup.captureCharFrame().includes("Enter  Open record"))
+  updateBindings(undefined)
+  updateQuery(undefined)
+  await setup.renderOnce()
+  assert.equal(help.matchCount, 0)
+  toggle(false)
+  await setup.renderOnce()
+  assert.equal(help.isDestroyed, true)
+  toggle(true)
+  await setup.renderOnce()
+  assert.equal(help.isDestroyed, false)
+  help.destroyRecursively()
+  let writes = 0
+  for (const name of ["width", "query", "bindings"]) {
+    Object.defineProperty(help, name, { set() { writes++ } })
+  }
+  updateWidth(20)
+  updateQuery("changed")
+  updateBindings([{ id: "new", keys: ["n"] }])
+  await setup.renderOnce()
+  assert.equal(writes, 0)
+} finally { setup.renderer.destroy() }
+assert.equal(Renderable.renderablesByNumber.size, 0)
+`)
+}, 30_000)
+
 test.skipIf(!supportsFfi)("Solid virtual lists update reactively and keymaps clean up only their owner", async () => {
   await runSolidScenario(`
 import assert from "node:assert/strict"

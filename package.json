@@ -8,6 +8,9 @@
   "main": "index.js",
   "types": "index.d.ts",
   "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=26"
+  },
   "files": [
     "index.js",
     "index.d.ts",
@@ -198,7 +201,7 @@
   "devDependencies": {
     "@types/babel__core": "7.20.5",
     "@types/bun": "1.4.3",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.5",
     "esbuild": "0.28.2",
     "jsr": "0.14.3",
     "tsx": "4.23.15",

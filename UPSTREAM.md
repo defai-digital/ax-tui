@@ -79,6 +79,16 @@ ScrollBox, native layout, and Solid owner lifecycle. Compatibility tests exercis
 real native editors and rows, sequence cancellation, bounded mounting of 10,000
 items, resize/prepend anchoring, mouse/keyboard scrolling, and Solid disposal.
 
+Shortcut help also reviews `packages/keymap/src/extras/formatting.ts` and
+`extras/binding-lookup.ts` from that same OpenTUI commit as design references
+for readable key labels and command metadata lookup. AX's `keymap-help.ts`,
+`KeymapHelpRenderable`, and Solid `KeymapHelp` are original, display-only
+implementations over explicit snapshots. They preserve eligible registration
+order rather than resolving or executing commands. No additional upstream code,
+dependency, native ABI change, or routing behavior is imported. Tests cover
+metadata isolation, Unicode/search, control characters, native wrapping, input
+nonconsumption, and reactive cleanup after external destruction.
+
 JSR native assets come from AX TUI's matching GitHub release, are verified
 against the manifest, and are immutable. Signed downstream bundles verify
 native inputs before signing changes the bytes. See `MAINTENANCE.md`.

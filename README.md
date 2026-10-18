@@ -25,9 +25,11 @@ and is maintained and built independently, with MIT attribution preserved. See
 pnpm add ax-tui@jsr:@defai-digital/ax-tui solid-js@1.9.17
 ```
 
-The command keeps `ax-tui` as the import alias for the JSR package. Native rendering on Node.js requires Node 26+
-with `--experimental-ffi`; Node 24 can run non-rendering maintenance tools. Headless rendering uses the same
-native backend through the test utilities and does not require a TTY.
+The command keeps `ax-tui` as the import alias for the JSR package. Node.js 26+
+is required for development and Node consumers; native rendering additionally
+requires `--experimental-ffi`. Use `nvm use` in a source checkout to select Node 26.
+Corepack must be installed separately if it is not available with that Node installation.
+Headless rendering uses the same native backend and does not require a TTY.
 
 On first use, registry installations download the current platform's native library and license from the matching
 GitHub release and verify them against the package manifest. Use `AX_CODE_TUI_NATIVE_CACHE_DIR` to choose a cache
@@ -214,6 +216,63 @@ can repeat. `pendingKeys` and `cancelSequence()` support application hints.
 In Solid, `useKeymap()` exposes `register`, `getActiveBindings`, `pendingKeys`,
 and `cancelSequence`. Owner cleanup removes only that owner's registrations.
 Keep `enabled` predicates pure. The shared dispatcher is disposed with the renderer.
+
+### Shortcut help
+
+`KeymapHelpRenderable` displays an explicit binding snapshot and supports
+case-insensitive substring search over IDs, descriptions, and raw/formatted keys:
+
+```ts
+import { getKeymap, KeymapHelpRenderable } from "ax-tui"
+
+const keys = getKeymap(renderer)
+const help = new KeymapHelpRenderable(renderer, {
+  bindings: keys.getActiveBindings(),
+  width: "100%",
+  emptyText: "No matching shortcuts.",
+})
+renderer.root.add(help)
+help.query = "save"
+console.log(help.matchCount)
+
+// Refresh when opening help or when the application's context changes.
+help.bindings = keys.getActiveBindings()
+```
+
+The component owns no keymap, refresh timer, keyboard listener, or focus. It
+copies display metadata without retaining renderable targets or command handlers.
+Updates are explicit; `getActiveBindings()` is not a reactive subscription.
+Entries preserve input order and duplicates, including shadowed eligible
+registrations. This is an eligible-binding reference, not a list of guaranteed
+dispatch winners or an executable command palette. For large help collections,
+put it in a ScrollBox or use the pure entry helper with `VirtualListRenderable`.
+
+`formatKeymapKeys("shift+ctrl+s")` returns `"Ctrl+Shift+s"`;
+`formatKeymapKeys(["ctrl+k", "ctrl+c"])` returns `"Ctrl+k Ctrl+c"`.
+Letters remain lowercase so the display does not imply an extra Shift modifier.
+AX's `alt` and `meta` both display as `Alt`; these are textual terminal labels,
+not platform-specific Command symbols. Formatting does not register or validate
+chords. ANSI escapes are removed from metadata and control characters are
+flattened to spaces; Unicode text is preserved and native Text handles wrapping.
+
+`createKeymapHelpEntries(bindings, query?)` returns independent
+`{ id, shortcut, description }` records for custom footers or help layouts.
+Blank descriptions fall back to the binding ID. A whitespace-only query shows
+all entries. These helpers can be imported without constructing a renderer.
+
+Solid's `KeymapHelp` component from `ax-tui/solid` accepts the same options:
+
+```tsx
+<KeymapHelp bindings={bindingSnapshot()} query={search()} width="100%" />
+```
+
+Bindings, query, empty text, and layout props update reactively. Owner cleanup
+destroys the component; external destruction stops its reactive updates too.
+`undefined` bindings/query reset to an empty snapshot/unfiltered search.
+The caller-provided `emptyText` is ordinary Text content and can be localized.
+See [the searchable example](./examples/keymap-help.mjs), runnable with
+`node --experimental-ffi examples/keymap-help.mjs` on Node 26+.
+Add `--smoke` to inspect wide and narrow headless frames.
 
 ### Virtual lists
 

@@ -1148,7 +1148,10 @@ var KeyHandler = class extends EventEmitter {
 var InternalKeyHandler = class extends KeyHandler {
   renderableHandlers = /* @__PURE__ */ new Map();
   emit(event, ...args) {
-    return this.emitWithPriority(event, ...args);
+    if (event === "keypress" || event === "keyrelease" || event === "paste") {
+      return this.emitWithPriority(event, ...args);
+    }
+    return super.emit(event, ...args);
   }
   emitWithPriority(event, ...args) {
     let hasGlobalListeners = false;

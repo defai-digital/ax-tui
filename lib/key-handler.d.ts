@@ -55,6 +55,7 @@ export declare class KeyHandler extends EventEmitter<KeyHandlerEventMap> {
 export declare class InternalKeyHandler extends KeyHandler {
     private renderableHandlers;
     emit<K extends keyof KeyHandlerEventMap>(event: K, ...args: KeyHandlerEventMap[K]): boolean;
+    emit(event: string | symbol, ...args: unknown[]): boolean;
     private emitWithPriority;
     onInternal<K extends keyof KeyHandlerEventMap>(event: K, handler: (...args: KeyHandlerEventMap[K]) => void): void;
     offInternal<K extends keyof KeyHandlerEventMap>(event: K, handler: (...args: KeyHandlerEventMap[K]) => void): void;

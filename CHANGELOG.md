@@ -7,12 +7,25 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ### Added
 
+- Add display-only shortcut help with searchable metadata, chord formatting,
+  native text wrapping, a reactive Solid component, and a runnable example.
 - Add renderer-owned keymaps with focus scopes, priority layers, multi-key
   sequences, binding discovery, and Solid owner cleanup through `useKeymap`.
 - Add stable-key variable-height virtual lists, bounded row mounting, scroll
   anchoring, a standalone height index, and a reactive Solid `VirtualList` component.
 - Add a runnable 10,000-record example and native regressions for input routing,
   variable-height layout, resizing, data updates, scrolling, and owner cleanup.
+
+### Changed
+
+- Require Node.js 26+ for development and Node consumers, select Node 26 through
+  `.nvmrc`, and use Node 26 in every validation and publication job.
+- Upgrade the pinned Node.js type definitions to the 26.x line.
+
+### Fixed
+
+- Preserve Node EventEmitter lifecycle, symbol, and error semantics for non-input
+  events while keeping keyboard and paste priority routing compatible with Node 26 types.
 
 ## [1.1.0] - 2026-10-17
 

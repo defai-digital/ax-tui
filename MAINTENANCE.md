@@ -91,9 +91,12 @@ cache; `AX_CODE_TUI_NATIVE_OFFLINE=1` forbids downloads. Invalid caches fail
 closed. Signed downstream bundles verify their inputs before signing; the
 runtime must not reject signed bytes using the unsigned manifest hash.
 
-Node 26+ with `--experimental-ffi` is required for Node native rendering.
-Node 24 supports maintenance tools but skips native rendering integration
-checks. Vitest runs the framework and maintenance regressions; `test:native`
+Node 26+ is the baseline for development, maintenance tools, CI, and Node consumers.
+The repository's `.nvmrc` selects Node 26; `package.json` declares the minimum
+supported Node version. Native rendering additionally requires `--experimental-ffi`.
+Install Corepack separately when needed, and ensure its launcher uses the selected
+Node 26 executable rather than an older hard-coded Node path.
+Vitest runs the framework and maintenance regressions; `test:native`
 runs the Zig suite separately. Downstream applications should additionally
 run their own input, rendering, startup, and teardown acceptance tests.
 

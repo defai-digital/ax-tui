@@ -32,4 +32,5 @@ export * from "./lib/autocomplete.js";
 export * from "./lib/editor-autocomplete.js";
 export * from "./lib/overlay.js";
 export * from "./lib/keymap.js";
+export * from "./lib/keymap-help.js";
 export * from "./lib/virtual-list.js";

@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-HPFCYRNH.js";
+} from "./index-3UY625FB.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-I6I64Z4M.js";
+} from "./index-BUSAXULS.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -10324,6 +10324,134 @@ var VirtualListRenderable = class extends ScrollBoxRenderable {
   }
 };
 
+// src/lib/keymap-help.ts
+import stripAnsi from "strip-ansi";
+var keyLabels = /* @__PURE__ */ new Map([
+  ["enter", "Enter"],
+  ["return", "Enter"],
+  ["esc", "Esc"],
+  ["escape", "Esc"],
+  ["space", "Space"],
+  [" ", "Space"],
+  ["plus", "Plus"],
+  ["tab", "Tab"],
+  ["backspace", "Backspace"],
+  ["delete", "Delete"],
+  ["insert", "Insert"],
+  ["home", "Home"],
+  ["end", "End"],
+  ["pageup", "PageUp"],
+  ["pagedown", "PageDown"],
+  ["up", "Up"],
+  ["down", "Down"],
+  ["left", "Left"],
+  ["right", "Right"]
+]);
+var modifierOrder = /* @__PURE__ */ new Map([["ctrl", 0], ["shift", 1], ["alt", 2], ["meta", 2], ["super", 3], ["hyper", 4]]);
+function plainLine(value) {
+  return stripAnsi(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ").replace(/ +/g, " ").trim();
+}
+function searchable(value) {
+  return plainLine(value).replace(/\s+/gu, " ").normalize("NFC").toLowerCase();
+}
+function formatKeymapKeys(keys) {
+  const sequence = typeof keys === "string" ? [keys] : keys;
+  return sequence.map((chord) => {
+    const parts = chord.toLowerCase().split("+");
+    const key = parts.pop();
+    const modifiers = parts.sort((a, b) => (modifierOrder.get(a) ?? 5) - (modifierOrder.get(b) ?? 5)).map((part) => {
+      switch (part) {
+        case "ctrl":
+          return "Ctrl";
+        case "shift":
+          return "Shift";
+        case "alt":
+        case "meta":
+          return "Alt";
+        case "super":
+          return "Super";
+        case "hyper":
+          return "Hyper";
+        default:
+          return plainLine(part);
+      }
+    });
+    const label = keyLabels.get(key) ?? (/^f\d+$/.test(key) ? key.toUpperCase() : plainLine(key));
+    return [...modifiers, label].join("+");
+  }).join(" ");
+}
+function createKeymapHelpEntries(bindings, query = "") {
+  const needle = searchable(query);
+  const entries = [];
+  for (const binding of bindings) {
+    const id = plainLine(binding.id);
+    const description = plainLine(binding.description ?? "") || id;
+    const shortcut = formatKeymapKeys(binding.keys);
+    const haystack = `${id} ${description} ${shortcut} ${binding.keys.join(" ")}`;
+    if (!needle || searchable(haystack).includes(needle)) entries.push({ id, shortcut, description });
+  }
+  return entries;
+}
+
+// src/renderables/KeymapHelp.ts
+function snapshot(bindings) {
+  return bindings.map(({ id, keys, description }) => ({ id, keys: [...keys], description }));
+}
+function helpContent(entries, emptyText) {
+  return entries.length ? entries.map((entry) => `${entry.shortcut}  ${entry.description}`).join("\n") : emptyText;
+}
+var KeymapHelpRenderable = class extends TextRenderable {
+  _bindings;
+  _query;
+  _emptyText;
+  _matchCount;
+  constructor(context, options = {}) {
+    const { bindings = [], query = "", emptyText = "No matching shortcuts.", ...textOptions } = options;
+    const copied = snapshot(bindings);
+    const entries = createKeymapHelpEntries(copied, query);
+    super(context, { ...textOptions, content: helpContent(entries, emptyText) });
+    this._bindings = copied;
+    this._query = query;
+    this._emptyText = emptyText;
+    this._matchCount = entries.length;
+  }
+  get bindings() {
+    return snapshot(this._bindings);
+  }
+  set bindings(value) {
+    if (this.isDestroyed) return;
+    const next = snapshot(value ?? []);
+    const entries = createKeymapHelpEntries(next, this._query);
+    this._bindings = next;
+    this.updateHelp(entries);
+  }
+  get query() {
+    return this._query;
+  }
+  set query(value) {
+    if (this.isDestroyed) return;
+    const next = value ?? "";
+    const entries = createKeymapHelpEntries(this._bindings, next);
+    this._query = next;
+    this.updateHelp(entries);
+  }
+  get emptyText() {
+    return this._emptyText;
+  }
+  set emptyText(value) {
+    if (this.isDestroyed) return;
+    this._emptyText = value ?? "No matching shortcuts.";
+    if (!this._matchCount) this.content = this._emptyText;
+  }
+  get matchCount() {
+    return this._matchCount;
+  }
+  updateHelp(entries) {
+    this._matchCount = entries.length;
+    this.content = helpContent(entries, this._emptyText);
+  }
+};
+
 // src/lib/autocomplete.ts
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -10366,11 +10494,11 @@ var AutocompleteController = class {
     this.cancel();
     const pending = new AbortController();
     this.pending = pending;
-    const snapshot = Object.freeze({ ...request });
+    const snapshot2 = Object.freeze({ ...request });
     try {
-      const result = await this.provider(snapshot, pending.signal);
+      const result = await this.provider(snapshot2, pending.signal);
       if (pending.signal.aborted || this.pending !== pending) return null;
-      if (result && !sameRequest(snapshot, result.request)) {
+      if (result && !sameRequest(snapshot2, result.request)) {
         throw new Error("Autocomplete provider returned a stale result");
       }
       return result;
@@ -11010,6 +11138,7 @@ export {
   KeyEvent,
   KeyHandler,
   Keymap,
+  KeymapHelpRenderable,
   LayoutEvents,
   LineNumberRenderable,
   LinearScrollAccel,
@@ -11123,6 +11252,7 @@ export {
   createCoreSlotRegistry,
   createExtmarksController,
   createFilePathProvider,
+  createKeymapHelpEntries,
   createMarkdownCodeBlockRenderer,
   createSlashCommandProvider,
   createSlotRegistry,
@@ -11143,6 +11273,7 @@ export {
   extensionToFiletype,
   fg,
   fonts,
+  formatKeymapKeys,
   generateEnvColored,
   generateEnvMarkdown,
   getBaseAttributes,

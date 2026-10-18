@@ -1266,6 +1266,26 @@ function VirtualList(props) {
   return list;
 }
 
+// solid/source/src/elements/keymap-help.ts
+import { KeymapHelpRenderable, RenderableEvents as RenderableEvents3 } from "ax-tui";
+import { createRoot as createRoot3, onCleanup as onCleanup4, splitProps as splitProps3 } from "solid-js/dist/solid.js";
+function KeymapHelp(props) {
+  const [fixed, reactive] = splitProps3(props, ["ref"]);
+  const help = new KeymapHelpRenderable(useRenderer(), { ...reactive });
+  const stopUpdates = createRoot3((dispose) => {
+    spread(help, reactive);
+    return dispose;
+  });
+  help.once(RenderableEvents3.DESTROYED, stopUpdates);
+  onCleanup4(() => {
+    stopUpdates();
+    help.off(RenderableEvents3.DESTROYED, stopUpdates);
+    help.destroyRecursively();
+  });
+  fixed.ref?.(help);
+  return help;
+}
+
 // solid/source/src/scrollback.ts
 import {
   BoxRenderable as BoxRenderable2,
@@ -1445,7 +1465,7 @@ import { memo as _$memo } from "ax-tui/solid";
 import { createComponent as _$createComponent } from "ax-tui/solid";
 import { mergeProps as _$mergeProps } from "ax-tui/solid";
 import { createSlotRegistry } from "ax-tui";
-import { children, createMemo as createMemo3, createSignal as createSignal3, ErrorBoundary, For, onCleanup as onCleanup4, splitProps as splitProps3 } from "solid-js/dist/solid.js";
+import { children, createMemo as createMemo3, createSignal as createSignal3, ErrorBoundary, For, onCleanup as onCleanup5, splitProps as splitProps4 } from "solid-js/dist/solid.js";
 var EMPTY_ENTRY_IDS = [];
 function createSolidSlotRegistry(renderer, context, options = {}) {
   return createSlotRegistry(renderer, "solid:slot-registry", context, options);
@@ -1461,7 +1481,7 @@ function createSlot(registry, options = {}) {
   };
 }
 function Slot(props) {
-  const [local, slotProps] = splitProps3(props, ["registry", "name", "mode", "children", "pluginFailurePlaceholder"]);
+  const [local, slotProps] = splitProps4(props, ["registry", "name", "mode", "children", "pluginFailurePlaceholder"]);
   const registry = () => local.registry;
   const pluginFailurePlaceholder = () => local.pluginFailurePlaceholder;
   const [version, setVersion] = createSignal3(0);
@@ -1476,7 +1496,7 @@ function Slot(props) {
       if (disposed) return;
     });
   });
-  onCleanup4(() => {
+  onCleanup5(() => {
     disposed = true;
     unsubscribe();
   });
@@ -1684,6 +1704,7 @@ export {
   BoldSpanRenderable,
   Dynamic,
   ItalicSpanRenderable,
+  KeymapHelp,
   LayoutSlotRenderable,
   LineBreakRenderable,
   LinkRenderable,
