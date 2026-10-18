@@ -171,6 +171,106 @@ method with the same arguments. Its handles close automatically when that owner
 is disposed, without closing sibling owners' overlays. Use imperative renderables
 as content; already mounted JSX/Portal nodes must not be reparented into overlays.
 
+### Scoped keymaps
+
+`getKeymap(renderer)` shares an opt-in dispatcher across one renderer. Layers
+can target a focused renderable, its focused descendants (the default), or the
+whole renderer when `target` is omitted:
+
+```ts
+import { getKeymap } from "ax-tui"
+
+const keys = getKeymap(renderer)
+const unregister = keys.register({
+  target: panel,
+  scope: "focus-within",
+  priority: 10,
+  enabled: () => !busy,
+  bindings: [
+    { id: "save", keys: "ctrl+s", description: "Save", handler: save },
+    { id: "top", keys: ["g", "g"], description: "First row", handler: () => list.scrollToIndex(0) },
+  ],
+})
+
+const help = keys.getActiveBindings() // Eligible bindings in dispatch order, including shadowed entries.
+unregister()                         // Idempotent; does not destroy the target.
+```
+
+Higher priority wins, then the nearest focus scope, then the newest registration.
+Hidden, detached, destroyed, and disabled scopes do not handle input. A matching
+layer consumes the key before focused editor handlers. Earlier global input
+listeners can still cancel it. Chords use exact modifier matching with `ctrl`,
+`shift`, `alt`/`meta`, `super`, and `hyper`; `enter`, `esc`, `space`, and `plus`
+are accepted aliases. Names match parsed key events, not physical keyboard codes.
+
+The first matching layer owns a sequence. If an exact binding also prefixes a
+longer binding, it waits up to 750 ms; configure `sequenceTimeoutMs` on the first
+`getKeymap` call to change this. Escape, paste, focus change, terminal blur,
+registration changes, and disposal cancel pending input. A mismatch discards the
+old prefix and retries only the current key. Prefixes are never replayed into
+editors. Held-key repeats do not advance pending sequences; single-key bindings
+can repeat. `pendingKeys` and `cancelSequence()` support application hints.
+
+In Solid, `useKeymap()` exposes `register`, `getActiveBindings`, `pendingKeys`,
+and `cancelSequence`. Owner cleanup removes only that owner's registrations.
+Keep `enabled` predicates pure. The shared dispatcher is disposed with the renderer.
+
+### Virtual lists
+
+`VirtualListRenderable<T>` extends the vertical ScrollBox with stable keys,
+variable row heights, and viewport-sized mounting:
+
+```ts
+import { TextRenderable, VirtualListRenderable } from "ax-tui"
+
+const list = new VirtualListRenderable(renderer, {
+  width: "100%",
+  height: 20,
+  items: records,
+  getKey: record => record.id,
+  estimateHeight: 2,
+  overscan: 3,
+  renderItem: (record, index, context) => new TextRenderable(context, {
+    content: record.text, width: "100%", wrapMode: "word",
+  }),
+})
+renderer.root.add(list)
+list.scrollToIndex(500, "start") // Also supports center/end; settles after native layout.
+list.items = nextRecords        // Immutable updates; preserves the first visible key and row offset.
+```
+
+Keys must be unique strings or finite numbers. Heights are terminal cell counts;
+`overscan` is extra cells above and below the viewport, not an item count. Rows
+are measured after native layout; unmounted rows retain estimated or cached
+heights. Width changes invalidate measurements. Updating data is O(n), while
+height updates and offset lookups are O(log n). `VirtualListModel` exports this
+height index separately for custom views, without constructing a renderer.
+
+`renderItem` must return an unattached renderable from the supplied context.
+The list owns and destroys mounted rows; row factories should have no unrelated
+side effects. Use intrinsic row heights and widths relative to the viewport.
+The item identity and index determine whether an existing row is reused: changed
+items or indices remount, so keep persistent edit state in application data.
+An offscreen focused row stays mounted while unchanged; removing or remounting
+it moves focus to the list. `mountedCount` includes this possible extra row.
+Empty lists release all rows. The virtual content container is managed internally;
+use `items` rather than inherited child insertion or content-layout mutation.
+
+Solid's `VirtualList` component from `ax-tui/solid` accepts the same options and
+a `ref` callback. `items` and layout props are reactive; `getKey`, `renderItem`,
+`estimateHeight`, and `overscan` are constructor options. Its owner destroys the
+list on cleanup. Row factories return imperative renderables, not mounted JSX:
+
+```tsx
+<VirtualList items={records()} getKey={record => record.id} height={20}
+  renderItem={(record, index, context) => new TextRenderable(context, { content: record.text })} />
+```
+
+See [the runnable example](./examples/virtual-list.mjs). From a source checkout,
+run `node --experimental-ffi examples/virtual-list.mjs` on Node 26+; arrows and
+the wheel scroll, `g g` jumps to the first record, Shift+G to the last, and Q quits.
+Add `--smoke` for a headless frame and mount-count report.
+
 ### Subpath exports
 
 | Export                     | Contents                                                                                                              |

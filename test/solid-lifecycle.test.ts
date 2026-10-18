@@ -10,6 +10,95 @@ const root = fileURLToPath(new URL("../", import.meta.url))
 const solidEntry = path.join(root, "solid/source/index.ts")
 const supportsFfi = spawnSync(process.execPath, ["--experimental-ffi", "-e", "require('node:ffi')"]).status === 0
 
+test.skipIf(!supportsFfi)("Solid virtual lists update reactively and keymaps clean up only their owner", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal, Show } from "solid-js"
+import { testRender, VirtualList, useKeymap } from "ax-tui/solid"
+import { TextRenderable, Renderable, getKeymap, KeyEvent } from "ax-tui"
+let toggle, update, list, childOwner
+let childCalls = 0, siblingCalls = 0
+function Child() {
+  childOwner = useKeymap()
+  childOwner.register({ bindings: [{ id: "child", keys: "x", handler: () => childCalls++ }] })
+  const [items, setItems] = createSignal(Array.from({ length: 100 }, (_, i) => i))
+  update = setItems
+  return <VirtualList ref={value => list = value} items={items()} getKey={x => x}
+    width="100%" height={6} renderItem={(x, i, ctx) => new TextRenderable(ctx, { content: "Row " + x })} />
+}
+const setup = await testRender(() => {
+  useKeymap().register({ bindings: [{ id: "sibling", keys: "x", handler: () => siblingCalls++ }] })
+  const [visible, setVisible] = createSignal(true)
+  toggle = setVisible
+  return <Show when={visible()}><Child /></Show>
+}, { width: 30, height: 10, useKittyKeyboard: null })
+const settle = async () => {
+  for (let pass = 0; pass < 8; pass++) { await setup.renderOnce(); await new Promise(r => setImmediate(r)) }
+}
+const send = () => setup.renderer.keyInput.emit("keypress", new KeyEvent({
+  name: "x", ctrl: false, shift: false, meta: false, sequence: "x", raw: "x",
+}))
+try {
+  await settle()
+  assert.ok(setup.captureCharFrame().includes("Row 0"))
+  assert.ok(list.mountedCount <= 12)
+  send(); assert.equal(childCalls, 1); assert.equal(siblingCalls, 0)
+  update([999, 1000]); await settle()
+  assert.ok(setup.captureCharFrame().includes("Row 999"))
+  assert.equal(list.items.length, 2)
+  toggle(false); await settle()
+  assert.equal(list.isDestroyed, true)
+  assert.deepEqual(getKeymap(setup.renderer).getActiveBindings().map(x => x.id), ["sibling"])
+  assert.throws(() => childOwner.register({ bindings: [] }), /disposed/)
+  send(); assert.equal(childCalls, 1); assert.equal(siblingCalls, 1)
+  const keys = getKeymap(setup.renderer)
+  keys.register({ bindings: [{ id: "sequence", keys: ["g", "g"], handler() {} }] })
+  setup.renderer.keyInput.emit("keypress", new KeyEvent({
+    name: "g", ctrl: false, shift: false, meta: false, sequence: "g", raw: "g",
+  }))
+  childOwner.cancelSequence()
+  assert.deepEqual(keys.pendingKeys, ["g"], "disposed owners cannot cancel sibling input")
+} finally { setup.renderer.destroy() }
+assert.equal(Renderable.renderablesByNumber.size, 0)
+`)
+}, 30_000)
+
+test.skipIf(!supportsFfi)("Solid feature owners release destroyed targets and stop updating destroyed lists", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal } from "solid-js"
+import { testRender, VirtualList, useKeymap, useRenderer } from "ax-tui/solid"
+import { BoxRenderable, RenderableEvents, TextRenderable } from "ax-tui"
+let list, updateWidth, unregister
+const setup = await testRender(() => {
+  const renderer = useRenderer()
+  const target = new BoxRenderable(renderer, {})
+  renderer.root.add(target)
+  const baseline = target.listenerCount(RenderableEvents.DESTROYED)
+  unregister = useKeymap().register({ target, bindings: [] })
+  const before = target.listenerCount(RenderableEvents.DESTROYED)
+  assert.equal(before, baseline + 2, "both core and owner must observe target destruction")
+  target.destroy()
+  assert.equal(target.listenerCount(RenderableEvents.DESTROYED), 0)
+  const [width, setWidth] = createSignal(20)
+  updateWidth = setWidth
+  return <VirtualList ref={value => list = value} items={[1]} getKey={x => x} width={width()} height={5}
+    renderItem={(x, i, ctx) => new TextRenderable(ctx, { content: "row" })} />
+}, { width: 40, height: 10 })
+try {
+  await setup.renderOnce()
+  list.destroyRecursively()
+  let writesAfterDestroy = 0
+  Object.defineProperty(list, "width", { set() { writesAfterDestroy++ }, get() { return 20 } })
+  updateWidth(30)
+  await new Promise(resolve => setImmediate(resolve))
+  await setup.renderOnce()
+  assert.equal(writesAfterDestroy, 0, "native layout setters must not run after destruction")
+  unregister()
+} finally { setup.renderer.destroy() }
+`)
+}, 30_000)
+
 async function runSolidScenario(source: string): Promise<void> {
   await mkdir(path.join(root, ".internal"), { recursive: true })
   const fixture = await mkdtemp(path.join(root, ".internal/solid-lifecycle-"))
@@ -17,7 +106,7 @@ async function runSolidScenario(source: string): Promise<void> {
   try {
     await build({
       stdin: {
-        contents: await transformSolidSource(source, {
+        contents: await transformSolidSource(source + '\nprocess.stdout.write("AX_SCENARIO_COMPLETE")\n', {
           filename: "solid-lifecycle.tsx",
           moduleName: solidEntry,
           resolvePath: (specifier) =>
@@ -60,6 +149,7 @@ async function runSolidScenario(source: string): Promise<void> {
       },
     )
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0)
+    expect(result.stdout, result.stderr).toContain("AX_SCENARIO_COMPLETE")
   } finally {
     await rm(fixture, { recursive: true, force: true })
   }

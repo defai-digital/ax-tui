@@ -5129,8 +5129,8 @@ var TextareaRenderable = class _TextareaRenderable extends EditBufferRenderable 
     const mergedBindings = mergeKeyBindings(defaultTextareaKeyBindings, bindings);
     this._keyBindingsMap = buildKeyBindingsMap(mergedBindings, this._keyAliasMap);
   }
-  set keyAliasMap(aliases) {
-    this._keyAliasMap = mergeKeyAliases(defaultKeyAliases, aliases);
+  set keyAliasMap(aliases2) {
+    this._keyAliasMap = mergeKeyAliases(defaultKeyAliases, aliases2);
     const mergedBindings = mergeKeyBindings(defaultTextareaKeyBindings, this._keyBindings);
     this._keyBindingsMap = buildKeyBindingsMap(mergedBindings, this._keyAliasMap);
   }
@@ -9585,8 +9585,8 @@ var SelectRenderable = class extends Renderable {
     const mergedBindings = mergeKeyBindings(defaultSelectKeybindings, bindings);
     this._keyBindingsMap = buildKeyBindingsMap(mergedBindings, this._keyAliasMap);
   }
-  set keyAliasMap(aliases) {
-    this._keyAliasMap = mergeKeyAliases(defaultKeyAliases, aliases);
+  set keyAliasMap(aliases2) {
+    this._keyAliasMap = mergeKeyAliases(defaultKeyAliases, aliases2);
     const mergedBindings = mergeKeyBindings(defaultSelectKeybindings, this._keyBindings);
     this._keyBindingsMap = buildKeyBindingsMap(mergedBindings, this._keyAliasMap);
   }
@@ -9917,8 +9917,8 @@ var TabSelectRenderable = class extends Renderable {
     const mergedBindings = mergeKeyBindings(defaultTabSelectKeybindings, bindings);
     this._keyBindingsMap = buildKeyBindingsMap(mergedBindings, this._keyAliasMap);
   }
-  set keyAliasMap(aliases) {
-    this._keyAliasMap = mergeKeyAliases(defaultKeyAliases, aliases);
+  set keyAliasMap(aliases2) {
+    this._keyAliasMap = mergeKeyAliases(defaultKeyAliases, aliases2);
     const mergedBindings = mergeKeyBindings(defaultTabSelectKeybindings, this._keyBindings);
     this._keyBindingsMap = buildKeyBindingsMap(mergedBindings, this._keyAliasMap);
   }
@@ -9986,6 +9986,341 @@ var TimeToFirstDrawRenderable = class extends Renderable {
       return 2;
     }
     return Math.max(0, Math.floor(value));
+  }
+};
+
+// src/lib/virtual-list.ts
+var MAX_HEIGHT = 1e6;
+var MAX_TOTAL_HEIGHT = 1e9;
+function heightValue(value) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > MAX_HEIGHT) {
+    throw new RangeError(`Virtual row height must be an integer from 1 to ${MAX_HEIGHT}`);
+  }
+  return value;
+}
+var VirtualListModel = class {
+  constructor(getKey, estimateHeight = 1) {
+    this.getKey = getKey;
+    this.estimateHeight = heightValue(estimateHeight);
+  }
+  getKey;
+  values = [];
+  keys = [];
+  indices = /* @__PURE__ */ new Map();
+  heights = [];
+  tree = new Float64Array(1);
+  measured = /* @__PURE__ */ new Map();
+  total = 0;
+  estimateHeight;
+  get items() {
+    return this.values;
+  }
+  get count() {
+    return this.values.length;
+  }
+  get totalHeight() {
+    return this.total;
+  }
+  setItems(items) {
+    const values = [...items];
+    const keys = [];
+    const indices = /* @__PURE__ */ new Map();
+    const measured = /* @__PURE__ */ new Map();
+    const heights = values.map((item, index) => {
+      const key = this.getKey(item);
+      if (typeof key !== "string" && typeof key !== "number" || typeof key === "number" && !Number.isFinite(key) || indices.has(key)) {
+        throw new TypeError("Virtual list keys must be unique strings or finite numbers");
+      }
+      keys.push(key);
+      indices.set(key, index);
+      const old = this.measured.get(key);
+      if (old && Object.is(old.item, item)) {
+        measured.set(key, old);
+        return old.height;
+      }
+      return this.estimateHeight;
+    });
+    const total = heights.reduce((sum, height) => sum + height, 0);
+    if (total > MAX_TOTAL_HEIGHT) throw new RangeError("Virtual list exceeds maximum total height");
+    this.values = values;
+    this.keys = keys;
+    this.indices = indices;
+    this.heights = heights;
+    this.measured = measured;
+    this.total = total;
+    this.rebuild();
+  }
+  rebuild() {
+    this.tree = new Float64Array(this.count + 1);
+    for (let index = 1; index <= this.count; index++) {
+      this.tree[index] += this.heights[index - 1];
+      const parent = index + (index & -index);
+      if (parent <= this.count) this.tree[parent] += this.tree[index];
+    }
+  }
+  resetMeasurements() {
+    const total = this.count * this.estimateHeight;
+    if (total > MAX_TOTAL_HEIGHT) throw new RangeError("Virtual list exceeds maximum total height");
+    this.measured.clear();
+    this.heights.fill(this.estimateHeight);
+    this.total = total;
+    this.rebuild();
+  }
+  keyAt(index) {
+    return this.keys[index];
+  }
+  indexOf(key) {
+    return this.indices.get(key) ?? -1;
+  }
+  heightAt(index) {
+    return this.heights[index] ?? 0;
+  }
+  measure(index, height) {
+    heightValue(height);
+    if (!Number.isInteger(index) || index < 0 || index >= this.count) throw new RangeError("Invalid virtual row index");
+    const delta = height - this.heights[index];
+    if (this.total + delta > MAX_TOTAL_HEIGHT) throw new RangeError("Virtual list exceeds maximum total height");
+    this.measured.set(this.keys[index], { item: this.values[index], height });
+    if (!delta) return false;
+    this.heights[index] = height;
+    this.total += delta;
+    for (let next = index + 1; next <= this.count; next += next & -next) this.tree[next] += delta;
+    return true;
+  }
+  offsetAt(index) {
+    if (!Number.isInteger(index) || index < 0 || index > this.count) throw new RangeError("Invalid virtual row index");
+    let sum = 0;
+    for (let next = index; next > 0; next -= next & -next) sum += this.tree[next];
+    return sum;
+  }
+  indexAt(offset) {
+    if (!Number.isFinite(offset)) throw new RangeError("Virtual offset must be finite");
+    if (!this.count) return -1;
+    const target = Math.max(0, offset);
+    let index = 0;
+    let sum = 0;
+    for (let step = 2 ** Math.floor(Math.log2(this.count)); step >= 1; step = Math.floor(step / 2)) {
+      const next = index + step;
+      if (next <= this.count && sum + this.tree[next] <= target) {
+        index = next;
+        sum += this.tree[next];
+      }
+    }
+    return Math.min(index, this.count - 1);
+  }
+  range(scrollTop, viewportHeight, overscan = 3) {
+    if (![scrollTop, viewportHeight, overscan].every(Number.isFinite) || viewportHeight < 0 || overscan < 0) {
+      throw new RangeError("Virtual viewport and overscan must be finite and nonnegative");
+    }
+    if (!this.count || viewportHeight === 0) return { start: 0, end: 0 };
+    const top = Math.max(0, scrollTop);
+    return {
+      start: this.indexAt(Math.max(0, top - overscan)),
+      end: Math.min(this.count, this.indexAt(Math.max(0, top + viewportHeight + overscan - 1)) + 1)
+    };
+  }
+  anchor(scrollTop) {
+    const index = this.indexAt(scrollTop);
+    return index < 0 ? void 0 : { key: this.keys[index], index, offset: Math.max(0, scrollTop - this.offsetAt(index)) };
+  }
+  resolveAnchor(anchor) {
+    if (!anchor || !this.count) return 0;
+    const found = this.indexOf(anchor.key);
+    const index = found < 0 ? Math.min(anchor.index, this.count - 1) : found;
+    return this.offsetAt(index) + Math.min(anchor.offset, this.heightAt(index) - 1);
+  }
+};
+
+// src/renderables/VirtualList.ts
+function contains(root, target) {
+  for (let node = target; node; node = node.parent instanceof Renderable ? node.parent : null) {
+    if (node === root) return true;
+  }
+  return false;
+}
+var VirtualListRenderable = class extends ScrollBoxRenderable {
+  model;
+  renderItem;
+  overscan;
+  rows = /* @__PURE__ */ new Map();
+  lastWidth = -1;
+  lastTotal = -1;
+  scheduled = false;
+  refreshing = false;
+  anchor;
+  seek;
+  constructor(context, options) {
+    const { items, getKey, renderItem, estimateHeight, overscan = 3, ...scrollOptions } = options;
+    const model = new VirtualListModel(getKey, estimateHeight);
+    model.setItems(items);
+    if (!Number.isSafeInteger(overscan) || overscan < 0 || overscan > 1e4) {
+      throw new RangeError("Virtual list overscan must be an integer from 0 to 10000");
+    }
+    super(context, { ...scrollOptions, scrollX: false, contentOptions: { height: model.totalHeight, minHeight: 0 } });
+    this.model = model;
+    this.renderItem = renderItem;
+    this.overscan = overscan;
+    this.viewport.on("resize", this.schedule);
+    this._ctx.on("focused_renderable", this.schedule);
+    this.schedule();
+  }
+  get items() {
+    return this.model.items;
+  }
+  set items(items) {
+    this.setItems(items);
+  }
+  get mountedCount() {
+    return this.rows.size;
+  }
+  get totalHeight() {
+    return this.model.totalHeight;
+  }
+  setItems(items) {
+    if (this.isDestroyed) return;
+    const anchor = this.anchor ?? this.model.anchor(this.scrollTop);
+    this.model.setItems(items);
+    this.anchor = anchor;
+    this.schedule();
+  }
+  /** Uses estimates until the target is measured; alignment settles with native layout. */
+  scrollToIndex(index, align = "start") {
+    if (this.isDestroyed) return;
+    if (!Number.isInteger(index) || index < 0 || index >= this.model.count) throw new RangeError("Invalid virtual row index");
+    if (!["start", "center", "end"].includes(align)) throw new TypeError("Invalid virtual row alignment");
+    this.seek = { key: this.model.keyAt(index), align };
+    this.anchor = void 0;
+    this.refresh();
+    this.schedule();
+  }
+  schedule = () => {
+    if (this.scheduled || this.isDestroyed) return;
+    this.scheduled = true;
+    queueMicrotask(() => {
+      this.scheduled = false;
+      if (this.isDestroyed) return;
+      if (this.refresh()) this.requestRender();
+    });
+  };
+  onUpdate(deltaTime) {
+    super.onUpdate(deltaTime);
+    this.schedule();
+  }
+  drop(key, row) {
+    this.rows.delete(key);
+    if (contains(row.box, this._ctx.currentFocusedRenderable)) this.focus();
+    row.box.destroyRecursively();
+  }
+  refresh() {
+    if (this.refreshing || this.isDestroyed || !this.model) return false;
+    this.refreshing = true;
+    let dirty = false;
+    try {
+      if (this.seek?.offset !== void 0 && this.scrollTop !== this.seek.offset) this.seek = void 0;
+      const width = this.viewport.width;
+      const viewport = this.viewport.height;
+      const anchor = this.anchor ?? this.model.anchor(this.scrollTop);
+      let changed = !!this.anchor;
+      this.anchor = void 0;
+      if (width !== this.lastWidth) {
+        this.lastWidth = width;
+        this.model.resetMeasurements();
+        for (const row of this.rows.values()) row.measured = false;
+        changed = true;
+      } else {
+        for (const [key, row] of this.rows) {
+          const index = this.model.indexOf(key);
+          if (row.measured && index >= 0 && Object.is(this.model.items[index], row.item)) {
+            changed = this.model.measure(index, Math.max(1, Math.ceil(row.box.height))) || changed;
+          }
+        }
+      }
+      if (this.lastTotal !== this.model.totalHeight) {
+        this.lastTotal = this.model.totalHeight;
+        this.content.height = this.model.totalHeight;
+        dirty = true;
+      }
+      this.verticalScrollBar.scrollSize = this.model.totalHeight;
+      this.verticalScrollBar.viewportSize = viewport;
+      let offset = changed ? this.model.resolveAnchor(anchor) : this.scrollTop;
+      if (this.seek) {
+        const index = this.model.indexOf(this.seek.key);
+        if (index >= 0) {
+          const extra = viewport - this.model.heightAt(index);
+          offset = this.model.offsetAt(index) - (this.seek.align === "center" ? Math.floor(extra / 2) : this.seek.align === "end" ? extra : 0);
+          if (this.rows.get(this.seek.key)?.measured && !changed) this.seek = void 0;
+        } else this.seek = void 0;
+      }
+      const nextTop = Math.max(0, Math.min(offset, Math.max(0, this.model.totalHeight - viewport)));
+      if (this.scrollTop !== nextTop) {
+        this.scrollTop = nextTop;
+        dirty = true;
+      }
+      if (this.seek) this.seek.offset = this.scrollTop;
+      const range = this.model.range(this.scrollTop, viewport, this.overscan);
+      for (const [key, row] of this.rows) {
+        const index = this.model.indexOf(key);
+        const obsolete = index < 0 || index !== row.index || !Object.is(row.item, this.model.items[index]);
+        const outside = index < range.start || index >= range.end;
+        if (obsolete || outside && !contains(row.box, this._ctx.currentFocusedRenderable)) {
+          this.drop(key, row);
+          dirty = true;
+        }
+      }
+      for (let index = range.start; index < range.end; index++) {
+        const key = this.model.keyAt(index);
+        if (this.rows.has(key)) continue;
+        const item = this.model.items[index];
+        const content = this.renderItem(item, index, this._ctx);
+        if (content.isDestroyed || content.parent || content.ctx !== this._ctx) {
+          throw new Error("Virtual rows must be unattached live renderables belonging to this renderer");
+        }
+        const box = new BoxRenderable(this._ctx, {
+          id: `${this.id}-virtual-${index}`,
+          position: "absolute",
+          left: 0,
+          top: this.model.offsetAt(index),
+          width,
+          flexDirection: "column",
+          flexShrink: 0
+        });
+        const row = { item, index, box, measured: false };
+        box.add(content);
+        box.on("resize", () => {
+          row.measured = true;
+          this.schedule();
+        });
+        this.content.add(box);
+        this.rows.set(key, row);
+        dirty = true;
+        box.renderAfter = () => {
+          if (!row.measured) {
+            row.measured = true;
+            this.schedule();
+          }
+        };
+      }
+      for (const [key, row] of this.rows) {
+        const top = this.model.offsetAt(this.model.indexOf(key));
+        if (row.box.top !== top) {
+          row.box.top = top;
+          dirty = true;
+        }
+        if (row.box.width !== width) {
+          row.box.width = width;
+          dirty = true;
+        }
+      }
+    } finally {
+      this.refreshing = false;
+    }
+    return dirty;
+  }
+  destroySelf() {
+    this.viewport.off("resize", this.schedule);
+    this._ctx.off("focused_renderable", this.schedule);
+    for (const [key, row] of this.rows) this.drop(key, row);
+    super.destroySelf();
   }
 };
 
@@ -10120,9 +10455,9 @@ function createFilePathProvider(options = {}) {
       throw error;
     }
     if (signal.aborted) return null;
-    const matches = entries.filter((entry) => entry.name.startsWith(name)).filter((entry) => options.includeHidden || name.startsWith(".") || !entry.name.startsWith(".")).filter((entry) => !/["\x00-\x1f\x7f-\x9f]/u.test(entry.name)).sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name)).slice(0, limit);
+    const matches2 = entries.filter((entry) => entry.name.startsWith(name)).filter((entry) => options.includeHidden || name.startsWith(".") || !entry.name.startsWith(".")).filter((entry) => !/["\x00-\x1f\x7f-\x9f]/u.test(entry.name)).sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name)).slice(0, limit);
     const items = await Promise.all(
-      matches.map(async (entry) => {
+      matches2.map(async (entry) => {
         let isDirectory = entry.isDirectory();
         if (entry.isSymbolicLink() && !signal.aborted) {
           try {
@@ -10183,7 +10518,7 @@ function applyEditorAutocomplete(editor, result, item) {
 }
 
 // src/lib/overlay.ts
-function contains(parent, child) {
+function contains2(parent, child) {
   for (let node = child; node; node = node.parent instanceof Renderable ? node.parent : null) {
     if (node === parent) return true;
   }
@@ -10221,7 +10556,7 @@ var OverlayManager = class _OverlayManager {
       throw new Error("Overlay content must be an unattached live renderable belonging to this renderer");
     }
     const target = options.focus ?? (content.focusable ? content : void 0);
-    if (target && (!contains(content, target) || target.isDestroyed || !target.focusable)) {
+    if (target && (!contains2(content, target) || target.isDestroyed || !target.focusable)) {
       throw new Error("Overlay focus target must be a live focusable descendant of its content");
     }
     for (const value of [options.margin ?? 0, options.offsetX ?? 0, options.offsetY ?? 0]) {
@@ -10279,7 +10614,7 @@ var OverlayManager = class _OverlayManager {
       },
       isHidden: () => entry.removed || !entry.container.visible,
       focus: () => this.focus(entry),
-      isFocused: () => !entry.removed && contains(entry.container, this.renderer.currentFocusedRenderable)
+      isFocused: () => !entry.removed && contains2(entry.container, this.renderer.currentFocusedRenderable)
     };
   }
   eligible(target) {
@@ -10293,9 +10628,9 @@ var OverlayManager = class _OverlayManager {
   focus(entry) {
     if (entry.removed || !entry.container.visible || !this.eligible(entry.target)) return;
     const current = this.renderer.currentFocusedRenderable;
-    if (!contains(entry.container, current)) {
+    if (!contains2(entry.container, current)) {
       for (const candidate of this.entries) {
-        if (candidate !== entry && contains(entry.container, candidate.previous)) candidate.previous = entry.previous;
+        if (candidate !== entry && contains2(entry.container, candidate.previous)) candidate.previous = entry.previous;
       }
       entry.previous = current;
     }
@@ -10308,13 +10643,13 @@ var OverlayManager = class _OverlayManager {
     if (this.disposed || this.renderer.isDestroyed) return;
     const current = this.renderer.currentFocusedRenderable;
     const destroyedFocus = !current && entry.lastBlurred?.isDestroyed;
-    if (!contains(entry.container, current) && !destroyedFocus) return;
+    if (!contains2(entry.container, current) && !destroyedFocus) return;
     current?.blur();
     let previous = entry.previous;
     const visited = /* @__PURE__ */ new Set();
     while (previous && !this.eligible(previous) && !visited.has(previous)) {
       visited.add(previous);
-      previous = this.entries.find((candidate) => contains(candidate.container, previous))?.previous ?? null;
+      previous = this.entries.find((candidate) => contains2(candidate.container, previous))?.previous ?? null;
     }
     if (this.eligible(previous)) {
       previous.focus();
@@ -10359,7 +10694,7 @@ var OverlayManager = class _OverlayManager {
     entry.removed = true;
     this.entries = this.entries.filter((candidate) => candidate !== entry);
     for (const candidate of this.entries) {
-      if (contains(entry.container, candidate.previous)) candidate.previous = entry.previous;
+      if (contains2(entry.container, candidate.previous)) candidate.previous = entry.previous;
     }
     try {
       this.restore(entry);
@@ -10379,7 +10714,7 @@ var OverlayManager = class _OverlayManager {
   };
   trackFocus = (current, previous) => {
     for (const entry of this.entries) {
-      entry.lastBlurred = !current && contains(entry.container, previous) ? previous : null;
+      entry.lastBlurred = !current && contains2(entry.container, previous) ? previous : null;
     }
   };
   /** Destroy all owned overlays and remove renderer listeners. Safe during renderer teardown. */
@@ -10409,6 +10744,221 @@ var OverlayManager = class _OverlayManager {
 var managers = /* @__PURE__ */ new WeakMap();
 function getOverlayManager(renderer) {
   return OverlayManager.forRenderer(renderer);
+}
+
+// src/lib/keymap.ts
+var managers2 = /* @__PURE__ */ new WeakMap();
+var aliases = { enter: "return", esc: "escape", space: " ", plus: "+" };
+function parseChord(value) {
+  const parts = value.toLowerCase().split("+");
+  const key = parts.pop();
+  if (!key || parts.some((part) => !["ctrl", "shift", "alt", "meta", "super", "hyper"].includes(part))) {
+    throw new TypeError(`Invalid keymap chord: ${value}`);
+  }
+  if (new Set(parts.map((part) => part === "alt" ? "meta" : part)).size !== parts.length) {
+    throw new TypeError(`Duplicate keymap modifier: ${value}`);
+  }
+  return {
+    name: aliases[key] ?? key,
+    ctrl: parts.includes("ctrl"),
+    shift: parts.includes("shift"),
+    meta: parts.includes("meta") || parts.includes("alt"),
+    super: parts.includes("super"),
+    hyper: parts.includes("hyper")
+  };
+}
+function matches(chord, event) {
+  return chord.name === (aliases[event.name.toLowerCase()] ?? event.name.toLowerCase()) && chord.ctrl === !!event.ctrl && chord.shift === !!event.shift && chord.meta === !!event.meta && chord.super === !!event.super && chord.hyper === !!event.hyper;
+}
+var Keymap = class _Keymap {
+  constructor(renderer, sequenceTimeoutMs) {
+    this.renderer = renderer;
+    this.sequenceTimeoutMs = sequenceTimeoutMs;
+    renderer.keyInput.on("keypress", this.dispatch);
+    renderer.keyInput.on("paste", this.cancelSequence);
+    renderer.on("focused_renderable", this.cancelSequence);
+    renderer.on("blur", this.cancelSequence);
+    renderer.once("destroy", this.dispose);
+  }
+  renderer;
+  sequenceTimeoutMs;
+  layers = [];
+  serial = 0;
+  disposed = false;
+  pending;
+  timer;
+  static forRenderer(renderer, options = {}) {
+    if (renderer.isDestroyed) throw new Error("Cannot create a keymap on a destroyed renderer");
+    const timeout = options.sequenceTimeoutMs ?? 750;
+    if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 6e4) {
+      throw new RangeError("Keymap sequence timeout must be an integer from 1 to 60000");
+    }
+    const existing = managers2.get(renderer);
+    if (existing) {
+      if (options.sequenceTimeoutMs !== void 0 && timeout !== existing.sequenceTimeoutMs) {
+        throw new Error("This renderer already has a keymap with a different sequence timeout");
+      }
+      return existing;
+    }
+    const keymap = new _Keymap(renderer, timeout);
+    managers2.set(renderer, keymap);
+    return keymap;
+  }
+  register(options) {
+    if (this.disposed) throw new Error("Keymap is disposed");
+    if (options.target && (options.target.isDestroyed || options.target.ctx !== this.renderer)) {
+      throw new Error("Keymap target must be a live renderable belonging to this renderer");
+    }
+    if (!Number.isFinite(options.priority ?? 0)) throw new RangeError("Keymap priority must be finite");
+    if (options.scope !== void 0 && !["focus", "focus-within"].includes(options.scope)) {
+      throw new TypeError("Invalid keymap scope");
+    }
+    const ids = /* @__PURE__ */ new Set();
+    const sequences = /* @__PURE__ */ new Set();
+    const bindings = options.bindings.map((binding) => {
+      const keys = typeof binding.keys === "string" ? [binding.keys] : [...binding.keys];
+      if (!binding.id || ids.has(binding.id) || !keys.length || keys.length > 16) {
+        throw new TypeError("Keymap bindings need unique nonempty IDs and 1 to 16 chords");
+      }
+      const chords = keys.map(parseChord);
+      const signature = JSON.stringify(chords);
+      if (sequences.has(signature)) throw new TypeError("Duplicate keymap sequence in one layer");
+      ids.add(binding.id);
+      sequences.add(signature);
+      return {
+        info: {
+          id: binding.id,
+          keys,
+          description: binding.description,
+          priority: options.priority ?? 0,
+          target: options.target
+        },
+        chords,
+        handler: binding.handler
+      };
+    });
+    const layer = { options: { ...options }, bindings, serial: ++this.serial, remove: () => {
+    } };
+    layer.remove = () => {
+      this.layers = this.layers.filter((item) => item !== layer);
+      layer.options.target?.off("destroyed" /* DESTROYED */, layer.remove);
+      if (this.pending?.layer === layer) this.cancelSequence();
+    };
+    options.target?.once("destroyed" /* DESTROYED */, layer.remove);
+    this.layers.push(layer);
+    this.cancelSequence();
+    return layer.remove;
+  }
+  distance(layer) {
+    if (!this.layers.includes(layer) || layer.options.enabled?.() === false) return -1;
+    if (this.disposed || !this.layers.includes(layer)) return -1;
+    const target = layer.options.target;
+    if (!target) return Number.MAX_SAFE_INTEGER;
+    let attached = false;
+    for (let node = target; node; node = node.parent instanceof Renderable ? node.parent : null) {
+      if (node.isDestroyed || !node.visible) return -1;
+      if (node === this.renderer.root) {
+        attached = true;
+        break;
+      }
+    }
+    if (!attached) return -1;
+    let distance = 0;
+    for (let node = this.renderer.currentFocusedRenderable; node; node = node.parent instanceof Renderable ? node.parent : null) {
+      if (node === target) return distance;
+      if (layer.options.scope === "focus") break;
+      distance++;
+    }
+    return -1;
+  }
+  activeLayers() {
+    return [...this.layers].map((layer) => ({ layer, distance: this.distance(layer) })).filter(({ distance }) => distance >= 0).sort((a, b) => (b.layer.options.priority ?? 0) - (a.layer.options.priority ?? 0) || a.distance - b.distance || b.layer.serial - a.layer.serial).map(({ layer }) => layer);
+  }
+  /** Eligible bindings, in dispatch order. Includes bindings shadowed by earlier layers. */
+  getActiveBindings() {
+    return this.activeLayers().flatMap((layer) => layer.bindings.map(({ info }) => ({ ...info, keys: [...info.keys] })));
+  }
+  get pendingKeys() {
+    return this.pending?.bindings[0]?.info.keys.slice(0, this.pending.index) ?? [];
+  }
+  cancelSequence = () => {
+    clearTimeout(this.timer);
+    this.timer = void 0;
+    this.pending = void 0;
+  };
+  invoke(layer, binding, event) {
+    this.cancelSequence();
+    if (!this.disposed && this.distance(layer) >= 0) binding.handler(event);
+  }
+  accept(layer, bindings, index, event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.cancelSequence();
+    const exact = bindings.find((binding) => binding.chords.length === index);
+    if (bindings.every((binding) => binding.chords.length === index)) {
+      if (exact) this.invoke(layer, exact, event);
+      return;
+    }
+    this.pending = { layer, bindings, index, event };
+    this.timer = setTimeout(() => {
+      this.cancelSequence();
+      if (exact) {
+        try {
+          this.invoke(layer, exact, event);
+        } catch (error) {
+          console.error("[Keymap] Sequence handler failed:", error);
+        }
+      }
+    }, this.sequenceTimeoutMs);
+    this.timer.unref?.();
+  }
+  dispatch = (event) => {
+    if (this.disposed || event.defaultPrevented || event.propagationStopped) return;
+    const pending = this.pending;
+    if (pending) {
+      if (event.name === "escape") {
+        this.cancelSequence();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (event.repeated) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      const next = this.distance(pending.layer) < 0 ? [] : pending.bindings.filter((binding) => {
+        const chord = binding.chords[pending.index];
+        return chord && matches(chord, event);
+      });
+      if (next.length) {
+        this.accept(pending.layer, next, pending.index + 1, event);
+        return;
+      }
+      this.cancelSequence();
+    }
+    for (const layer of this.activeLayers()) {
+      const matchesFirst = layer.bindings.filter((binding) => matches(binding.chords[0], event));
+      if (!matchesFirst.length || this.distance(layer) < 0) continue;
+      this.accept(layer, matchesFirst, 1, event);
+      return;
+    }
+  };
+  dispose = () => {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.cancelSequence();
+    for (const layer of [...this.layers]) layer.remove();
+    this.renderer.keyInput.off("keypress", this.dispatch);
+    this.renderer.keyInput.off("paste", this.cancelSequence);
+    this.renderer.off("focused_renderable", this.cancelSequence);
+    this.renderer.off("blur", this.cancelSequence);
+    this.renderer.off("destroy", this.dispose);
+    managers2.delete(this.renderer);
+  };
+};
+function getKeymap(renderer, options) {
+  return Keymap.forRenderer(renderer, options);
 }
 export {
   ACHROMATOPSIA_MATRIX,
@@ -10459,6 +11009,7 @@ export {
   InternalKeyHandler,
   KeyEvent,
   KeyHandler,
+  Keymap,
   LayoutEvents,
   LineNumberRenderable,
   LinearScrollAccel,
@@ -10521,6 +11072,8 @@ export {
   TreeSitterClient,
   VRenderable,
   VignetteEffect,
+  VirtualListModel,
+  VirtualListRenderable,
   yoga_exports as Yoga,
   addDefaultParsers,
   ansi256IndexToRgb,
@@ -10598,6 +11151,7 @@ export {
   getCharacterPositions,
   getDataPaths,
   getEditorAutocompleteRequest,
+  getKeymap,
   getLinkId,
   getOverlayManager,
   getTreeSitterClient,

@@ -1,7 +1,15 @@
 import { PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "ax-tui";
 import { type OverlayHandle, type OverlayOptions, type Renderable } from "ax-tui";
+import { type KeymapLayer } from "ax-tui";
 export declare const RendererContext: import("solid-js").Context<CliRenderer | undefined>;
 export declare const useRenderer: () => CliRenderer;
+/** Share renderer routing while disposing only this Solid owner's registrations. */
+export declare const useKeymap: () => {
+    register(layer: KeymapLayer): () => void;
+    getActiveBindings: () => import("ax-tui").ActiveKeymapBinding[];
+    readonly pendingKeys: readonly string[];
+    cancelSequence: () => void;
+};
 /** Show owned overlays and close only this Solid owner's handles on cleanup. */
 export declare const useOverlay: () => {
     show: (content: Renderable, options?: OverlayOptions) => OverlayHandle;

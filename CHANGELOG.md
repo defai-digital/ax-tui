@@ -3,6 +3,17 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
+## [Unreleased]
+
+### Added
+
+- Add renderer-owned keymaps with focus scopes, priority layers, multi-key
+  sequences, binding discovery, and Solid owner cleanup through `useKeymap`.
+- Add stable-key variable-height virtual lists, bounded row mounting, scroll
+  anchoring, a standalone height index, and a reactive Solid `VirtualList` component.
+- Add a runnable 10,000-record example and native regressions for input routing,
+  variable-height layout, resizing, data updates, scrolling, and owner cleanup.
+
 ## [1.1.0] - 2026-10-17
 
 ### Added

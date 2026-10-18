@@ -101,6 +101,7 @@ function getComponentCatalogue() {
 import { engine, Timeline } from "ax-tui";
 import { createContext, createSignal, onCleanup, onMount, useContext } from "solid-js";
 import { getOverlayManager, RenderableEvents } from "ax-tui";
+import { getKeymap } from "ax-tui";
 var RendererContext = createContext();
 var useRenderer = () => {
   const renderer = useContext(RendererContext);
@@ -108,6 +109,37 @@ var useRenderer = () => {
     throw new Error("No renderer found");
   }
   return renderer;
+};
+var useKeymap = () => {
+  const keymap = getKeymap(useRenderer());
+  const registrations = /* @__PURE__ */ new Set();
+  let disposed = false;
+  onCleanup(() => {
+    disposed = true;
+    for (const remove of [...registrations]) remove();
+  });
+  return {
+    register(layer) {
+      if (disposed) throw new Error("Keymap owner is disposed");
+      const unregister = keymap.register(layer);
+      const target = layer.target;
+      const remove = () => {
+        registrations.delete(remove);
+        target?.off(RenderableEvents.DESTROYED, remove);
+        unregister();
+      };
+      registrations.add(remove);
+      target?.once(RenderableEvents.DESTROYED, remove);
+      return remove;
+    },
+    getActiveBindings: () => keymap.getActiveBindings(),
+    get pendingKeys() {
+      return keymap.pendingKeys;
+    },
+    cancelSequence: () => {
+      if (!disposed) keymap.cancelSequence();
+    }
+  };
 };
 var useOverlay = () => {
   const manager = getOverlayManager(useRenderer());
@@ -1208,6 +1240,32 @@ var SlotRenderable = class extends SlotBaseRenderable {
   }
 };
 
+// solid/source/src/elements/virtual-list.ts
+import { RenderableEvents as RenderableEvents2, VirtualListRenderable } from "ax-tui";
+import { createRoot as createRoot2, onCleanup as onCleanup3, splitProps as splitProps2 } from "solid-js";
+function VirtualList(props) {
+  const [fixed, reactive] = splitProps2(props, ["getKey", "renderItem", "estimateHeight", "overscan", "ref"]);
+  const list = new VirtualListRenderable(useRenderer(), {
+    ...reactive,
+    getKey: fixed.getKey,
+    renderItem: fixed.renderItem,
+    estimateHeight: fixed.estimateHeight,
+    overscan: fixed.overscan
+  });
+  const stopUpdates = createRoot2((dispose) => {
+    spread(list, reactive);
+    return dispose;
+  });
+  list.once(RenderableEvents2.DESTROYED, stopUpdates);
+  onCleanup3(() => {
+    stopUpdates();
+    list.off(RenderableEvents2.DESTROYED, stopUpdates);
+    list.destroyRecursively();
+  });
+  fixed.ref?.(list);
+  return list;
+}
+
 // solid/source/src/scrollback.ts
 import {
   BoxRenderable as BoxRenderable2,
@@ -1387,7 +1445,7 @@ import { memo as _$memo } from "ax-tui/solid";
 import { createComponent as _$createComponent } from "ax-tui/solid";
 import { mergeProps as _$mergeProps } from "ax-tui/solid";
 import { createSlotRegistry } from "ax-tui";
-import { children, createMemo as createMemo3, createSignal as createSignal3, ErrorBoundary, For, onCleanup as onCleanup3, splitProps as splitProps2 } from "solid-js";
+import { children, createMemo as createMemo3, createSignal as createSignal3, ErrorBoundary, For, onCleanup as onCleanup4, splitProps as splitProps3 } from "solid-js";
 var EMPTY_ENTRY_IDS = [];
 function createSolidSlotRegistry(renderer, context, options = {}) {
   return createSlotRegistry(renderer, "solid:slot-registry", context, options);
@@ -1403,7 +1461,7 @@ function createSlot(registry, options = {}) {
   };
 }
 function Slot(props) {
-  const [local, slotProps] = splitProps2(props, ["registry", "name", "mode", "children", "pluginFailurePlaceholder"]);
+  const [local, slotProps] = splitProps3(props, ["registry", "name", "mode", "children", "pluginFailurePlaceholder"]);
   const registry = () => local.registry;
   const pluginFailurePlaceholder = () => local.pluginFailurePlaceholder;
   const [version, setVersion] = createSignal3(0);
@@ -1418,7 +1476,7 @@ function Slot(props) {
       if (disposed) return;
     });
   });
-  onCleanup3(() => {
+  onCleanup4(() => {
     disposed = true;
     unsubscribe();
   });
@@ -1636,6 +1694,7 @@ export {
   TextSlotRenderable,
   TimeToFirstDraw,
   UnderlineSpanRenderable,
+  VirtualList,
   _render,
   baseComponents,
   componentCatalogue,
@@ -1665,6 +1724,7 @@ export {
   use,
   useKeyHandler,
   useKeyboard,
+  useKeymap,
   useOverlay,
   usePaste,
   useRenderer,

@@ -1,6 +1,7 @@
 import { engine, PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "ax-tui"
 import { createContext, createSignal, onCleanup, onMount, useContext } from "solid-js"
 import { getOverlayManager, RenderableEvents, type OverlayHandle, type OverlayOptions, type Renderable } from "ax-tui"
+import { getKeymap, type KeymapLayer } from "ax-tui"
 
 export const RendererContext = createContext<CliRenderer>()
 
@@ -12,6 +13,37 @@ export const useRenderer = () => {
   }
 
   return renderer
+}
+
+/** Share renderer routing while disposing only this Solid owner's registrations. */
+export const useKeymap = () => {
+  const keymap = getKeymap(useRenderer())
+  const registrations = new Set<() => void>()
+  let disposed = false
+  onCleanup(() => {
+    disposed = true
+    for (const remove of [...registrations]) remove()
+  })
+  return {
+    register(layer: KeymapLayer): () => void {
+      if (disposed) throw new Error("Keymap owner is disposed")
+      const unregister = keymap.register(layer)
+      const target = layer.target
+      const remove = () => {
+        registrations.delete(remove)
+        target?.off(RenderableEvents.DESTROYED, remove)
+        unregister()
+      }
+      registrations.add(remove)
+      target?.once(RenderableEvents.DESTROYED, remove)
+      return remove
+    },
+    getActiveBindings: () => keymap.getActiveBindings(),
+    get pendingKeys() { return keymap.pendingKeys },
+    cancelSequence: () => {
+      if (!disposed) keymap.cancelSequence()
+    },
+  }
 }
 
 /** Show owned overlays and close only this Solid owner's handles on cleanup. */

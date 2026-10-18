@@ -66,6 +66,19 @@ viewport resizing, and Solid cleanup. These APIs deliberately use explicit
 UTF-16 completion ranges and `close()` for permanent overlay removal. Image
 protocols and large-paste folding are outside this integration.
 
+The scoped keymap and virtual-list APIs are original AX implementations. Reviewed
+design references are OpenTUI's `packages/keymap` at MIT-licensed commit
+`212eb27da4adf5b907031ad153fc6a5b9f713fbf` and Nous Research's MIT-licensed
+Hermes Agent `ui-tui/src/lib/virtualHeights.ts` and
+`ui-tui/src/hooks/useVirtualHistory.ts` at commit
+`521f4dc2a1a4e19d56419a899f779d60efa01716`. The reviewed concepts are scoped
+binding precedence, discoverable commands, measured row heights, and scroll
+anchoring. No source or dependency from those revisions was copied. AX uses a
+renderer-owned dispatcher and a Fenwick height index integrated with its own
+ScrollBox, native layout, and Solid owner lifecycle. Compatibility tests exercise
+real native editors and rows, sequence cancellation, bounded mounting of 10,000
+items, resize/prepend anchoring, mouse/keyboard scrolling, and Solid disposal.
+
 JSR native assets come from AX TUI's matching GitHub release, are verified
 against the manifest, and are immutable. Signed downstream bundles verify
 native inputs before signing changes the bytes. See `MAINTENANCE.md`.
