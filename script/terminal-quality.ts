@@ -129,8 +129,10 @@ export async function terminalQuality(tmux?: string) {
       join(root, "test/fixtures/terminal-application.ts"), String(address.port)]
     const tmuxArgs = ["-u", "-L", tmuxSocket, "-f", join(root, "test/fixtures/quality-tmux.conf"),
       "new-session", "-s", "quality", process.execPath, ...args]
+    // Pin Windows Unicode behavior to node-pty's bundled ConPTY. The runner's
+    // legacy system host loses emoji and counts combining marks as cells.
     child = spawn(tmux ?? process.execPath, tmux ? tmuxArgs : args,
-    { cwd: root, cols: 48, rows: 16, name: env.TERM, env, useConpty: true })
+    { cwd: root, cols: 48, rows: 16, name: env.TERM, env, useConpty: true, useConptyDll: true })
     child.onExit(event => { exit = event })
     child.onData(data => {
       transcript += data
@@ -224,7 +226,9 @@ export async function terminalQuality(tmux?: string) {
       transcript: transcript.slice(-16000) }))
     throw error
   } finally {
-    if (child && !exit) child.kill()
+    // On Windows child exit leaves the owned ConPTY transport open. Close it
+    // even after exit; on POSIX avoid signaling a potentially reused PID.
+    if (child && (process.platform === "win32" || !exit)) child.kill()
     if (tmux) spawnSync(tmux, ["-L", tmuxSocket, "kill-server"], { stdio: "ignore", timeout: 5000 })
     control?.destroy()
     await new Promise<void>(resolve => server.close(() => resolve()))

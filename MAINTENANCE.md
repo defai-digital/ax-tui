@@ -182,6 +182,13 @@ pnpm run test:stress 10000                 # optional second argument: uint32 se
 
 The terminal runner uses node-pty with a real POSIX PTY or Windows ConPTY and
 an independent xterm.js 6.0.0 headless screen oracle with Unicode 11 widths.
+On Windows it selects node-pty 1.1.0's bundled ConPTY 1.23.2510.08001 rather
+than the runner's system host. An A/B run of the same application and assertions
+showed that the legacy system host drops wide emoji and shifts combining-mark
+rows, while the bundled host preserves the full Unicode contract. This qualifies
+the bundled host; older Windows console hosts are not covered by that result.
+The runner closes the Windows PTY transport even after the application exits,
+so node-pty's worker and pipe handles cannot keep the test process alive.
 It checks CJK, combining marks, Greek, wide emoji, truecolor (direct path),
 fragmented paste and escape sequences, editing, Tab/Shift-Tab focus, wheel
 direction, bounded mounted rows/repaints, 200 asynchronous tail updates, three
