@@ -43,6 +43,17 @@ All notable changes to ax-tui are documented here. The format is based on
 - Add xterm.js screen validation over real PTY/ConPTY transport, a tmux CI lane,
   seeded application soak checks, and isolated paired OpenTUI performance comparisons.
 
+## [2.1.1] - 2026-10-18
+
+### Fixed
+
+- Release adopted overlay content and restore application focus when an overlay
+  focus callback throws before a handle can be returned.
+- Preserve application focus selected by blur callbacks when an overlay closes,
+  and stop layout work when callbacks close the overlay during hiding.
+- Complete overlay hiding when focus restoration throws, and update every
+  overlay on resize before reporting callback failures.
+
 ## [2.1.0] - 2026-10-18
 
 ### Added

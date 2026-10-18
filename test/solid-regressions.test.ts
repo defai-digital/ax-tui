@@ -397,3 +397,74 @@ try {
 }
 `)
 })
+
+test.skipIf(!supportsFfi)("clearing a diff removes the previously rendered panes", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal } from "solid-js"
+import { testRender } from "ax-tui/solid"
+
+const sampleDiff = [
+  "--- a/file.txt",
+  "+++ b/file.txt",
+  "@@ -1,3 +1,3 @@",
+  " line1",
+  "-old line2",
+  "+new line2",
+  " line3",
+].join("\\n")
+
+const [diff, setDiff] = createSignal(sampleDiff)
+const setup = await testRender(
+  () => <diff diff={diff()} width={60} height={8} />,
+  { width: 60, height: 8, useKittyKeyboard: null },
+)
+try {
+  await setup.renderOnce()
+  assert.ok(setup.captureCharFrame().includes("old line2"), "diff did not render initially")
+
+  setDiff("")
+  await setup.renderOnce()
+  const frame = setup.captureCharFrame()
+  assert.ok(!frame.includes("old line2"), "stale diff panes remain after clearing:\\n" + frame)
+} finally {
+  setup.renderer.destroy()
+}
+`)
+})
+
+test.skipIf(!supportsFfi)("anchored text inserts keep raw string children in place", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal, For } from "solid-js"
+import { testRender } from "ax-tui/solid"
+
+let textRef
+const [items, setItems] = createSignal(["A", "B"])
+const setup = await testRender(
+  () => (
+    <text ref={textRef}>
+      <For each={items()}>{(item) => <span>{item}</span>}</For>
+    </text>
+  ),
+  { width: 20, height: 2, useKittyKeyboard: null },
+)
+try {
+  await setup.renderOnce()
+
+  // Mix an imperative raw string child in front of the JSX-managed nodes.
+  textRef.add("hdr", 0)
+  await setup.renderOnce()
+  assert.equal(setup.captureCharFrame().trim().split("\\n")[0], "hdrAB")
+
+  // Prepending makes the reconciler insert before the "A" anchor; the raw
+  // string must stay ahead of both.
+  setItems(["X", "A", "B"])
+  await setup.renderOnce()
+  const line = setup.captureCharFrame().trim().split("\\n")[0]
+  assert.equal(line, "hdrXAB", "anchored insert crossed the raw string child: " + line)
+} finally {
+  setup.renderer.destroy()
+}
+`)
+})

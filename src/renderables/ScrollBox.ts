@@ -309,6 +309,8 @@ export class ScrollBoxRenderable extends BoxRenderable {
       ...(sanitizedRootBoxOptions as BoxOptions),
       ...(sanitizedRootOptions as BoxOptions),
     })
+    // Subclass field initializers default this to true; honor an explicit false.
+    this._focusable = sanitizedRootOptions?.focusable ?? sanitizedRootBoxOptions.focusable ?? true
 
     this.internalId = ScrollBoxRenderable.idCounter++
     this._stickyScroll = stickyScroll

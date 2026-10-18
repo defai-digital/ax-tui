@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-6MM5S67P.js";
+} from "./index-J2SDNWIO.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -214,15 +214,14 @@ var EditBuffer = class _EditBuffer extends EventEmitter {
     if (_EditBuffer.nativeEventsSubscribed) return;
     _EditBuffer.nativeEventsSubscribed = true;
     lib.onAnyNativeEvent((name, data) => {
-      const buffer = new Uint16Array(data);
-      if (name.startsWith("eb_") && buffer.length >= 1) {
-        const id = buffer[0];
-        const instance = _EditBuffer.registry.get(id);
-        if (instance) {
-          const eventName = name.slice(3);
-          const eventData = data.slice(2);
-          instance.emit(eventName, eventData);
-        }
+      if (!name.startsWith("eb_") || data.byteLength < 2) return;
+      const buffer = new Uint16Array(data, 0, 1);
+      const id = buffer[0];
+      const instance = _EditBuffer.registry.get(id);
+      if (instance) {
+        const eventName = name.slice(3);
+        const eventData = data.slice(2);
+        instance.emit(eventName, eventData);
       }
     });
   }
@@ -241,7 +240,9 @@ var EditBuffer = class _EditBuffer extends EventEmitter {
     this.guard();
     const textBytes = this.lib.encoder.encode(text);
     if (this._singleTextMemId !== null) {
-      this.lib.textBufferReplaceMemBuffer(this.textBufferPtr, this._singleTextMemId, textBytes, false);
+      if (!this.lib.textBufferReplaceMemBuffer(this.textBufferPtr, this._singleTextMemId, textBytes, false)) {
+        this._singleTextMemId = this.lib.textBufferRegisterMemBuffer(this.textBufferPtr, textBytes, false);
+      }
     } else {
       this._singleTextMemId = this.lib.textBufferRegisterMemBuffer(this.textBufferPtr, textBytes, false);
     }
@@ -757,8 +758,8 @@ var BoxRenderable = class extends Renderable {
   };
   constructor(ctx, options) {
     super(ctx, options);
-    if (options.focusable === true) {
-      this._focusable = true;
+    if (options.focusable !== void 0) {
+      this._focusable = options.focusable;
     }
     this._backgroundColor = parseColor(options.backgroundColor || this._defaultOptions.backgroundColor);
     this._border = options.border ?? this._defaultOptions.border;
@@ -1891,6 +1892,10 @@ var TextNodeRenderable = class _TextNodeRenderable extends BaseRenderable {
     throw new Error("TextNodeRenderable only accepts strings, TextNodeRenderable instances, or StyledText instances");
   }
   replace(obj, index) {
+    const previous = this._children[index];
+    if (previous !== void 0 && isTextNodeRenderable(previous) && previous !== obj) {
+      previous.parent = null;
+    }
     this._children[index] = obj;
     if (typeof obj !== "string") {
       obj.parent = this;
@@ -1932,6 +1937,9 @@ var TextNodeRenderable = class _TextNodeRenderable extends BaseRenderable {
     return this;
   }
   clear() {
+    for (const child of this._children) {
+      if (isTextNodeRenderable(child)) child.parent = null;
+    }
     this._children = [];
     this.requestRender();
   }
@@ -2393,15 +2401,24 @@ var NativeSpanFeed = class _NativeSpanFeed {
     let firstError = null;
     try {
       for (const span of spans) {
-        if (span.len === 0) continue;
+        if (span.len === 0) {
+          this.decrementRefcount(span.chunkIndex);
+          continue;
+        }
         let buffer = this.chunkMap.get(span.chunkPtr);
         if (!buffer) {
           const size = this.chunkSizes.get(span.chunkPtr);
-          if (!size) continue;
+          if (!size) {
+            this.decrementRefcount(span.chunkIndex);
+            continue;
+          }
           buffer = toArrayBuffer(span.chunkPtr, 0, size);
           this.chunkMap.set(span.chunkPtr, buffer);
         }
-        if (span.offset + span.len > buffer.byteLength) continue;
+        if (span.offset + span.len > buffer.byteLength) {
+          this.decrementRefcount(span.chunkIndex);
+          continue;
+        }
         const slice = new Uint8Array(buffer, span.offset, span.len);
         let asyncResults = null;
         for (const handler of this.dataHandlers) {
@@ -3639,6 +3656,7 @@ var EditBufferRenderable = class extends Renderable {
   };
   constructor(ctx, options) {
     super(ctx, options);
+    this._focusable = options.focusable ?? true;
     this._textColor = parseColor(options.textColor ?? this._defaultOptions.textColor);
     this._backgroundColor = parseColor(options.backgroundColor ?? this._defaultOptions.backgroundColor);
     this._defaultAttributes = options.attributes ?? this._defaultOptions.attributes;
@@ -4864,13 +4882,17 @@ function normalizeFooterHeight(footerHeight) {
 }
 function resolveModes(config) {
   let screenMode = config.screenMode ?? "alternate-screen";
-  if (process.env.AX_CODE_TUI_USE_ALTERNATE_SCREEN !== void 0) {
+  const screenModeForcedByEnv = process.env.AX_CODE_TUI_USE_ALTERNATE_SCREEN !== void 0;
+  if (screenModeForcedByEnv) {
     screenMode = env.AX_CODE_TUI_USE_ALTERNATE_SCREEN ? "alternate-screen" : "main-screen";
   }
   const footerHeight = screenMode === "split-footer" ? normalizeFooterHeight(config.footerHeight) : DEFAULT_FOOTER_HEIGHT;
   let externalOutputMode = config.externalOutputMode ?? (screenMode === "split-footer" ? "capture-stdout" : "passthrough");
   if (process.env.AX_CODE_TUI_OVERRIDE_STDOUT !== void 0) {
     externalOutputMode = env.AX_CODE_TUI_OVERRIDE_STDOUT && screenMode === "split-footer" ? "capture-stdout" : "passthrough";
+  }
+  if (screenModeForcedByEnv && screenMode !== "split-footer" && externalOutputMode === "capture-stdout") {
+    externalOutputMode = "passthrough";
   }
   if (externalOutputMode === "capture-stdout" && screenMode !== "split-footer") {
     throw new Error('externalOutputMode "capture-stdout" requires screenMode "split-footer"');

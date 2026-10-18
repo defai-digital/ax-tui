@@ -13,6 +13,7 @@ export interface TabSelectOption {
 export type TabSelectAction = "move-left" | "move-right" | "select-current";
 export type TabSelectKeyBinding = BaseKeyBinding<TabSelectAction>;
 export interface TabSelectRenderableOptions extends Omit<RenderableOptions<TabSelectRenderable>, "height"> {
+    focusable?: boolean;
     height?: number;
     options?: TabSelectOption[];
     tabWidth?: number;

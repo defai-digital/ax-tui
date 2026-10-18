@@ -38,6 +38,7 @@ const defaultSelectKeybindings: SelectKeyBinding[] = [
 ]
 
 export interface SelectRenderableOptions extends RenderableOptions<SelectRenderable> {
+  focusable?: boolean
   backgroundColor?: ColorInput
   textColor?: ColorInput
   focusedBackgroundColor?: ColorInput
@@ -110,9 +111,14 @@ export class SelectRenderable extends Renderable {
 
   constructor(ctx: RenderContext, options: SelectRenderableOptions) {
     super(ctx, { ...options, buffered: true })
+    // Subclass field initializers default this to true; honor an explicit false.
+    this._focusable = options.focusable ?? true
     this._options = options.options || []
     const requestedIndex = options.selectedIndex ?? this._defaultOptions.selectedIndex
-    this._selectedIndex = this._options.length > 0 ? Math.min(requestedIndex, this._options.length - 1) : 0
+    this._selectedIndex =
+      this._options.length > 0
+        ? clamp(Number.isFinite(requestedIndex) ? requestedIndex : 0, 0, this._options.length - 1)
+        : 0
     this._backgroundColor = parseColor(options.backgroundColor || this._defaultOptions.backgroundColor)
     this._textColor = parseColor(options.textColor || this._defaultOptions.textColor)
     this._focusedBackgroundColor = parseColor(
@@ -249,7 +255,7 @@ export class SelectRenderable extends Renderable {
 
   public set options(options: SelectOption[]) {
     this._options = options
-    this._selectedIndex = Math.min(this._selectedIndex, Math.max(0, options.length - 1))
+    this._selectedIndex = clamp(this._selectedIndex, 0, Math.max(0, options.length - 1))
     this.updateScrollOffset()
     this.requestRender()
   }

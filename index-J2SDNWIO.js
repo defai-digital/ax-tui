@@ -12158,6 +12158,18 @@ var captureDecoder = new TextDecoder();
 var captureSegmenter = new Intl.Segmenter(void 0, {
   granularity: "grapheme"
 });
+function findColumnBoundary(text, target) {
+  let column = 0;
+  let index = 0;
+  if (target > 0) {
+    for (const { segment } of captureSegmenter.segment(text)) {
+      if (column >= target) break;
+      column += stringWidth(segment);
+      index += segment.length;
+    }
+  }
+  return { index, column };
+}
 function packDrawOptions(border, shouldFill, titleAlignment, bottomTitleAlignment) {
   let packed = 0;
   if (border === true) {
@@ -12338,17 +12350,23 @@ var OptimizedBuffer2 = class _OptimizedBuffer {
       selectionFg = defaultBg.a > 0 ? defaultBg : RGBA.fromValues(0, 0, 0, 1);
       selectionBg = fg2;
     }
-    if (start > 0) {
-      const beforeText = text.slice(0, start);
+    const startBoundary = findColumnBoundary(text, start);
+    const endBoundary = findColumnBoundary(text, end);
+    const startIndex = startBoundary.index;
+    const endIndex = Math.max(startIndex, endBoundary.index);
+    const beforeText = text.slice(0, startIndex);
+    const selectedText = text.slice(startIndex, endIndex);
+    const afterText = text.slice(endIndex);
+    const selectedColumn = startBoundary.column;
+    const afterColumn = selectedText ? endBoundary.column : selectedColumn;
+    if (beforeText) {
       this.lib.bufferDrawText(this.bufferPtr, beforeText, x, y, fg2, bg2, attributes);
     }
-    if (end > start) {
-      const selectedText = text.slice(start, end);
-      this.lib.bufferDrawText(this.bufferPtr, selectedText, x + start, y, selectionFg, selectionBg, attributes);
+    if (selectedText) {
+      this.lib.bufferDrawText(this.bufferPtr, selectedText, x + selectedColumn, y, selectionFg, selectionBg, attributes);
     }
-    if (end < text.length) {
-      const afterText = text.slice(end);
-      this.lib.bufferDrawText(this.bufferPtr, afterText, x + end, y, fg2, bg2, attributes);
+    if (afterText) {
+      this.lib.bufferDrawText(this.bufferPtr, afterText, x + afterColumn, y, fg2, bg2, attributes);
     }
   }
   fillRect(x, y, width, height, bg2) {

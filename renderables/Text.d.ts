@@ -25,7 +25,7 @@ export declare class TextRenderable extends TextBufferRenderable {
     private updateTextFromNodes;
     add(obj: TextNodeRenderable | StyledText | string, index?: number): number;
     remove(id: string): void;
-    insertBefore(obj: BaseRenderable | any, anchor?: TextNodeRenderable): number;
+    insertBefore(obj: BaseRenderable | any, anchor?: BaseRenderable): number;
     getTextChildren(): BaseRenderable[];
     clear(): void;
     onLifecyclePass: () => void;

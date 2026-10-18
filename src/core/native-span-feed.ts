@@ -299,17 +299,28 @@ export class NativeSpanFeed {
 
     try {
       for (const span of spans) {
-        if (span.len === 0) continue
+        if (span.len === 0) {
+          this.decrementRefcount(span.chunkIndex)
+          continue
+        }
 
         let buffer = this.chunkMap.get(span.chunkPtr)
         if (!buffer) {
           const size = this.chunkSizes.get(span.chunkPtr)
-          if (!size) continue
+          if (!size) {
+            // The chunk was never registered (missed ChunkAdded): release the
+            // span anyway so native recycling cannot stall on a pinned count.
+            this.decrementRefcount(span.chunkIndex)
+            continue
+          }
           buffer = toArrayBuffer(span.chunkPtr, 0, size)
           this.chunkMap.set(span.chunkPtr, buffer)
         }
 
-        if (span.offset + span.len > buffer.byteLength) continue
+        if (span.offset + span.len > buffer.byteLength) {
+          this.decrementRefcount(span.chunkIndex)
+          continue
+        }
 
         const slice = new Uint8Array(buffer, span.offset, span.len)
         let asyncResults: Promise<void>[] | null = null

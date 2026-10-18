@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-Y7U6EBUI.js";
+} from "./index-SF72FDHY.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-6MM5S67P.js";
+} from "./index-J2SDNWIO.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -3969,6 +3969,7 @@ var DiffRenderable = class extends Renderable {
       return;
     }
     if (!this._parsedDiff || this._parsedDiff.hunks.length === 0) {
+      this.clearViewRenderables();
       return;
     }
     if (this._view === "unified") {
@@ -4220,6 +4221,17 @@ var DiffRenderable = class extends Renderable {
   }
   lineColorConfig(gutter, override, fallback) {
     return { gutter, content: override ?? fallback };
+  }
+  clearViewRenderables() {
+    this.removeErrorRenderables();
+    if (this.leftSide && this.leftSideAdded) {
+      super.remove(this.leftSide.id);
+      this.leftSideAdded = false;
+    }
+    if (this.rightSide && this.rightSideAdded) {
+      super.remove(this.rightSide.id);
+      this.rightSideAdded = false;
+    }
   }
   removeErrorRenderables() {
     for (const errorRenderable of [this.errorTextRenderable, this.errorCodeRenderable]) {
@@ -8016,7 +8028,8 @@ var SliderRenderable = class extends Renderable {
     this._min = options.min ?? 0;
     this._max = options.max ?? 100;
     this._value = options.value ?? this._min;
-    this._viewPortSize = options.viewPortSize ?? Math.max(1, (this._max - this._min) * 0.1);
+    const requestedViewPortSize = options.viewPortSize;
+    this._viewPortSize = requestedViewPortSize !== void 0 && Number.isFinite(requestedViewPortSize) ? clamp(requestedViewPortSize, 0.01, this._max - this._min) : Math.max(1, (this._max - this._min) * 0.1);
     this._onChange = options.onChange;
     this._backgroundColor = options.backgroundColor ? parseColor(options.backgroundColor) : defaultTrackBackgroundColor;
     this._foregroundColor = options.foregroundColor ? parseColor(options.foregroundColor) : defaultThumbBackgroundColor;
@@ -8339,6 +8352,7 @@ var ScrollBarRenderable = class extends Renderable {
       alignItems: "stretch",
       ...options
     });
+    this._focusable = options.focusable ?? true;
     this._onChange = options.onChange;
     this.orientation = orientation;
     this._showArrows = showArrows;
@@ -8818,6 +8832,7 @@ var ScrollBoxRenderable = class _ScrollBoxRenderable extends BoxRenderable {
       ...sanitizedRootBoxOptions,
       ...sanitizedRootOptions
     });
+    this._focusable = sanitizedRootOptions?.focusable ?? sanitizedRootBoxOptions.focusable ?? true;
     this.internalId = _ScrollBoxRenderable.idCounter++;
     this._stickyScroll = stickyScroll;
     this._stickyStart = stickyStart;
@@ -9347,9 +9362,10 @@ var SelectRenderable = class extends Renderable {
   };
   constructor(ctx, options) {
     super(ctx, { ...options, buffered: true });
+    this._focusable = options.focusable ?? true;
     this._options = options.options || [];
     const requestedIndex = options.selectedIndex ?? this._defaultOptions.selectedIndex;
-    this._selectedIndex = this._options.length > 0 ? Math.min(requestedIndex, this._options.length - 1) : 0;
+    this._selectedIndex = this._options.length > 0 ? clamp(Number.isFinite(requestedIndex) ? requestedIndex : 0, 0, this._options.length - 1) : 0;
     this._backgroundColor = parseColor(options.backgroundColor || this._defaultOptions.backgroundColor);
     this._textColor = parseColor(options.textColor || this._defaultOptions.textColor);
     this._focusedBackgroundColor = parseColor(
@@ -9448,7 +9464,7 @@ var SelectRenderable = class extends Renderable {
   }
   set options(options) {
     this._options = options;
-    this._selectedIndex = Math.min(this._selectedIndex, Math.max(0, options.length - 1));
+    this._selectedIndex = clamp(this._selectedIndex, 0, Math.max(0, options.length - 1));
     this.updateScrollOffset();
     this.requestRender();
   }
@@ -9708,6 +9724,7 @@ var TabSelectRenderable = class extends Renderable {
   constructor(ctx, options) {
     const calculatedHeight = calculateDynamicHeight(options.showUnderline ?? true, options.showDescription ?? true);
     super(ctx, { ...options, height: calculatedHeight, buffered: true });
+    this._focusable = options.focusable ?? true;
     this._backgroundColor = parseColor(options.backgroundColor || "transparent");
     this._textColor = parseColor(options.textColor || "#FFFFFF");
     this._focusedBackgroundColor = parseColor(options.focusedBackgroundColor || options.backgroundColor || "#1a1a1a");
@@ -11053,6 +11070,7 @@ var KittyImageSession = class _KittyImageSession {
 };
 
 // src/renderables/Image.ts
+var MAX_ALT_LENGTH = 1024;
 var ImageRenderable = class extends Renderable {
   _source;
   pixels = null;
@@ -11085,7 +11103,12 @@ var ImageRenderable = class extends Renderable {
     if (options.source !== void 0) this.source = options.source;
   }
   cleanAlt(text) {
-    return stripAnsiSequences(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
+    const cleaned = stripAnsiSequences(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
+    if (cleaned.length <= MAX_ALT_LENGTH) return cleaned;
+    let end = MAX_ALT_LENGTH;
+    const code = cleaned.charCodeAt(end - 1);
+    if (code >= 55296 && code <= 56319) end--;
+    return cleaned.slice(0, end);
   }
   get source() {
     return this._source;
@@ -11553,9 +11576,18 @@ var OverlayManager = class _OverlayManager {
     content.once("destroyed" /* DESTROYED */, entry.onDestroyed);
     container.once("destroyed" /* DESTROYED */, entry.onDestroyed);
     if (target && target !== content) target.once("destroyed" /* DESTROYED */, entry.onDestroyed);
-    this.layout(entry, visible);
-    this.order();
-    if (!options.nonCapturing && visible) this.focus(entry);
+    try {
+      this.layout(entry, visible);
+      this.order();
+      if (!options.nonCapturing && visible) this.focus(entry);
+    } catch (error) {
+      try {
+        this.remove(entry);
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "Overlay creation failed");
+      }
+      throw error;
+    }
     return {
       close: () => this.remove(entry),
       setHidden: (hidden) => {
@@ -11596,6 +11628,8 @@ var OverlayManager = class _OverlayManager {
     const destroyedFocus = !current && entry.lastBlurred?.isDestroyed;
     if (!contains2(entry.container, current) && !destroyedFocus) return;
     current?.blur();
+    const redirected = this.renderer.currentFocusedRenderable;
+    if (this.renderer.isDestroyed || redirected && !contains2(entry.container, redirected)) return;
     let previous = entry.previous;
     const visited = /* @__PURE__ */ new Set();
     while (previous && !this.eligible(previous) && !visited.has(previous)) {
@@ -11617,8 +11651,13 @@ var OverlayManager = class _OverlayManager {
     const { width, height } = this.renderer;
     const options = entry.options;
     const show = !entry.hidden && (visible ?? options.visible?.(width, height) ?? true);
-    if (!show) this.restore(entry);
-    entry.container.visible = show;
+    if (entry.removed) return;
+    try {
+      if (!show) this.restore(entry);
+    } finally {
+      if (!entry.removed) entry.container.visible = show;
+    }
+    if (entry.removed) return;
     const marginX = Math.min(options.margin ?? 0, Math.floor(width / 2));
     const marginY = Math.min(options.margin ?? 0, Math.floor(height / 2));
     const availableWidth = Math.max(0, width - marginX * 2);
@@ -11661,7 +11700,16 @@ var OverlayManager = class _OverlayManager {
     }
   }
   resize = () => {
-    for (const entry of [...this.entries]) if (!entry.removed) this.layout(entry);
+    const errors = [];
+    for (const entry of [...this.entries]) {
+      if (entry.removed) continue;
+      try {
+        this.layout(entry);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length) throw new AggregateError(errors, "Overlay resize failed");
   };
   trackFocus = (current, previous) => {
     for (const entry of this.entries) {

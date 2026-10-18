@@ -34,7 +34,11 @@ export class SliderRenderable extends Renderable {
     this._min = options.min ?? 0
     this._max = options.max ?? 100
     this._value = options.value ?? this._min
-    this._viewPortSize = options.viewPortSize ?? Math.max(1, (this._max - this._min) * 0.1)
+    const requestedViewPortSize = options.viewPortSize
+    this._viewPortSize =
+      requestedViewPortSize !== undefined && Number.isFinite(requestedViewPortSize)
+        ? clamp(requestedViewPortSize, 0.01, this._max - this._min)
+        : Math.max(1, (this._max - this._min) * 0.1)
     this._onChange = options.onChange
     this._backgroundColor = options.backgroundColor ? parseColor(options.backgroundColor) : defaultTrackBackgroundColor
     this._foregroundColor = options.foregroundColor ? parseColor(options.foregroundColor) : defaultThumbBackgroundColor

@@ -47,6 +47,7 @@ export interface ContentChangeEvent {
 }
 
 export interface EditBufferOptions extends RenderableOptions<EditBufferRenderable> {
+  focusable?: boolean
   textColor?: string | RGBA
   backgroundColor?: string | RGBA
   selectionBg?: string | RGBA
@@ -119,6 +120,8 @@ export abstract class EditBufferRenderable extends Renderable implements LineInf
 
   constructor(ctx: RenderContext, options: EditBufferOptions) {
     super(ctx, options)
+    // Subclass field initializers default this to true; honor an explicit false.
+    this._focusable = options.focusable ?? true
 
     this._textColor = parseColor(options.textColor ?? this._defaultOptions.textColor)
     this._backgroundColor = parseColor(options.backgroundColor ?? this._defaultOptions.backgroundColor)

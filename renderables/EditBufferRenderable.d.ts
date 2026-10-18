@@ -24,6 +24,7 @@ export interface CursorChangeEvent {
 export interface ContentChangeEvent {
 }
 export interface EditBufferOptions extends RenderableOptions<EditBufferRenderable> {
+    focusable?: boolean;
     textColor?: string | RGBA;
     backgroundColor?: string | RGBA;
     selectionBg?: string | RGBA;

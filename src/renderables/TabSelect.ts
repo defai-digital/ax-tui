@@ -34,6 +34,7 @@ const defaultTabSelectKeybindings: TabSelectKeyBinding[] = [
 ]
 
 export interface TabSelectRenderableOptions extends Omit<RenderableOptions<TabSelectRenderable>, "height"> {
+  focusable?: boolean
   height?: number
   options?: TabSelectOption[]
   tabWidth?: number
@@ -99,6 +100,8 @@ export class TabSelectRenderable extends Renderable {
     const calculatedHeight = calculateDynamicHeight(options.showUnderline ?? true, options.showDescription ?? true)
 
     super(ctx, { ...options, height: calculatedHeight, buffered: true })
+    // Subclass field initializers default this to true; honor an explicit false.
+    this._focusable = options.focusable ?? true
 
     this._backgroundColor = parseColor(options.backgroundColor || "transparent")
     this._textColor = parseColor(options.textColor || "#FFFFFF")

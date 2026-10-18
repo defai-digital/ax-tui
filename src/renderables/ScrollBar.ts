@@ -9,6 +9,7 @@ import { type BoxOptions } from "./Box.js"
 import { SliderRenderable, type SliderOptions } from "./Slider.js"
 
 export interface ScrollBarOptions extends RenderableOptions<ScrollBarRenderable> {
+  focusable?: boolean
   orientation: "vertical" | "horizontal"
   showArrows?: boolean
   arrowOptions?: Omit<ArrowOptions, "direction">
@@ -120,6 +121,9 @@ export class ScrollBarRenderable extends Renderable {
       alignItems: "stretch",
       ...(options as BoxOptions),
     })
+
+    // Subclass field initializers default this to true; honor an explicit false.
+    this._focusable = options.focusable ?? true
 
     this._onChange = options.onChange
 

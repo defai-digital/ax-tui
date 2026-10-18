@@ -2,6 +2,7 @@ import { validateBufferDimensions, validateGrayscaleSource } from "../lib/buffer
 import { RGBA } from "../lib/index.js"
 import { resolveRenderLib, type OptimizedBufferHandle, type RenderLib } from "./zig.js"
 import { type Pointer, type PointerInput, toArrayBuffer, toPointer, ptr } from "../platform/ffi.js"
+import { stringWidth } from "../platform/runtime.js"
 import { type BorderStyle, type BorderSides, BorderCharArrays, parseBorderStyle } from "../lib/index.js"
 import { TargetChannel, type WidthMethod, type CapturedSpan, type CapturedLine } from "./types.js"
 import type { TextBufferView } from "./text-buffer-view.js"
@@ -11,6 +12,21 @@ const captureDecoder = new TextDecoder()
 const captureSegmenter = new Intl.Segmenter(undefined, {
   granularity: "grapheme",
 })
+
+// Map a display-column offset to a UTF-16 code-unit index, snapping forward to
+// a grapheme boundary. Returns the boundary column actually reached.
+function findColumnBoundary(text: string, target: number): { index: number; column: number } {
+  let column = 0
+  let index = 0
+  if (target > 0) {
+    for (const { segment } of captureSegmenter.segment(text)) {
+      if (column >= target) break
+      column += stringWidth(segment)
+      index += segment.length
+    }
+  }
+  return { index, column }
+}
 
 // Pack drawing options into a single u32
 // bits 0-3: borderSides, bit 4: shouldFill, bits 5-6: titleAlignment, bits 7-8: bottomTitleAlignment
@@ -294,19 +310,27 @@ export class OptimizedBuffer {
       selectionBg = fg
     }
 
-    if (start > 0) {
-      const beforeText = text.slice(0, start)
+    // Selection offsets are display columns, not UTF-16 code-unit indices.
+    const startBoundary = findColumnBoundary(text, start)
+    const endBoundary = findColumnBoundary(text, end)
+    const startIndex = startBoundary.index
+    const endIndex = Math.max(startIndex, endBoundary.index)
+    const beforeText = text.slice(0, startIndex)
+    const selectedText = text.slice(startIndex, endIndex)
+    const afterText = text.slice(endIndex)
+    const selectedColumn = startBoundary.column
+    const afterColumn = selectedText ? endBoundary.column : selectedColumn
+
+    if (beforeText) {
       this.lib.bufferDrawText(this.bufferPtr, beforeText, x, y, fg, bg, attributes)
     }
 
-    if (end > start) {
-      const selectedText = text.slice(start, end)
-      this.lib.bufferDrawText(this.bufferPtr, selectedText, x + start, y, selectionFg, selectionBg, attributes)
+    if (selectedText) {
+      this.lib.bufferDrawText(this.bufferPtr, selectedText, x + selectedColumn, y, selectionFg, selectionBg, attributes)
     }
 
-    if (end < text.length) {
-      const afterText = text.slice(end)
-      this.lib.bufferDrawText(this.bufferPtr, afterText, x + end, y, fg, bg, attributes)
+    if (afterText) {
+      this.lib.bufferDrawText(this.bufferPtr, afterText, x + afterColumn, y, fg, bg, attributes)
     }
   }
 

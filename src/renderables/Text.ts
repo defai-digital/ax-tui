@@ -104,7 +104,7 @@ export class TextRenderable extends TextBufferRenderable {
     this.rootTextNode.remove(id)
   }
 
-  public insertBefore(obj: BaseRenderable | any, anchor?: TextNodeRenderable): number {
+  public insertBefore(obj: BaseRenderable | any, anchor?: BaseRenderable): number {
     this.rootTextNode.insertBefore(obj, anchor)
     return this.rootTextNode.children.indexOf(obj)
   }
