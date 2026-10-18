@@ -811,6 +811,8 @@ export class CliRenderer extends EventEmitter implements RenderContext {
 
   private _console: TerminalConsole
   private _resolution: PixelResolution | null = null
+  private terminalControlsClosed = false
+  public terminalControlEpoch = 0
   private _keyHandler: InternalKeyHandler
   private stdinParser: StdinParser | null = null
   private readonly oscSubscribers = new Set<(sequence: string) => void>()
@@ -1643,6 +1645,19 @@ export class CliRenderer extends EventEmitter implements RenderContext {
 
   public get resolution(): PixelResolution | null {
     return this._resolution
+  }
+
+  public get allowKittyImages(): boolean {
+    return !this._isDestroyed && this._controlState !== RendererControlState.EXPLICIT_SUSPENDED &&
+      this.postProcessFns.length === 0
+  }
+
+  /** Copies controls to the native FIFO. Cleanup may enqueue targeted deletes during destruction. */
+  public queueTerminalControl(data: Uint8Array): boolean {
+    if (this.terminalControlsClosed) return false
+    const accepted = this.lib.queueTerminalControl(this.rendererPtr, data)
+    if (accepted && data.length && !this._isDestroyed) this.requestRender()
+    return accepted
   }
 
   public get console(): TerminalConsole {
@@ -4079,6 +4094,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   }
 
   public resume(): void {
+    this.terminalControlEpoch++
     if (this.stdin.setRawMode) {
       this.stdin.setRawMode(true)
     }
@@ -4366,6 +4382,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     }
 
     try {
+      this.terminalControlsClosed = true
       this.lib.destroyRenderer(this.rendererPtr)
     } catch (e) {
       console.error("Error in lib.destroyRenderer during destroy:", e)

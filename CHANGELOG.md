@@ -5,6 +5,22 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in tree-order focus navigation, explicit ordering and modal Tab scopes,
+  with scoped keymap precedence and Solid owner cleanup.
+- Add renderer-owned commands, immutable Unicode search metadata, explicit async
+  execution results, and a searchable virtualized command palette.
+- Add PNG/RGBA image previews with bounded decoding, abortable source loaders,
+  native-cell fallback and Kitty Unicode-placeholder graphics.
+- Add a bounded native terminal-control FIFO that preserves upload byte progress
+  under feed backpressure and orders image controls before cell frames.
+
+### Changed
+
+- Advance the native ABI to 3 for the terminal-control queue entrypoint and
+  rebuild all supported native targets together with the TypeScript interface.
+
 ## [2.0.1] - 2026-10-17
 
 ### Fixed

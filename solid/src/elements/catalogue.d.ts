@@ -1,4 +1,4 @@
-import { BoxRenderable, CodeRenderable, DiffRenderable, InputRenderable, LineNumberRenderable, MarkdownRenderable, ScrollBoxRenderable, TextareaRenderable, TextNodeRenderable, TextRenderable, type RenderContext, type TextNodeOptions } from "ax-tui";
+import { BoxRenderable, CodeRenderable, DiffRenderable, InputRenderable, ImageRenderable, LineNumberRenderable, MarkdownRenderable, ScrollBoxRenderable, TextareaRenderable, TextNodeRenderable, TextRenderable, type RenderContext, type TextNodeOptions } from "ax-tui";
 import type { RenderableConstructor } from "../types/elements.js";
 declare class SpanRenderable extends TextNodeRenderable {
     private readonly _ctx;
@@ -32,6 +32,7 @@ export declare const baseComponents: {
     box: typeof BoxRenderable;
     text: typeof TextRenderable;
     input: typeof InputRenderable;
+    image: typeof ImageRenderable;
     textarea: typeof TextareaRenderable;
     scrollbox: typeof ScrollBoxRenderable;
     code: typeof CodeRenderable;

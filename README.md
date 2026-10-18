@@ -274,6 +274,138 @@ See [the searchable example](./examples/keymap-help.mjs), runnable with
 `node --experimental-ffi examples/keymap-help.mjs` on Node 26+.
 Add `--smoke` to inspect wide and narrow headless frames.
 
+### Focus navigation
+
+Focus navigation is opt-in and follows the current render tree, including
+reordered children. Register a scope to enable Tab and Shift+Tab:
+
+```ts
+import { getFocusManager } from "ax-tui"
+
+const focus = getFocusManager(renderer)
+const removeScope = focus.registerScope(renderer.root)
+focus.focusNext()
+focus.focusPrevious()
+removeScope()
+```
+
+Hidden, detached, destroyed, and nonfocusable nodes are skipped. An optional
+`order: [first, second]` moves those descendants before the remaining tree-order
+nodes; it never admits nodes outside the scope. Ordinary nested scopes yield at
+their boundary to enclosing registered scopes. The renderer root wraps.
+`{ modal: true }` contains Tab navigation in a visible scope, including a scope
+with one input. Explicit application calls to `focus()` are never redirected.
+Existing keymap bindings have first refusal, and unhandled Tab is not consumed.
+Removing a scope changes navigation only; OverlayManager continues to own focus
+restoration. Scope destruction removes registration automatically.
+
+Solid's `useFocusManager()` has the same navigation and registration methods;
+owner cleanup removes only its own scopes. Register after the scope's children
+exist, for example in `onMount`.
+
+### Commands and command palette
+
+Commands have their own registry, independent of eligible shortcut-help entries:
+
+```ts
+import { getCommandRegistry, getKeymap, showCommandPalette } from "ax-tui"
+
+const commands = getCommandRegistry(renderer)
+const remove = commands.register({
+  id: "document.save",
+  title: "Save document",
+  keywords: ["write", "file"],
+  enabled: ({ focused }) => focused !== null,
+  async run({ focused }) { await saveDocument(focused) },
+})
+getKeymap(renderer).register({ bindings: [
+  { id: "save", keys: "ctrl+s", handler: () => { void commands.execute("document.save") } },
+  { id: "commands", keys: "ctrl+p", handler: () => {
+    const palette = showCommandPalette(renderer)
+    void palette.result.then(result => {
+      if (result?.status === "error") console.error(result.error)
+    })
+  } },
+] })
+```
+
+IDs are unique per renderer; duplicate registration throws. `register(command,
+target?)` optionally ties availability and lifetime to an attached renderable.
+`search(query, context?)` returns frozen metadata without handlers, using Unicode
+normalization, case-insensitive subsequence matching, and deterministic ranking.
+`enabled` predicates must be synchronous and pure. A throwing predicate marks its
+search entry unavailable; execution returns an explicit error result.
+
+`execute(id, context?)` rechecks the current registration and availability, catches
+sync throws and async rejection, and returns a promise that never rejects. Its
+`status` is `executed`, `disabled`, `not-found`, `stale-context`, `disposed`, or
+`error` (with `error`). Callers must inspect the result to surface application
+failures. A captured focused renderable must remain visible and attached.
+
+The palette captures context before opening, supports Up/Down, Enter, Escape,
+mouse selection, live registry changes, and virtualized result rows. It restores
+focus through OverlayManager before executing. Its `result` resolves after the
+selected command completes, or to `null` when closed without execution.
+`setQuery()`, `refresh()`, `executeSelected()`, and `close()` support application
+control. Call `refresh()` when external enabled conditions change.
+
+Solid's `useCommands()` removes its registrations on owner cleanup;
+`useCommandPalette().show()` closes its owned palettes on cleanup.
+
+### Images and Kitty graphics
+
+```ts
+import { readFile } from "node:fs/promises"
+import { ImageRenderable } from "ax-tui"
+
+const preview = new ImageRenderable(renderer, {
+  width: 60, height: 20, alt: "Document preview", protocol: "auto",
+  source: await readFile("preview.png"),
+})
+renderer.root.add(preview)
+await preview.loadPromise
+```
+
+Sources are PNG bytes, `{ width, height, data }` RGBA pixels, or an asynchronous
+`(signal: AbortSignal) => Promise<PNG bytes | RGBA pixels>` loader. Applications
+own filesystem/network access. Inputs are copied; replacement and destruction
+abort pending loaders and discard stale results. Decode/load failure sets
+`loadError`, calls optional `onError`, rejects `loadPromise`, and displays `alt`.
+The promise is internally observed so using the callback alone does not create
+an unhandled rejection.
+
+PNG decoding supports noninterlaced 8-bit grayscale, RGB, indexed, grayscale-alpha,
+and RGBA images, including palette/simple transparency. Encoded data is capped at
+16 MiB and decoded images at 4,194,304 pixels; CRC, chunk order and inflated size
+are checked. Other PNG depths/interlacing fail explicitly. Color-management
+metadata and animation are not applied; use predecoded RGBA when required.
+
+`protocol: "auto"` uses Kitty Unicode placeholders on positively identified Kitty
+0.28+ with RGB graphics capability and direct transport. Explicit `"kitty"` may
+opt in another compatible terminal, but still requires RGB/graphics capability.
+Every placeholder contains explicit row/column coordinates and the full image ID,
+so clipping and overlapping widgets use the normal native cell composition.
+Uploads and virtual placements enter a Zig-owned bounded FIFO before cell frames;
+backpressured feeds retain byte progress without replaying partial APC payloads.
+Replacement/destruction deletes only owned IDs. Resume reuploads under a new ID.
+The native interface is ABI 3; use the matching rebuilt bundled libraries.
+Each renderer owns at most 256 active Kitty image IDs; additional images use
+block output until earlier resources retire.
+
+Other terminals, multiplexers, nonopaque ancestors, postprocessing, unsupported
+placeholder sizes (over 297 cells per axis), and `cover`/`fill` use colored
+half-block cells. `protocol: "blocks"` forces that portable path. `fit` accepts
+`contain` (default), `cover`, or `fill`; `cellAspectRatio` defaults to 2 and can be
+adjusted to the terminal's cell proportions. The background defaults to black;
+block output flattens each pixel's alpha independently onto the configured RGB
+background, while Kitty retains per-pixel alpha. The `alt` text is configurable.
+Kitty output requires the terminal to retain transmitted image data;
+quiet uploads do not constitute a terminal acknowledgement.
+
+Solid supports `<image source={pixels()} width={40} height={12} alt="Preview" />`.
+See [the application example](./examples/application.mjs); run
+`node --experimental-ffi examples/application.mjs --smoke` for a headless frame.
+
 ### Virtual lists
 
 `VirtualListRenderable<T>` extends the vertical ScrollBox with stable keys,

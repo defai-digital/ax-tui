@@ -253,6 +253,8 @@ export declare class CliRenderer extends EventEmitter implements RenderContext {
     };
     private _console;
     private _resolution;
+    private terminalControlsClosed;
+    terminalControlEpoch: number;
     private _keyHandler;
     private stdinParser;
     private readonly oscSubscribers;
@@ -394,6 +396,9 @@ export declare class CliRenderer extends EventEmitter implements RenderContext {
     idle(): Promise<void>;
     getSchedulerState(): RendererSchedulerState;
     get resolution(): PixelResolution | null;
+    get allowKittyImages(): boolean;
+    /** Copies controls to the native FIFO. Cleanup may enqueue targeted deletes during destruction. */
+    queueTerminalControl(data: Uint8Array): boolean;
     get console(): TerminalConsole;
     get keyInput(): KeyHandler;
     get _internalKeyInput(): InternalKeyHandler;

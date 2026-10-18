@@ -3,6 +3,7 @@ import {
   CodeRenderable,
   DiffRenderable,
   InputRenderable,
+  ImageRenderable,
   LineNumberRenderable,
   MarkdownRenderable,
   ScrollBoxRenderable,
@@ -89,6 +90,7 @@ export const baseComponents = {
   box: BoxRenderable,
   text: TextRenderable,
   input: InputRenderable,
+  image: ImageRenderable,
 
   textarea: TextareaRenderable,
 

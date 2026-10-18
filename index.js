@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-5GBWN7ST.js";
+} from "./index-NAYURTQU.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-AGQ3MODN.js";
+} from "./index-EKFJR2OF.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -10474,6 +10474,769 @@ var KeymapHelpRenderable = class extends TextRenderable {
   }
 };
 
+// src/lib/image.ts
+import { inflateSync } from "node:zlib";
+var MAX_IMAGE_PIXELS = 4194304;
+var MAX_PNG_BYTES = 16 * 1024 * 1024;
+function validateImageDimensions(width, height) {
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 || width * height > MAX_IMAGE_PIXELS) throw new RangeError("Image dimensions exceed the 4194304 pixel budget");
+}
+function copyRgbaImage(image) {
+  validateImageDimensions(image.width, image.height);
+  if (!(image.data instanceof Uint8Array) || image.data.byteLength !== image.width * image.height * 4) {
+    throw new RangeError("RGBA image data must contain exactly four bytes per pixel");
+  }
+  return Object.freeze({ width: image.width, height: image.height, data: new Uint8Array(image.data) });
+}
+var signature = [137, 80, 78, 71, 13, 10, 26, 10];
+var crcTable = Uint32Array.from({ length: 256 }, (_, value) => {
+  for (let bit = 0; bit < 8; bit++) value = value & 1 ? 3988292384 ^ value >>> 1 : value >>> 1;
+  return value >>> 0;
+});
+function crc32(bytes) {
+  let crc = 4294967295;
+  for (const byte of bytes) crc = crcTable[(crc ^ byte) & 255] ^ crc >>> 8;
+  return (crc ^ 4294967295) >>> 0;
+}
+function paeth(left, above, corner) {
+  const prediction = left + above - corner;
+  const a = Math.abs(prediction - left), b = Math.abs(prediction - above), c = Math.abs(prediction - corner);
+  return a <= b && a <= c ? left : b <= c ? above : corner;
+}
+function decodePng(bytes) {
+  if (bytes.byteLength > MAX_PNG_BYTES) throw new RangeError("PNG exceeds the 16 MiB encoded byte budget");
+  if (bytes.length < 33 || signature.some((byte, index) => bytes[index] !== byte)) throw new Error("Invalid PNG signature");
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let width = 0, height = 0, color = -1, channels = 0;
+  let palette;
+  let transparency;
+  const chunks = [];
+  let compressedLength = 0;
+  let sawData = false, dataEnded = false, ended = false;
+  let offset = 8;
+  while (offset < bytes.length) {
+    if (offset + 12 > bytes.length) throw new Error("Truncated PNG chunk");
+    const length = view.getUint32(offset);
+    const end = offset + 12 + length;
+    if (end > bytes.length) throw new Error("Truncated PNG chunk data");
+    const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8));
+    if (!/^[A-Za-z]{4}$/.test(type) || bytes[offset + 6] & 32) throw new Error("Invalid PNG chunk type");
+    if (crc32(bytes.subarray(offset + 4, end - 4)) !== view.getUint32(end - 4)) throw new Error("Invalid PNG chunk CRC");
+    const data = bytes.subarray(offset + 8, end - 4);
+    if (offset === 8 && type !== "IHDR") throw new Error("PNG header must be first");
+    if (sawData && type !== "IDAT") dataEnded = true;
+    switch (type) {
+      case "IHDR": {
+        if (width || length !== 13) throw new Error("Invalid or repeated PNG header");
+        width = view.getUint32(offset + 8);
+        height = view.getUint32(offset + 12);
+        validateImageDimensions(width, height);
+        color = data[9];
+        channels = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[color] ?? 0;
+        if (data[8] !== 8 || !channels || data[10] !== 0 || data[11] !== 0 || data[12] !== 0) {
+          throw new Error("Only noninterlaced 8-bit PNG images are supported");
+        }
+        break;
+      }
+      case "PLTE":
+        if (palette || sawData || color === 0 || color === 4 || !length || length > 768 || length % 3) {
+          throw new Error("Invalid PNG palette");
+        }
+        palette = data;
+        break;
+      case "tRNS":
+        if (transparency || sawData || (color === 0 ? length !== 2 : color === 2 ? length !== 6 : color === 3 ? !palette || !length || length > palette.length / 3 : true)) throw new Error("Invalid PNG transparency");
+        transparency = data;
+        break;
+      case "IDAT":
+        if (dataEnded || color === 3 && !palette) throw new Error("Invalid PNG image data order");
+        if (chunks.length >= 4096) throw new Error("PNG exceeds the image data chunk budget");
+        sawData = true;
+        compressedLength += length;
+        chunks.push(data);
+        break;
+      case "IEND":
+        if (length || !sawData || end !== bytes.length) throw new Error("Invalid PNG end chunk");
+        ended = true;
+        break;
+      default:
+        if (!(bytes[offset + 4] & 32)) throw new Error(`Unsupported critical PNG chunk: ${type}`);
+    }
+    offset = end;
+    if (ended) break;
+  }
+  if (!ended || !compressedLength) throw new Error("Incomplete PNG image");
+  const compressed = new Uint8Array(compressedLength);
+  let cursor = 0;
+  for (const chunk of chunks) {
+    compressed.set(chunk, cursor);
+    cursor += chunk.length;
+  }
+  const stride = width * channels;
+  const expectedLength = (stride + 1) * height;
+  const inflated = inflateSync(compressed, { maxOutputLength: expectedLength });
+  if (inflated.length !== expectedLength) throw new Error("Invalid PNG decoded size");
+  const pixels = new Uint8Array(width * height * 4);
+  const transparent = transparency ? new DataView(transparency.buffer, transparency.byteOffset, transparency.length) : null;
+  let previous = new Uint8Array(stride);
+  let row = new Uint8Array(stride);
+  for (let y = 0; y < height; y++) {
+    const start = y * (stride + 1);
+    const filter = inflated[start];
+    if (filter > 4) throw new Error("Invalid PNG row filter");
+    for (let x = 0; x < stride; x++) {
+      const left = x >= channels ? row[x - channels] : 0;
+      const above = previous[x], corner = x >= channels ? previous[x - channels] : 0;
+      const prediction = filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? above : filter === 3 ? Math.floor((left + above) / 2) : paeth(left, above, corner);
+      row[x] = inflated[start + 1 + x] + prediction & 255;
+    }
+    for (let x = 0; x < width; x++) {
+      const source = x * channels, dest = (y * width + x) * 4;
+      const red2 = row[source], green2 = row[source + 1], blue2 = row[source + 2];
+      if (color === 3) {
+        if (!palette || red2 * 3 + 2 >= palette.length) throw new Error("PNG palette index out of range");
+        pixels[dest] = palette[red2 * 3];
+        pixels[dest + 1] = palette[red2 * 3 + 1];
+        pixels[dest + 2] = palette[red2 * 3 + 2];
+        pixels[dest + 3] = transparency?.[red2] ?? 255;
+      } else {
+        pixels[dest] = red2;
+        pixels[dest + 1] = color === 0 || color === 4 ? red2 : green2;
+        pixels[dest + 2] = color === 0 || color === 4 ? red2 : blue2;
+        let alpha = color === 4 ? green2 : color === 6 ? row[source + 3] : 255;
+        if (transparent) {
+          if (color === 0 ? red2 === transparent.getUint16(0) : red2 === transparent.getUint16(0) && green2 === transparent.getUint16(2) && blue2 === transparent.getUint16(4)) {
+            alpha = 0;
+          }
+        }
+        pixels[dest + 3] = alpha;
+      }
+    }
+    const scratch = previous;
+    previous = row;
+    row = scratch;
+  }
+  return Object.freeze({ width, height, data: pixels });
+}
+
+// src/lib/kitty-image.ts
+import { randomInt } from "node:crypto";
+import { deflateSync } from "node:zlib";
+
+// src/lib/kitty-diacritics.ts
+var KITTY_DIACRITICS = Object.freeze([
+  773,
+  781,
+  782,
+  784,
+  786,
+  829,
+  830,
+  831,
+  838,
+  842,
+  843,
+  844,
+  848,
+  849,
+  850,
+  855,
+  859,
+  867,
+  868,
+  869,
+  870,
+  871,
+  872,
+  873,
+  874,
+  875,
+  876,
+  877,
+  878,
+  879,
+  1155,
+  1156,
+  1157,
+  1158,
+  1159,
+  1426,
+  1427,
+  1428,
+  1429,
+  1431,
+  1432,
+  1433,
+  1436,
+  1437,
+  1438,
+  1439,
+  1440,
+  1441,
+  1448,
+  1449,
+  1451,
+  1452,
+  1455,
+  1476,
+  1552,
+  1553,
+  1554,
+  1555,
+  1556,
+  1557,
+  1558,
+  1559,
+  1623,
+  1624,
+  1625,
+  1626,
+  1627,
+  1629,
+  1630,
+  1750,
+  1751,
+  1752,
+  1753,
+  1754,
+  1755,
+  1756,
+  1759,
+  1760,
+  1761,
+  1762,
+  1764,
+  1767,
+  1768,
+  1771,
+  1772,
+  1840,
+  1842,
+  1843,
+  1845,
+  1846,
+  1850,
+  1853,
+  1855,
+  1856,
+  1857,
+  1859,
+  1861,
+  1863,
+  1865,
+  1866,
+  2027,
+  2028,
+  2029,
+  2030,
+  2031,
+  2032,
+  2033,
+  2035,
+  2070,
+  2071,
+  2072,
+  2073,
+  2075,
+  2076,
+  2077,
+  2078,
+  2079,
+  2080,
+  2081,
+  2082,
+  2083,
+  2085,
+  2086,
+  2087,
+  2089,
+  2090,
+  2091,
+  2092,
+  2093,
+  2385,
+  2387,
+  2388,
+  3970,
+  3971,
+  3974,
+  3975,
+  4957,
+  4958,
+  4959,
+  6109,
+  6458,
+  6679,
+  6773,
+  6774,
+  6775,
+  6776,
+  6777,
+  6778,
+  6779,
+  6780,
+  7019,
+  7021,
+  7022,
+  7023,
+  7024,
+  7025,
+  7026,
+  7027,
+  7376,
+  7377,
+  7378,
+  7386,
+  7387,
+  7392,
+  7616,
+  7617,
+  7619,
+  7620,
+  7621,
+  7622,
+  7623,
+  7624,
+  7625,
+  7627,
+  7628,
+  7633,
+  7634,
+  7635,
+  7636,
+  7637,
+  7638,
+  7639,
+  7640,
+  7641,
+  7642,
+  7643,
+  7644,
+  7645,
+  7646,
+  7647,
+  7648,
+  7649,
+  7650,
+  7651,
+  7652,
+  7653,
+  7654,
+  7678,
+  8400,
+  8401,
+  8404,
+  8405,
+  8406,
+  8407,
+  8411,
+  8412,
+  8417,
+  8423,
+  8425,
+  8432,
+  11503,
+  11504,
+  11505,
+  11744,
+  11745,
+  11746,
+  11747,
+  11748,
+  11749,
+  11750,
+  11751,
+  11752,
+  11753,
+  11754,
+  11755,
+  11756,
+  11757,
+  11758,
+  11759,
+  11760,
+  11761,
+  11762,
+  11763,
+  11764,
+  11765,
+  11766,
+  11767,
+  11768,
+  11769,
+  11770,
+  11771,
+  11772,
+  11773,
+  11774,
+  11775,
+  42607,
+  42620,
+  42621,
+  42736,
+  42737,
+  43232,
+  43233,
+  43234,
+  43235,
+  43236,
+  43237,
+  43238,
+  43239,
+  43240,
+  43241,
+  43242,
+  43243,
+  43244,
+  43245,
+  43246,
+  43247,
+  43248,
+  43249,
+  43696,
+  43698,
+  43699,
+  43703,
+  43704,
+  43710,
+  43711,
+  43713,
+  65056,
+  65057,
+  65058,
+  65059,
+  65060,
+  65061,
+  65062,
+  68111,
+  68152,
+  119173,
+  119174,
+  119175,
+  119176,
+  119177,
+  119210,
+  119211,
+  119212,
+  119213,
+  119362,
+  119363,
+  119364
+].map((value) => String.fromCodePoint(value)));
+
+// src/lib/kitty-image.ts
+var KITTY_PLACEHOLDER = "\u{10EEEE}";
+var MAX_KITTY_CELLS = KITTY_DIACRITICS.length;
+var sessions = /* @__PURE__ */ new WeakMap();
+var allocatedIds = /* @__PURE__ */ new Set();
+var encoder = new TextEncoder();
+function supportsKittyPlaceholders(capabilities, explicit = false) {
+  if (!capabilities?.kitty_graphics || !capabilities.rgb || capabilities.multiplexer !== "none") return false;
+  if (explicit) return true;
+  const version = /^(\d+)\.(\d+)/.exec(capabilities.terminal.version);
+  return capabilities.terminal.name.toLowerCase() === "kitty" && !!version && (Number(version[1]) > 0 || Number(version[2]) >= 28);
+}
+function kittyPlaceholder(id, row, column) {
+  if (!Number.isInteger(id) || id < 1 || id > 4294967295 || !Number.isInteger(row) || !Number.isInteger(column) || row < 0 || column < 0 || row >= MAX_KITTY_CELLS || column >= MAX_KITTY_CELLS) {
+    throw new RangeError("Invalid Kitty placeholder coordinates or image ID");
+  }
+  return KITTY_PLACEHOLDER + KITTY_DIACRITICS[row] + KITTY_DIACRITICS[column] + KITTY_DIACRITICS[id >>> 24];
+}
+function encodeKittyImage(image, id, columns, rows) {
+  kittyPlaceholder(id, rows - 1, columns - 1);
+  const payload = deflateSync(image.data, { level: 3 }).toString("base64");
+  const sequences = [];
+  for (let offset = 0; offset < payload.length; offset += 4096) {
+    const more = offset + 4096 < payload.length ? 1 : 0;
+    const controls = offset === 0 ? `a=t,f=32,o=z,t=d,s=${image.width},v=${image.height},i=${id},q=2,m=${more}` : `m=${more}`;
+    sequences.push(`\x1B_G${controls};${payload.slice(offset, offset + 4096)}\x1B\\`);
+  }
+  sequences.push(`\x1B_Ga=p,U=1,i=${id},c=${columns},r=${rows},q=2\x1B\\`);
+  return encoder.encode(sequences.join(""));
+}
+var KittyImageSession = class _KittyImageSession {
+  constructor(context) {
+    this.context = context;
+    context.on("frame", this.flushRetired);
+    context.on("capabilities", this.invalidate);
+    context.once("destroy", this.dispose);
+  }
+  context;
+  ids = /* @__PURE__ */ new Set();
+  retired = /* @__PURE__ */ new Set();
+  disposed = false;
+  invalidate = () => {
+    this.context.requestRender();
+  };
+  static forContext(context) {
+    let session = sessions.get(context);
+    if (!session) {
+      session = new _KittyImageSession(context);
+      sessions.set(context, session);
+    }
+    return session;
+  }
+  allocate() {
+    if (this.disposed || this.ids.size >= 256) return null;
+    let id;
+    do {
+      id = randomInt(1, 4294967296);
+    } while (allocatedIds.has(id));
+    allocatedIds.add(id);
+    this.ids.add(id);
+    return id;
+  }
+  retire(id) {
+    if (this.disposed || !this.ids.has(id)) return;
+    this.retired.add(id);
+    this.context.requestRender();
+  }
+  flushRetired = () => {
+    for (const id of [...this.retired]) {
+      if (!this.context.queueTerminalControl?.(encoder.encode(`\x1B_Ga=d,d=I,i=${id},q=2\x1B\\`))) break;
+      this.retired.delete(id);
+      this.ids.delete(id);
+      allocatedIds.delete(id);
+    }
+  };
+  dispose = () => {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const id of this.ids) {
+      this.context.queueTerminalControl?.(encoder.encode(`\x1B_Ga=d,d=I,i=${id},q=2\x1B\\`));
+      allocatedIds.delete(id);
+    }
+    this.ids.clear();
+    this.retired.clear();
+    this.context.off("frame", this.flushRetired);
+    this.context.off("capabilities", this.invalidate);
+    this.context.off("destroy", this.dispose);
+    sessions.delete(this.context);
+  };
+};
+
+// src/renderables/Image.ts
+var ImageRenderable = class extends Renderable {
+  _source;
+  pixels = null;
+  controller;
+  loadGeneration = 0;
+  placement = null;
+  _alt;
+  _fit;
+  _protocol;
+  _cellAspectRatio;
+  _backgroundColor;
+  kittySession;
+  onLoad;
+  onError;
+  loadPromise = Promise.resolve();
+  loadError = null;
+  constructor(context, options = {}) {
+    const fit = options.fit ?? "contain", protocol = options.protocol ?? "auto";
+    const aspect = options.cellAspectRatio ?? 2;
+    if (!["contain", "cover", "fill"].includes(fit) || !["auto", "kitty", "blocks"].includes(protocol) || !Number.isFinite(aspect) || aspect <= 0 || aspect > 100) throw new RangeError("Invalid image display options");
+    super(context, { width: 40, height: 12, ...options, buffered: true });
+    this._alt = this.cleanAlt(options.alt ?? "Image unavailable");
+    this._fit = fit;
+    this._protocol = protocol;
+    this._cellAspectRatio = aspect;
+    this._backgroundColor = RGBA.clone(parseColor(options.backgroundColor ?? "black"));
+    this.onLoad = options.onLoad;
+    this.onError = options.onError;
+    this.kittySession = KittyImageSession.forContext(context);
+    if (options.source !== void 0) this.source = options.source;
+  }
+  cleanAlt(text) {
+    return stripAnsiSequences(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
+  }
+  get source() {
+    return this._source;
+  }
+  set source(source) {
+    if (this.isDestroyed) return;
+    const generation = ++this.loadGeneration;
+    const previous = this.controller;
+    this.controller = void 0;
+    previous?.abort();
+    if (this.isDestroyed || this.loadGeneration !== generation) return;
+    this._source = source;
+    this.pixels = null;
+    this.loadError = null;
+    this.retirePlacement();
+    this.requestRender();
+    if (source === void 0) {
+      this.loadPromise = Promise.resolve();
+      return;
+    }
+    const controller = new AbortController();
+    this.controller = controller;
+    let snapshot2;
+    let snapshotError;
+    try {
+      if (source instanceof Uint8Array && source.length > MAX_PNG_BYTES) {
+        throw new RangeError("PNG exceeds the 16 MiB encoded byte budget");
+      }
+      snapshot2 = typeof source === "function" ? void 0 : source instanceof Uint8Array ? source.slice() : copyRgbaImage(source);
+    } catch (error) {
+      snapshotError = error;
+    }
+    this.loadPromise = (async () => {
+      await Promise.resolve();
+      try {
+        if (snapshotError) throw snapshotError;
+        const value = typeof source === "function" ? await source(controller.signal) : snapshot2;
+        if (controller.signal.aborted || this.isDestroyed || this.controller !== controller) return;
+        this.pixels = value instanceof Uint8Array ? decodePng(value) : copyRgbaImage(value);
+        this.requestRender();
+        this.onLoad?.();
+      } catch (error) {
+        if (controller.signal.aborted || this.isDestroyed || this.controller !== controller) return;
+        this.pixels = null;
+        this.loadError = error;
+        this.requestRender();
+        this.onError?.(error);
+        throw error;
+      } finally {
+        if (this.controller === controller) this.controller = void 0;
+      }
+    })();
+    void this.loadPromise.catch(() => {
+    });
+  }
+  get alt() {
+    return this._alt;
+  }
+  set alt(value) {
+    if (!this.isDestroyed) {
+      this._alt = this.cleanAlt(value);
+      this.requestRender();
+    }
+  }
+  get fit() {
+    return this._fit;
+  }
+  set fit(value) {
+    if (!["contain", "cover", "fill"].includes(value)) throw new RangeError("Invalid image fit");
+    if (!this.isDestroyed && value !== this._fit) {
+      this._fit = value;
+      this.retirePlacement();
+      this.requestRender();
+    }
+  }
+  get protocol() {
+    return this._protocol;
+  }
+  set protocol(value) {
+    if (!["auto", "kitty", "blocks"].includes(value)) throw new RangeError("Invalid image protocol");
+    if (!this.isDestroyed && value !== this._protocol) {
+      this._protocol = value;
+      this.retirePlacement();
+      this.requestRender();
+    }
+  }
+  get cellAspectRatio() {
+    return this._cellAspectRatio;
+  }
+  set cellAspectRatio(value) {
+    if (!Number.isFinite(value) || value <= 0 || value > 100) throw new RangeError("Invalid image cell aspect ratio");
+    if (!this.isDestroyed) {
+      this._cellAspectRatio = value;
+      this.retirePlacement();
+      this.requestRender();
+    }
+  }
+  get backgroundColor() {
+    return RGBA.clone(this._backgroundColor);
+  }
+  set backgroundColor(value) {
+    if (!this.isDestroyed) {
+      this._backgroundColor = RGBA.clone(parseColor(value));
+      this.requestRender();
+    }
+  }
+  get effectiveProtocol() {
+    if (this._protocol === "blocks" || this._fit !== "contain" || !this._ctx.queueTerminalControl || this._ctx.allowKittyImages === false || this.width > MAX_KITTY_CELLS || this.height > MAX_KITTY_CELLS || !supportsKittyPlaceholders(this._ctx.capabilities, this._protocol === "kitty")) return "blocks";
+    for (let node = this; node; node = node.parent instanceof Renderable ? node.parent : null) {
+      if (node.opacity !== 1) return "blocks";
+    }
+    return "kitty";
+  }
+  retirePlacement() {
+    if (!this.placement) return;
+    this.kittySession.retire(this.placement.id);
+    this.placement = null;
+  }
+  renderSelf(buffer) {
+    buffer.clear(this._backgroundColor);
+    const image = this.pixels;
+    if (!image) {
+      buffer.drawText(this._alt, 0, 0, RGBA.fromInts(180, 180, 180), this._backgroundColor);
+      return;
+    }
+    const scale = this._fit === "fill" ? 0 : (this._fit === "contain" ? Math.min : Math.max)(
+      this.width / image.width,
+      this.height * this._cellAspectRatio / image.height
+    );
+    const width = this._fit === "fill" ? this.width : Math.max(1, Math.round(image.width * scale));
+    const height = this._fit === "fill" ? this.height : Math.max(
+      1,
+      Math.round(image.height * scale / this._cellAspectRatio)
+    );
+    const left = Math.floor((this.width - width) / 2), top = Math.floor((this.height - height) / 2);
+    if (this.effectiveProtocol === "kitty" && width <= MAX_KITTY_CELLS && height <= MAX_KITTY_CELLS) {
+      const epoch = this._ctx.terminalControlEpoch ?? 0;
+      if (this.placement && (this.placement.width !== width || this.placement.height !== height || this.placement.epoch !== epoch)) this.retirePlacement();
+      if (!this.placement) {
+        const id = this.kittySession.allocate();
+        if (id !== null) this.placement = { id, width, height, epoch, bytes: encodeKittyImage(image, id, width, height) };
+      }
+      const placement = this.placement;
+      if (placement && (!placement.bytes || this._ctx.queueTerminalControl(placement.bytes))) {
+        placement.bytes = null;
+        const color = RGBA.fromInts(placement.id >>> 16 & 255, placement.id >>> 8 & 255, placement.id & 255);
+        for (let y = 0; y < height; y++) {
+          let row = "";
+          for (let x = 0; x < width; x++) row += kittyPlaceholder(placement.id, y, x);
+          buffer.drawText(row, left, top + y, color, this._backgroundColor);
+        }
+        return;
+      }
+      if (placement) this.requestRender();
+    } else {
+      this.retirePlacement();
+    }
+    const background = this._backgroundColor.toInts();
+    const sample = (x, y) => {
+      const sx = Math.min(image.width - 1, Math.max(0, Math.floor(x * image.width / width)));
+      const sy = Math.min(image.height - 1, Math.max(0, Math.floor(y * image.height / (height * 2))));
+      const offset = (sy * image.width + sx) * 4;
+      const alpha = image.data[offset + 3] / 255;
+      return RGBA.fromInts(
+        image.data[offset] * alpha + background[0] * (1 - alpha),
+        image.data[offset + 1] * alpha + background[1] * (1 - alpha),
+        image.data[offset + 2] * alpha + background[2] * (1 - alpha)
+      );
+    };
+    for (let y = Math.max(0, top); y < Math.min(this.height, top + height); y++) {
+      for (let x = Math.max(0, left); x < Math.min(this.width, left + width); x++) {
+        const upper = sample(x - left, (y - top) * 2), lower = sample(x - left, (y - top) * 2 + 1);
+        buffer.setCell(x, y, "\u2580", upper, lower);
+      }
+    }
+  }
+  destroySelf() {
+    this.loadGeneration++;
+    const controller = this.controller;
+    this.controller = void 0;
+    controller?.abort();
+    this.retirePlacement();
+    this.pixels = null;
+    this._source = void 0;
+    super.destroySelf();
+  }
+};
+
 // src/lib/autocomplete.ts
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -10971,10 +11734,10 @@ var Keymap = class _Keymap {
         throw new TypeError("Keymap bindings need unique nonempty IDs and 1 to 16 chords");
       }
       const chords = keys.map(parseChord);
-      const signature = JSON.stringify(chords);
-      if (sequences.has(signature)) throw new TypeError("Duplicate keymap sequence in one layer");
+      const signature2 = JSON.stringify(chords);
+      if (sequences.has(signature2)) throw new TypeError("Duplicate keymap sequence in one layer");
       ids.add(binding.id);
-      sequences.add(signature);
+      sequences.add(signature2);
       return {
         info: {
           id: binding.id,
@@ -11004,15 +11767,15 @@ var Keymap = class _Keymap {
     if (this.disposed || !this.layers.includes(layer)) return -1;
     const target = layer.options.target;
     if (!target) return Number.MAX_SAFE_INTEGER;
-    let attached = false;
+    let attached2 = false;
     for (let node = target; node; node = node.parent instanceof Renderable ? node.parent : null) {
       if (node.isDestroyed || !node.visible) return -1;
       if (node === this.renderer.root) {
-        attached = true;
+        attached2 = true;
         break;
       }
     }
-    if (!attached) return -1;
+    if (!attached2) return -1;
     let distance = 0;
     for (let node = this.renderer.currentFocusedRenderable; node; node = node.parent instanceof Renderable ? node.parent : null) {
       if (node === target) return distance;
@@ -11110,6 +11873,437 @@ var Keymap = class _Keymap {
 function getKeymap(renderer, options) {
   return Keymap.forRenderer(renderer, options);
 }
+
+// src/lib/focus.ts
+var managers3 = /* @__PURE__ */ new WeakMap();
+function contains3(root, node) {
+  for (; node; node = node.parent instanceof Renderable ? node.parent : null) {
+    if (node === root) return true;
+  }
+  return false;
+}
+var FocusManager = class _FocusManager {
+  constructor(renderer) {
+    this.renderer = renderer;
+    getKeymap(renderer);
+    renderer.keyInput.on("keypress", this.dispatch);
+    renderer.once("destroy", this.dispose);
+  }
+  renderer;
+  scopes = [];
+  disposed = false;
+  moving = false;
+  serial = 0;
+  static forRenderer(renderer) {
+    if (renderer.isDestroyed) throw new Error("Cannot navigate focus on a destroyed renderer");
+    let manager = managers3.get(renderer);
+    if (!manager) {
+      manager = new _FocusManager(renderer);
+      managers3.set(renderer, manager);
+    }
+    return manager;
+  }
+  registerScope(root, options = {}) {
+    if (this.disposed || root.isDestroyed || root.ctx !== this.renderer) {
+      throw new Error("Focus scope must belong to this live renderer");
+    }
+    const order = [...options.order ?? []];
+    if (new Set(order).size !== order.length || order.some((node) => !contains3(root, node))) {
+      throw new Error("Focus order must contain unique descendants of the scope");
+    }
+    const scope = { root, options: { ...options, order }, serial: ++this.serial, remove: () => {
+    } };
+    scope.remove = () => {
+      this.scopes = this.scopes.filter((candidate) => candidate !== scope);
+      root.off("destroyed" /* DESTROYED */, scope.remove);
+    };
+    this.scopes.push(scope);
+    root.once("destroyed" /* DESTROYED */, scope.remove);
+    return scope.remove;
+  }
+  attached(node) {
+    for (let ancestor = node; ancestor; ancestor = ancestor.parent instanceof Renderable ? ancestor.parent : null) {
+      if (ancestor.isDestroyed || !ancestor.visible) return false;
+      if (ancestor === this.renderer.root) return true;
+    }
+    return false;
+  }
+  candidates(scope) {
+    const nodes = [];
+    const visit = (node) => {
+      if (node.isDestroyed || !node.visible) return;
+      if (node.focusable) nodes.push(node);
+      for (const child of node.getChildren()) visit(child);
+    };
+    visit(scope.root);
+    const order = new Map(scope.options.order?.map((node, index) => [node, index]));
+    return nodes.sort((a, b) => (order.get(a) ?? Infinity) - (order.get(b) ?? Infinity));
+  }
+  focusNext() {
+    return this.move(1);
+  }
+  focusPrevious() {
+    return this.move(-1);
+  }
+  move(direction) {
+    if (this.disposed || this.moving || this.renderer.isDestroyed) return false;
+    this.moving = true;
+    try {
+      const initialFocus = this.renderer.currentFocusedRenderable;
+      const active = [...this.scopes].filter((scope) => {
+        const enabled = scope.options.enabled?.() !== false;
+        return enabled && !this.disposed && this.scopes.includes(scope) && this.attached(scope.root);
+      });
+      if (this.disposed || this.renderer.currentFocusedRenderable !== initialFocus) return false;
+      const current = this.renderer.currentFocusedRenderable;
+      const modal = active.findLast((scope) => scope.options.modal);
+      const depth = (scope) => {
+        let count = 0;
+        for (let node = scope.root.parent; node; node = node.parent) count++;
+        return count;
+      };
+      const scopes = modal ? [modal] : active.filter((scope) => !current || contains3(scope.root, current)).sort((a, b) => depth(b) - depth(a) || b.serial - a.serial);
+      for (const scope of scopes) {
+        if (!this.scopes.includes(scope) || !this.attached(scope.root)) continue;
+        const nodes = this.candidates(scope);
+        if (!nodes.length) continue;
+        const index = current ? nodes.indexOf(current) : -1;
+        let next = index < 0 ? direction === 1 ? 0 : nodes.length - 1 : index + direction;
+        const wraps = scope.options.modal || scope.root === this.renderer.root;
+        if (next < 0 || next >= nodes.length) {
+          if (!wraps) continue;
+          next = (next + nodes.length) % nodes.length;
+        }
+        const target = nodes[next];
+        if (target === current) return !!scope.options.modal;
+        if (!this.scopes.includes(scope) || !this.attached(target) || !target.focusable) continue;
+        target.focus();
+        return this.renderer.currentFocusedRenderable !== current;
+      }
+      return false;
+    } finally {
+      this.moving = false;
+    }
+  }
+  dispatch = (event) => {
+    if (event.defaultPrevented || event.propagationStopped || event.eventType === "release" || event.name !== "tab" || event.ctrl || event.meta || event.super || event.hyper) return;
+    if (event.shift ? this.focusPrevious() : this.focusNext()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+  dispose = () => {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const scope of [...this.scopes]) scope.remove();
+    this.renderer.keyInput.off("keypress", this.dispatch);
+    this.renderer.off("destroy", this.dispose);
+    managers3.delete(this.renderer);
+  };
+};
+function getFocusManager(renderer) {
+  return FocusManager.forRenderer(renderer);
+}
+
+// src/lib/commands.ts
+import { EventEmitter as EventEmitter2 } from "node:events";
+var registries = /* @__PURE__ */ new WeakMap();
+function plainLine2(value) {
+  return stripAnsiSequences(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ").trim();
+}
+function attached(renderer, node) {
+  for (let ancestor = node; ancestor; ancestor = ancestor.parent instanceof Renderable ? ancestor.parent : null) {
+    if (ancestor.isDestroyed || !ancestor.visible) return false;
+    if (ancestor === renderer.root) return true;
+  }
+  return false;
+}
+function captureCommandContext(renderer) {
+  return Object.freeze({ renderer, focused: renderer.currentFocusedRenderable });
+}
+var CommandRegistry = class _CommandRegistry extends EventEmitter2 {
+  constructor(renderer) {
+    super();
+    this.renderer = renderer;
+    renderer.once("destroy", this.dispose);
+  }
+  renderer;
+  commands = /* @__PURE__ */ new Map();
+  disposed = false;
+  static forRenderer(renderer) {
+    if (renderer.isDestroyed) throw new Error("Cannot register commands on a destroyed renderer");
+    let registry = registries.get(renderer);
+    if (!registry) {
+      registry = new _CommandRegistry(renderer);
+      registries.set(renderer, registry);
+    }
+    return registry;
+  }
+  register(command, target) {
+    if (this.disposed || this.renderer.isDestroyed) throw new Error("Command registry is disposed");
+    if (!command.id || command.id !== plainLine2(command.id) || !plainLine2(command.title) || typeof command.run !== "function" || this.commands.has(command.id)) {
+      throw new Error("Commands require a unique nonempty ID, title and handler");
+    }
+    if (target && (target.isDestroyed || target.ctx !== this.renderer)) {
+      throw new Error("Command target must belong to this live renderer");
+    }
+    const definition = {
+      ...command,
+      title: plainLine2(command.title),
+      description: plainLine2(command.description ?? ""),
+      keywords: command.keywords?.map(plainLine2)
+    };
+    const registration = { definition, target, remove: () => {
+    } };
+    registration.remove = () => {
+      if (this.commands.get(definition.id) !== registration) return;
+      this.commands.delete(definition.id);
+      target?.off("destroyed" /* DESTROYED */, registration.remove);
+      this.emit("change");
+    };
+    this.commands.set(command.id, registration);
+    target?.once("destroyed" /* DESTROYED */, registration.remove);
+    this.emit("change");
+    return registration.remove;
+  }
+  validContext(context) {
+    return context.renderer === this.renderer && !this.renderer.isDestroyed && (!context.focused || attached(this.renderer, context.focused));
+  }
+  enabled(registration, context) {
+    if (registration.target && !attached(this.renderer, registration.target)) return false;
+    const enabled = registration.definition.enabled?.(context) !== false;
+    return enabled && !this.disposed && this.validContext(context) && this.commands.get(registration.definition.id) === registration && (!registration.target || attached(this.renderer, registration.target));
+  }
+  search(query = "", context = captureCommandContext(this.renderer)) {
+    if (this.disposed || !this.validContext(context)) return [];
+    const needle = Array.from(plainLine2(query).normalize("NFKC").toLowerCase()).slice(0, 256);
+    const entries = [];
+    for (const registration of [...this.commands.values()]) {
+      const { definition } = registration;
+      let enabled = false;
+      try {
+        enabled = this.enabled(registration, context);
+      } catch {
+      }
+      if (this.disposed || this.commands.get(definition.id) !== registration) continue;
+      const haystack = Array.from([
+        definition.title,
+        definition.id,
+        definition.description,
+        ...definition.keywords ?? []
+      ].join(" ").normalize("NFKC").toLowerCase());
+      let cursor = 0;
+      let score = 0;
+      let matches2 = true;
+      for (const character of needle) {
+        const found = haystack.indexOf(character, cursor);
+        if (found < 0) {
+          matches2 = false;
+          break;
+        }
+        score += found - cursor;
+        cursor = found + 1;
+      }
+      if (!matches2) continue;
+      const metadata = Object.freeze({
+        id: definition.id,
+        title: definition.title,
+        description: definition.description ?? "",
+        keywords: Object.freeze([...definition.keywords ?? []]),
+        enabled
+      });
+      entries.push({ metadata, score, index: entries.length });
+    }
+    return Object.freeze(entries.sort((a, b) => a.score - b.score || a.index - b.index).map(({ metadata }) => metadata));
+  }
+  async execute(id, context = captureCommandContext(this.renderer)) {
+    if (this.disposed) return { status: "disposed" };
+    if (!this.validContext(context)) return { status: "stale-context" };
+    const registration = this.commands.get(id);
+    if (!registration) return { status: "not-found" };
+    try {
+      if (!this.enabled(registration, context)) return { status: "disabled" };
+      await registration.definition.run(context);
+      return { status: "executed" };
+    } catch (error) {
+      return { status: "error", error };
+    }
+  }
+  dispose = () => {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const registration of [...this.commands.values()]) registration.remove();
+    this.renderer.off("destroy", this.dispose);
+    registries.delete(this.renderer);
+    this.removeAllListeners();
+  };
+};
+function getCommandRegistry(renderer) {
+  return CommandRegistry.forRenderer(renderer);
+}
+
+// src/lib/command-palette.ts
+function showCommandPalette(renderer, options = {}) {
+  const registry = options.registry ?? getCommandRegistry(renderer);
+  if (registry.renderer !== renderer || renderer.isDestroyed) {
+    throw new Error("Command palette requires a registry belonging to this live renderer");
+  }
+  const context = captureCommandContext(renderer);
+  const content = new BoxRenderable(renderer, {
+    width: "100%",
+    height: "100%",
+    flexDirection: "column",
+    border: true,
+    backgroundColor: "#161b22"
+  });
+  let input;
+  let list;
+  let empty;
+  let overlay;
+  let removeKeys = () => {
+  };
+  let removeScope = () => {
+  };
+  let closed = false;
+  let executing = false;
+  let settled = false;
+  let refreshing = false;
+  let entries = [];
+  let selectedId = null;
+  const completion = Promise.withResolvers();
+  const finish = (result) => {
+    if (settled) return;
+    settled = true;
+    completion.resolve(result);
+  };
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    registry.off("change", refresh);
+    removeKeys();
+    removeScope();
+    input?.off("input" /* INPUT */, refresh);
+    content.off("destroyed" /* DESTROYED */, close);
+    input?.off("destroyed" /* DESTROYED */, close);
+    try {
+      overlay?.close();
+    } finally {
+      content.destroyRecursively();
+      if (!executing) finish(null);
+    }
+  };
+  function refresh() {
+    if (closed || refreshing) return;
+    refreshing = true;
+    try {
+      entries = registry.search(input.value, context);
+      if (closed || content.isDestroyed) return;
+      if (!entries.some((entry) => entry.id === selectedId)) selectedId = entries[0]?.id ?? null;
+      const rows = entries.map((command) => ({ command, selected: command.id === selectedId }));
+      list.items = rows;
+      empty.visible = rows.length === 0;
+      list.visible = rows.length > 0;
+      const index = entries.findIndex((entry) => entry.id === selectedId);
+      if (index >= 0) list.scrollToIndex(index);
+    } finally {
+      refreshing = false;
+    }
+  }
+  const select = (direction) => {
+    if (closed || !entries.length) return;
+    const index = entries.findIndex((entry) => entry.id === selectedId);
+    selectedId = entries[(index + direction + entries.length) % entries.length].id;
+    refresh();
+  };
+  const executeSelected = async () => {
+    if (closed || executing || !selectedId) return null;
+    const id = selectedId;
+    const entry = entries.find((candidate) => candidate.id === id);
+    if (!entry?.enabled) return { status: "disabled" };
+    executing = true;
+    try {
+      close();
+      const result = await registry.execute(id, context);
+      finish(result);
+      return result;
+    } catch (error) {
+      const result = { status: "error", error };
+      finish(result);
+      return result;
+    }
+  };
+  try {
+    input = new InputRenderable(renderer, {
+      width: "100%",
+      value: options.query ?? "",
+      maxLength: 256,
+      placeholder: options.placeholder ?? "Search commands..."
+    });
+    content.add(input);
+    list = new VirtualListRenderable(renderer, {
+      width: "100%",
+      flexGrow: 1,
+      minHeight: 0,
+      items: [],
+      getKey: (row) => row.command.id,
+      estimateHeight: 1,
+      renderItem: (row, _index, ctx) => new TextRenderable(ctx, {
+        height: 1,
+        width: "100%",
+        wrapMode: "none",
+        content: `${row.selected ? ">" : " "} ${row.command.title}${row.command.enabled ? "" : " (unavailable)"}`,
+        fg: row.command.enabled ? "#ffffff" : "#8b949e",
+        bg: row.selected ? "#264f78" : "transparent",
+        onMouseDown() {
+          if (!closed) {
+            selectedId = row.command.id;
+            refresh();
+          }
+        }
+      })
+    });
+    content.add(list);
+    empty = new TextRenderable(renderer, { height: 1, content: options.emptyText ?? "No matching commands." });
+    content.add(empty);
+    content.once("destroyed" /* DESTROYED */, close);
+    input.once("destroyed" /* DESTROYED */, close);
+    input.on("input" /* INPUT */, refresh);
+    registry.on("change", refresh);
+    overlay = getOverlayManager(renderer).show(content, {
+      width: 64,
+      height: 12,
+      margin: 1,
+      ...options.overlay,
+      focus: input
+    });
+    removeScope = getFocusManager(renderer).registerScope(content, { modal: true });
+    removeKeys = getKeymap(renderer).register({ target: content, priority: 1e3, bindings: [
+      { id: "palette.next", keys: "down", handler: () => select(1) },
+      { id: "palette.previous", keys: "up", handler: () => select(-1) },
+      { id: "palette.execute", keys: "enter", handler: () => {
+        void executeSelected();
+      } },
+      { id: "palette.close", keys: "escape", handler: close }
+    ] });
+    refresh();
+  } catch (error) {
+    close();
+    throw error;
+  }
+  return {
+    input,
+    get selectedId() {
+      return selectedId;
+    },
+    result: completion.promise,
+    setQuery(query) {
+      if (!closed) input.value = query;
+    },
+    refresh,
+    executeSelected,
+    close
+  };
+}
 export {
   ACHROMATOPSIA_MATRIX,
   ASCIIFont,
@@ -11132,6 +12326,7 @@ export {
   CloudsEffect,
   Code,
   CodeRenderable,
+  CommandRegistry,
   ConsolePosition,
   DEFAULT_BACKGROUND_RGB,
   DEFAULT_FOREGROUND_RGB,
@@ -11147,12 +12342,14 @@ export {
   EditorView,
   ExtmarksController,
   FlamesEffect,
+  FocusManager,
   FrameBuffer,
   FrameBufferRenderable,
   GRAYSCALE_MATRIX,
   GREENSCALE_MATRIX,
   Generic,
   INVERT_MATRIX,
+  ImageRenderable,
   Input,
   InputRenderable,
   InputRenderableEvents,
@@ -11165,6 +12362,8 @@ export {
   LineNumberRenderable,
   LinearScrollAccel,
   LogLevel,
+  MAX_IMAGE_PIXELS,
+  MAX_PNG_BYTES,
   MacOSScrollAccel,
   MarkdownRenderable,
   MouseButton,
@@ -11265,11 +12464,13 @@ export {
   buildKittyKeyboardFlags,
   buildTerminalPaletteSignature,
   capture,
+  captureCommandContext,
   clearEnvCache,
   combineAutocompleteProviders,
   convertGlobalToLocalSelection,
   convertThemeToStyles,
   coordinateToCharacterIndex,
+  copyRgbaImage,
   createCliRenderer,
   createCoreSlotRegistry,
   createExtmarksController,
@@ -11283,6 +12484,7 @@ export {
   createTimeline,
   cyan,
   decodePasteBytes,
+  decodePng,
   defaultTextareaKeyBindings,
   delegate,
   destroyTreeSitterClient,
@@ -11302,8 +12504,10 @@ export {
   getBorderFromSides,
   getBorderSides,
   getCharacterPositions,
+  getCommandRegistry,
   getDataPaths,
   getEditorAutocompleteRequest,
+  getFocusManager,
   getKeymap,
   getLinkId,
   getOverlayManager,
@@ -11360,6 +12564,7 @@ export {
   rgbToHex,
   setRenderLibPath,
   setupAudio,
+  showCommandPalette,
   strikethrough,
   stringToStyledText,
   stripAnsiSequences,
@@ -11368,6 +12573,7 @@ export {
   treeSitterToStyledText,
   treeSitterToTextChunks,
   underline,
+  validateImageDimensions,
   visualizeRenderableTree,
   vstyles,
   white,

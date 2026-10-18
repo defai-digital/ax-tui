@@ -17,14 +17,14 @@ beforeEach(() => {
 })
 
 test("matching AX TUI native ABI closes the probe", () => {
-  backend.version.mockReturnValue(2)
+  backend.version.mockReturnValue(3)
   expect(() => verifyNativeAbi("native-library")).not.toThrow()
   expect(backend.close).toHaveBeenCalledOnce()
 })
 
 test("an incompatible AX TUI library is rejected before binding renderer functions", () => {
   backend.version.mockReturnValue(1)
-  expect(() => verifyNativeAbi("native-library")).toThrow("expected 2, received 1")
+  expect(() => verifyNativeAbi("native-library")).toThrow("expected 3, received 1")
   expect(backend.close).toHaveBeenCalledOnce()
 })
 
