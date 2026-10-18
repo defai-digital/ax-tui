@@ -184,6 +184,9 @@ export class DiffRenderable extends Renderable {
     }
 
     if (!this._parsedDiff || this._parsedDiff.hunks.length === 0) {
+      // Nothing to render: tear down panes built for the previous diff so
+      // clearing the diff does not leave stale content on screen.
+      this.clearViewRenderables()
       return
     }
 
@@ -482,6 +485,18 @@ export class DiffRenderable extends Renderable {
 
   private lineColorConfig(gutter: RGBA, override: RGBA | null, fallback: RGBA): LineColorConfig {
     return { gutter, content: override ?? fallback }
+  }
+
+  private clearViewRenderables(): void {
+    this.removeErrorRenderables()
+    if (this.leftSide && this.leftSideAdded) {
+      super.remove(this.leftSide.id)
+      this.leftSideAdded = false
+    }
+    if (this.rightSide && this.rightSideAdded) {
+      super.remove(this.rightSide.id)
+      this.rightSideAdded = false
+    }
   }
 
   private removeErrorRenderables(): void {

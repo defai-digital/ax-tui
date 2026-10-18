@@ -3969,6 +3969,7 @@ var DiffRenderable = class extends Renderable {
       return;
     }
     if (!this._parsedDiff || this._parsedDiff.hunks.length === 0) {
+      this.clearViewRenderables();
       return;
     }
     if (this._view === "unified") {
@@ -4220,6 +4221,17 @@ var DiffRenderable = class extends Renderable {
   }
   lineColorConfig(gutter, override, fallback) {
     return { gutter, content: override ?? fallback };
+  }
+  clearViewRenderables() {
+    this.removeErrorRenderables();
+    if (this.leftSide && this.leftSideAdded) {
+      super.remove(this.leftSide.id);
+      this.leftSideAdded = false;
+    }
+    if (this.rightSide && this.rightSideAdded) {
+      super.remove(this.rightSide.id);
+      this.rightSideAdded = false;
+    }
   }
   removeErrorRenderables() {
     for (const errorRenderable of [this.errorTextRenderable, this.errorCodeRenderable]) {

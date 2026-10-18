@@ -397,3 +397,38 @@ try {
 }
 `)
 })
+
+test.skipIf(!supportsFfi)("clearing a diff removes the previously rendered panes", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal } from "solid-js"
+import { testRender } from "ax-tui/solid"
+
+const sampleDiff = [
+  "--- a/file.txt",
+  "+++ b/file.txt",
+  "@@ -1,3 +1,3 @@",
+  " line1",
+  "-old line2",
+  "+new line2",
+  " line3",
+].join("\\n")
+
+const [diff, setDiff] = createSignal(sampleDiff)
+const setup = await testRender(
+  () => <diff diff={diff()} width={60} height={8} />,
+  { width: 60, height: 8, useKittyKeyboard: null },
+)
+try {
+  await setup.renderOnce()
+  assert.ok(setup.captureCharFrame().includes("old line2"), "diff did not render initially")
+
+  setDiff("")
+  await setup.renderOnce()
+  const frame = setup.captureCharFrame()
+  assert.ok(!frame.includes("old line2"), "stale diff panes remain after clearing:\\n" + frame)
+} finally {
+  setup.renderer.destroy()
+}
+`)
+})
