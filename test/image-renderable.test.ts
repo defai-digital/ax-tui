@@ -27,6 +27,22 @@ process.stdout.write("AX_IMAGE_SCENARIO_COMPLETE")
   expect(result.stdout, result.stderr).toContain("AX_IMAGE_SCENARIO_COMPLETE")
 }
 
+test.skipIf(!supportsFfi)("alt text is sanitized and length-bounded", () => {
+  scenario(`
+const image = new ImageRenderable(renderer, {
+  width: 6,
+  height: 2,
+  alt: "\\u001b[31m" + "x".repeat(5000) + "\\u0007\\u0000tail",
+})
+renderer.root.add(image)
+await setup.flush()
+assert.ok(image.alt.length <= 1024, String(image.alt.length))
+assert.ok(!image.alt.includes("\\u001b"), "escape sequence survived sanitization")
+assert.ok(!image.alt.includes("\\u0007"), "BEL survived sanitization")
+assert.ok(!image.alt.includes("\\u0000"), "NUL survived sanitization")
+`)
+})
+
 test.skipIf(!supportsFfi)("images fit, crop and resize through native cell buffers without changing surrounding content", () => {
   scenario(`
 const parent = new BoxRenderable(renderer, { width: 6, height: 3, overflow: "hidden" })

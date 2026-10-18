@@ -7989,7 +7989,8 @@ var SliderRenderable = class extends Renderable {
     this._min = options.min ?? 0;
     this._max = options.max ?? 100;
     this._value = options.value ?? this._min;
-    this._viewPortSize = options.viewPortSize ?? Math.max(1, (this._max - this._min) * 0.1);
+    const requestedViewPortSize = options.viewPortSize;
+    this._viewPortSize = requestedViewPortSize !== void 0 && Number.isFinite(requestedViewPortSize) ? clamp(requestedViewPortSize, 0.01, this._max - this._min) : Math.max(1, (this._max - this._min) * 0.1);
     this._onChange = options.onChange;
     this._backgroundColor = options.backgroundColor ? parseColor(options.backgroundColor) : defaultTrackBackgroundColor;
     this._foregroundColor = options.foregroundColor ? parseColor(options.foregroundColor) : defaultThumbBackgroundColor;
@@ -9312,7 +9313,7 @@ var SelectRenderable = class extends Renderable {
     super(ctx, { ...options, buffered: true });
     this._options = options.options || [];
     const requestedIndex = options.selectedIndex ?? this._defaultOptions.selectedIndex;
-    this._selectedIndex = this._options.length > 0 ? Math.min(requestedIndex, this._options.length - 1) : 0;
+    this._selectedIndex = this._options.length > 0 ? clamp(Number.isFinite(requestedIndex) ? requestedIndex : 0, 0, this._options.length - 1) : 0;
     this._backgroundColor = parseColor(options.backgroundColor || this._defaultOptions.backgroundColor);
     this._textColor = parseColor(options.textColor || this._defaultOptions.textColor);
     this._focusedBackgroundColor = parseColor(
@@ -9411,7 +9412,7 @@ var SelectRenderable = class extends Renderable {
   }
   set options(options) {
     this._options = options;
-    this._selectedIndex = Math.min(this._selectedIndex, Math.max(0, options.length - 1));
+    this._selectedIndex = clamp(this._selectedIndex, 0, Math.max(0, options.length - 1));
     this.updateScrollOffset();
     this.requestRender();
   }
@@ -11016,6 +11017,7 @@ var KittyImageSession = class _KittyImageSession {
 };
 
 // src/renderables/Image.ts
+var MAX_ALT_LENGTH = 1024;
 var ImageRenderable = class extends Renderable {
   _source;
   pixels = null;
@@ -11048,7 +11050,12 @@ var ImageRenderable = class extends Renderable {
     if (options.source !== void 0) this.source = options.source;
   }
   cleanAlt(text) {
-    return stripAnsiSequences(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
+    const cleaned = stripAnsiSequences(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
+    if (cleaned.length <= MAX_ALT_LENGTH) return cleaned;
+    let end = MAX_ALT_LENGTH;
+    const code = cleaned.charCodeAt(end - 1);
+    if (code >= 55296 && code <= 56319) end--;
+    return cleaned.slice(0, end);
   }
   get source() {
     return this._source;

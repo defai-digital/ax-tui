@@ -30,6 +30,10 @@ interface KittyPlacement {
   bytes: Uint8Array | null
 }
 
+// Alt text is drawn into a cell buffer when no image is available; unbounded
+// input would flood the buffer and the terminal.
+const MAX_ALT_LENGTH = 1024
+
 export class ImageRenderable extends Renderable {
   private _source?: ImageSource
   private pixels: RgbaImage | null = null
@@ -65,7 +69,13 @@ export class ImageRenderable extends Renderable {
   }
 
   private cleanAlt(text: string): string {
-    return stripAnsiSequences(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
+    const cleaned = stripAnsiSequences(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
+    if (cleaned.length <= MAX_ALT_LENGTH) return cleaned
+    // Do not split a surrogate pair at the truncation boundary.
+    let end = MAX_ALT_LENGTH
+    const code = cleaned.charCodeAt(end - 1)
+    if (code >= 0xd800 && code <= 0xdbff) end--
+    return cleaned.slice(0, end)
   }
 
   get source(): ImageSource | undefined { return this._source }

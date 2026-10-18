@@ -39,6 +39,7 @@ import {
   normalizeColumnWidth,
 } from "../src/lib/table-columns.js"
 import { ScrollBarRenderable } from "../src/renderables/ScrollBar.js"
+import { SelectRenderable } from "../src/renderables/Select.js"
 import { SliderRenderable } from "../src/renderables/Slider.js"
 
 const ctx = {} as never
@@ -186,5 +187,39 @@ describe("slider value boundaries", () => {
     slider.viewPortSize = Number.NaN
 
     expect(slider.viewPortSize).toBe(0.01)
+  })
+
+  test("constructor bounds a hostile viewport size like the setter", () => {
+    const options = { orientation: "horizontal" as const, min: 0, max: 100 }
+
+    // NaN falls back to the computed default (10% of the range, at least 1).
+    expect(new SliderRenderable(ctx, { ...options, viewPortSize: Number.NaN }).viewPortSize).toBe(10)
+    expect(new SliderRenderable(ctx, { ...options, viewPortSize: 500 }).viewPortSize).toBe(100)
+    expect(new SliderRenderable(ctx, { ...options, viewPortSize: -3 }).viewPortSize).toBe(0.01)
+    expect(new SliderRenderable(ctx, { ...options, viewPortSize: Number.POSITIVE_INFINITY }).viewPortSize).toBe(10)
+  })
+})
+
+describe("select index boundaries", () => {
+  const options = [
+    { name: "A", description: "first" },
+    { name: "B", description: "second" },
+  ]
+
+  test("constructor clamps negative, overflowing, and non-finite selectedIndex", () => {
+    const make = (selectedIndex: number) =>
+      new SelectRenderable(ctx, { width: 10, height: 4, options, selectedIndex })
+
+    expect(make(-5).getSelectedIndex()).toBe(0)
+    expect(make(99).getSelectedIndex()).toBe(1)
+    expect(make(Number.NaN).getSelectedIndex()).toBe(0)
+  })
+
+  test("shrinking options clamps the current selection", () => {
+    const select = new SelectRenderable(ctx, { width: 10, height: 4, options, selectedIndex: 1 })
+    select.options = [options[0]!]
+
+    expect(select.getSelectedIndex()).toBe(0)
+    expect(select.getSelectedOption()?.name).toBe("A")
   })
 })
