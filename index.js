@@ -11592,9 +11592,12 @@ var OverlayManager = class _OverlayManager {
     const options = entry.options;
     const show = !entry.hidden && (visible ?? options.visible?.(width, height) ?? true);
     if (entry.removed) return;
-    if (!show) this.restore(entry);
+    try {
+      if (!show) this.restore(entry);
+    } finally {
+      if (!entry.removed) entry.container.visible = show;
+    }
     if (entry.removed) return;
-    entry.container.visible = show;
     const marginX = Math.min(options.margin ?? 0, Math.floor(width / 2));
     const marginY = Math.min(options.margin ?? 0, Math.floor(height / 2));
     const availableWidth = Math.max(0, width - marginX * 2);
@@ -11637,7 +11640,16 @@ var OverlayManager = class _OverlayManager {
     }
   }
   resize = () => {
-    for (const entry of [...this.entries]) if (!entry.removed) this.layout(entry);
+    const errors = [];
+    for (const entry of [...this.entries]) {
+      if (entry.removed) continue;
+      try {
+        this.layout(entry);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length) throw new AggregateError(errors, "Overlay resize failed");
   };
   trackFocus = (current, previous) => {
     for (const entry of this.entries) {
