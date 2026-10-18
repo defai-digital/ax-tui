@@ -4626,17 +4626,15 @@ function isKittyNotificationResponse(sequence) {
     const start = sequence.indexOf(prefix, from);
     if (start === -1) return false;
     const payloadStart = start + prefix.length;
-    const bel = sequence.indexOf("\x07", payloadStart);
-    const st = sequence.indexOf("\x1B\\", payloadStart);
-    let end = sequence.length;
-    if (bel !== -1 && bel < end) end = bel;
-    if (st !== -1 && st < end) end = st;
-    const body = sequence.slice(payloadStart, end);
-    const marker = body.indexOf("i=ax-tui-notifications");
-    if (marker !== -1 && body.indexOf("p=?", marker) !== -1) {
-      return true;
+    let end = payloadStart;
+    while (end < sequence.length && sequence[end] !== "\x07" && sequence[end] !== "\x1B") end++;
+    if (end === sequence.length) return false;
+    if (sequence[end] === "\x07" || sequence[end + 1] === "\\") {
+      const body = sequence.slice(payloadStart, end);
+      const marker = body.indexOf("i=ax-tui-notifications");
+      if (marker !== -1 && body.indexOf("p=?", marker) !== -1) return true;
     }
-    from = start + 1;
+    from = end;
   }
   return false;
 }

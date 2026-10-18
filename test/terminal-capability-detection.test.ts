@@ -15,6 +15,15 @@ test("OSC 99 matching stays linear on repeated marker text", () => {
   expect(isCapabilityResponse(hostile)).toBe(false)
 })
 
+test("OSC 99 detection requires a complete response within one control sequence", () => {
+  expect(isCapabilityResponse("\x1b]99;i=ax-tui-notifications:p=?;")).toBe(false)
+  expect(isCapabilityResponse("\x1b]99;i=ax-tui-notifications:p=?;\x1b")).toBe(false)
+  expect(isCapabilityResponse("\x1b]99;i=ax-tui-notifications\x1b]99;p=?;\x07")).toBe(false)
+  expect(isCapabilityResponse("\x1b]99;i=ax-tui-notifications\x1b[0mp=?;\x07")).toBe(false)
+  expect(isCapabilityResponse("\x1b]99;incomplete\x1b]99;i=ax-tui-notifications:p=?;\x07")).toBe(true)
+  expect(isCapabilityResponse("\x1b]99;".repeat(20_000))).toBe(false)
+})
+
 test("detects XTVersion, kitty graphics, iterm2, DECRPM, CPR, and DA1 responses", () => {
   expect(isCapabilityResponse("\x1bP>|XTerm(354)\x1b\\")).toBe(true)
   expect(isCapabilityResponse("\x1b_Gi=1;OK\x1b\\")).toBe(true)

@@ -96,11 +96,12 @@ export class ImageRenderable extends Renderable {
         throw new RangeError("PNG exceeds the 16 MiB encoded byte budget")
       }
       snapshot = typeof source === "function" ? undefined : source instanceof Uint8Array ?
-        source.slice() : copyRgbaImage(source)
+        new Uint8Array(source) : copyRgbaImage(source)
     } catch (error) { snapshotError = error }
     this.loadPromise = (async () => {
       await Promise.resolve()
       try {
+        if (controller.signal.aborted || this.isDestroyed || this.controller !== controller) return
         if (snapshotError) throw snapshotError
         const value = typeof source === "function" ? await source(controller.signal) : snapshot!
         if (controller.signal.aborted || this.isDestroyed || this.controller !== controller) return

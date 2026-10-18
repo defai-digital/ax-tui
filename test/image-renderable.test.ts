@@ -8,6 +8,7 @@ function scenario(source: string, config = "{}"): void {
     "--input-type=module", "-e", `
 import assert from "node:assert/strict"
 import { Writable } from "node:stream"
+import { crc32, deflateSync } from "node:zlib"
 import { BoxRenderable, ImageRenderable, Renderable, ScrollBoxRenderable, RGBA } from "ax-tui"
 import { createTestRenderer, setRendererCapabilities } from "ax-tui/testing"
 const output = []
@@ -94,6 +95,45 @@ await new Promise(resolve => setImmediate(resolve))
 assert.equal(unhandled, 0)
 process.off("unhandledRejection", listener)
 assert.throws(() => new ImageRenderable(renderer, { cellAspectRatio: NaN }), RangeError)
+`)
+})
+
+test.skipIf(!supportsFfi)("PNG Buffer inputs are snapshotted before deferred decoding", () => {
+  scenario(`
+const chunk = (type, data) => {
+  const body = Buffer.concat([Buffer.from(type), data])
+  const size = Buffer.alloc(4), crc = Buffer.alloc(4)
+  size.writeUInt32BE(data.length); crc.writeUInt32BE(crc32(body))
+  return Buffer.concat([size, body, crc])
+}
+const header = Buffer.alloc(13)
+header.writeUInt32BE(1); header.writeUInt32BE(1, 4); header[8] = 8; header[9] = 6
+const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header),
+  chunk("IDAT", deflateSync(Buffer.from([0, 255, 0, 0, 255]))), chunk("IEND", Buffer.alloc(0))])
+const image = new ImageRenderable(renderer, { width: 1, height: 1, source: png, protocol: "blocks" })
+renderer.root.add(image)
+png.fill(0)
+await image.loadPromise; await setup.flush()
+assert.equal(image.loadError, null)
+assert.ok(setup.captureCharFrame().includes("▀"))
+`)
+})
+
+test.skipIf(!supportsFfi)("superseded or destroyed images never start deferred loaders", () => {
+  scenario(`
+let calls = 0
+const loader = async () => { calls++; return rgba() }
+const image = new ImageRenderable(renderer, { source: loader })
+renderer.root.add(image)
+const superseded = image.loadPromise
+image.source = rgba()
+await superseded; await image.loadPromise
+assert.equal(calls, 0)
+image.source = loader
+const destroyed = image.loadPromise
+image.destroy()
+await destroyed
+assert.equal(calls, 0)
 `)
 })
 

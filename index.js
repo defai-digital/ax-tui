@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-RPB7FKJN.js";
+} from "./index-TZ3KQ5AX.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -11077,13 +11077,14 @@ var ImageRenderable = class extends Renderable {
       if (source instanceof Uint8Array && source.length > MAX_PNG_BYTES) {
         throw new RangeError("PNG exceeds the 16 MiB encoded byte budget");
       }
-      snapshot2 = typeof source === "function" ? void 0 : source instanceof Uint8Array ? source.slice() : copyRgbaImage(source);
+      snapshot2 = typeof source === "function" ? void 0 : source instanceof Uint8Array ? new Uint8Array(source) : copyRgbaImage(source);
     } catch (error) {
       snapshotError = error;
     }
     this.loadPromise = (async () => {
       await Promise.resolve();
       try {
+        if (controller.signal.aborted || this.isDestroyed || this.controller !== controller) return;
         if (snapshotError) throw snapshotError;
         const value = typeof source === "function" ? await source(controller.signal) : snapshot2;
         if (controller.signal.aborted || this.isDestroyed || this.controller !== controller) return;
