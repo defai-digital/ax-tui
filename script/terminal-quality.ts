@@ -130,7 +130,7 @@ export async function terminalQuality(tmux?: string) {
     const tmuxArgs = ["-u", "-L", tmuxSocket, "-f", join(root, "test/fixtures/quality-tmux.conf"),
       "new-session", "-s", "quality", process.execPath, ...args]
     child = spawn(tmux ?? process.execPath, tmux ? tmuxArgs : args,
-    { cwd: root, cols: 48, rows: 16, name: env.TERM, env, useConpty: true })
+    { cwd: root, cols: 48, rows: 16, name: env.TERM, env, useConpty: true, useConptyDll: true })
     child.onExit(event => { exit = event })
     child.onData(data => {
       transcript += data
