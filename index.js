@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-M4SBCNWN.js";
+} from "./index-5GBWN7ST.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-N4ORR7BS.js";
+} from "./index-AGQ3MODN.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -6520,8 +6520,29 @@ function createMarkdownCodeBlockRenderer(renderers) {
   renderNode.codeBlockOnly = true;
   return renderNode;
 }
-var TRAILING_MARKDOWN_BLOCK_BREAKS_RE = /(?:\r?\n){2,}$/;
-var TRAILING_MARKDOWN_BLOCK_NEWLINES_RE = /(?:\r?\n)+$/;
+function findTrailingBreakRun(raw) {
+  let end = raw.length;
+  let breaks = 0;
+  while (end > 0 && raw[end - 1] === "\n") {
+    end--;
+    if (end > 0 && raw[end - 1] === "\r") end--;
+    breaks++;
+  }
+  return { end, breaks };
+}
+function endsWithMarkdownBlockNewline(raw) {
+  return findTrailingBreakRun(raw).breaks >= 1;
+}
+function endsWithMarkdownBlockBreak(raw) {
+  return findTrailingBreakRun(raw).breaks >= 2;
+}
+function collapseTrailingMarkdownBlockBreaks(raw) {
+  const { end, breaks } = findTrailingBreakRun(raw);
+  return breaks >= 2 ? raw.slice(0, end) + "\n" : raw;
+}
+function stripTrailingMarkdownBlockNewlines(raw) {
+  return raw.slice(0, findTrailingBreakRun(raw).end);
+}
 function colorsEqual(left, right) {
   if (!left || !right) return left === right;
   return left.equals(right);
@@ -7147,7 +7168,7 @@ var MarkdownRenderable = class extends Renderable {
     if (!nextToken) return 0;
     if (this.shouldRenderSeparately(token)) return 1;
     if (!this.shouldRenderSeparately(nextToken)) return 0;
-    return TRAILING_MARKDOWN_BLOCK_NEWLINES_RE.test(token.raw) ? 0 : 1;
+    return endsWithMarkdownBlockNewline(token.raw) ? 0 : 1;
   }
   applyInterBlockMargin(state, token, nextToken) {
     if (state.tracksInterBlockMargin === false) return;
@@ -7162,10 +7183,10 @@ var MarkdownRenderable = class extends Renderable {
     };
   }
   normalizeMarkdownBlockRaw(raw) {
-    return raw.replace(TRAILING_MARKDOWN_BLOCK_BREAKS_RE, "\n");
+    return collapseTrailingMarkdownBlockBreaks(raw);
   }
   normalizeScrollbackMarkdownBlockRaw(raw) {
-    return raw.replace(TRAILING_MARKDOWN_BLOCK_NEWLINES_RE, "");
+    return stripTrailingMarkdownBlockNewlines(raw);
   }
   isCodeBlockOnlyRenderer() {
     return this._renderNode?.codeBlockOnly === true;
@@ -7233,7 +7254,7 @@ var MarkdownRenderable = class extends Renderable {
   shouldAddTopLevelMargin(prev, current, gapBefore) {
     if (this.isSeparatedTopLevelBlock(prev) || this.isSeparatedTopLevelBlock(current)) return true;
     if (prev.type !== "paragraph" || current.type !== "paragraph") return false;
-    return TRAILING_MARKDOWN_BLOCK_BREAKS_RE.test(prev.raw + gapBefore);
+    return endsWithMarkdownBlockBreak(prev.raw + gapBefore);
   }
   isSeparatedTopLevelBlock(token) {
     return token.type === "heading" || token.type === "list" || this.shouldRenderSeparately(token);

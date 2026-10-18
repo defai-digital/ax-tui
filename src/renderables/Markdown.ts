@@ -224,8 +224,37 @@ interface ResolvedTableRenderableOptions {
   selectable: boolean
 }
 
-const TRAILING_MARKDOWN_BLOCK_BREAKS_RE = /(?:\r?\n){2,}$/
-const TRAILING_MARKDOWN_BLOCK_NEWLINES_RE = /(?:\r?\n)+$/
+// Trailing line-break handling. These run on uncontrolled markdown, so they
+// scan from the end instead of using a trailing-run regex, which backtracks
+// quadratically on long runs of newlines that fail the overall match.
+// A break is "\n" or "\r\n"; a trailing "\r" without "\n" is not a break.
+function findTrailingBreakRun(raw: string): { end: number; breaks: number } {
+  let end = raw.length
+  let breaks = 0
+  while (end > 0 && raw[end - 1] === "\n") {
+    end--
+    if (end > 0 && raw[end - 1] === "\r") end--
+    breaks++
+  }
+  return { end, breaks }
+}
+
+function endsWithMarkdownBlockNewline(raw: string): boolean {
+  return findTrailingBreakRun(raw).breaks >= 1
+}
+
+function endsWithMarkdownBlockBreak(raw: string): boolean {
+  return findTrailingBreakRun(raw).breaks >= 2
+}
+
+function collapseTrailingMarkdownBlockBreaks(raw: string): string {
+  const { end, breaks } = findTrailingBreakRun(raw)
+  return breaks >= 2 ? raw.slice(0, end) + "\n" : raw
+}
+
+function stripTrailingMarkdownBlockNewlines(raw: string): string {
+  return raw.slice(0, findTrailingBreakRun(raw).end)
+}
 
 function colorsEqual(left?: RGBA, right?: RGBA): boolean {
   if (!left || !right) return left === right
@@ -1036,7 +1065,7 @@ export class MarkdownRenderable extends Renderable {
     if (!nextToken) return 0
     if (this.shouldRenderSeparately(token)) return 1
     if (!this.shouldRenderSeparately(nextToken)) return 0
-    return TRAILING_MARKDOWN_BLOCK_NEWLINES_RE.test(token.raw) ? 0 : 1
+    return endsWithMarkdownBlockNewline(token.raw) ? 0 : 1
   }
 
   private applyInterBlockMargin(state: BlockState, token: MarkedToken, nextToken: MarkedToken | undefined): void {
@@ -1054,11 +1083,11 @@ export class MarkdownRenderable extends Renderable {
   }
 
   private normalizeMarkdownBlockRaw(raw: string): string {
-    return raw.replace(TRAILING_MARKDOWN_BLOCK_BREAKS_RE, "\n")
+    return collapseTrailingMarkdownBlockBreaks(raw)
   }
 
   private normalizeScrollbackMarkdownBlockRaw(raw: string): string {
-    return raw.replace(TRAILING_MARKDOWN_BLOCK_NEWLINES_RE, "")
+    return stripTrailingMarkdownBlockNewlines(raw)
   }
 
   private isCodeBlockOnlyRenderer(): boolean {
@@ -1144,7 +1173,7 @@ export class MarkdownRenderable extends Renderable {
   private shouldAddTopLevelMargin(prev: MarkedToken, current: MarkedToken, gapBefore: string): boolean {
     if (this.isSeparatedTopLevelBlock(prev) || this.isSeparatedTopLevelBlock(current)) return true
     if (prev.type !== "paragraph" || current.type !== "paragraph") return false
-    return TRAILING_MARKDOWN_BLOCK_BREAKS_RE.test(prev.raw + gapBefore)
+    return endsWithMarkdownBlockBreak(prev.raw + gapBefore)
   }
 
   private isSeparatedTopLevelBlock(token: MarkedToken): boolean {

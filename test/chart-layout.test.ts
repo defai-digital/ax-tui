@@ -73,6 +73,20 @@ describe("cells", () => {
     const rows = frame([{ x: 5, y: 5, char: "X" }, { x: 1, y: 0, char: "Y" }], 2, 1)
     expect(rows).toEqual([" Y"])
   })
+
+  test("cellsToFrame ignores non-integer coordinates", () => {
+    const rows = frame(
+      [
+        { x: "__proto__" as unknown as number, y: 0, char: "X" },
+        { x: 0.5, y: 0, char: "X" },
+        { x: 1, y: 0, char: "Y" },
+      ],
+      2,
+      1,
+    )
+    expect(rows).toEqual([" Y"])
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+  })
 })
 
 // ---------------------------------------------------------------------------

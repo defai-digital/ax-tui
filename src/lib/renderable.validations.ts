@@ -15,7 +15,10 @@ export function validateOptions(id: string, options: RenderableOptions<Renderabl
 }
 
 export function isValidPercentage(value: any): value is `${number}%` {
-  if (typeof value === "string" && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%$/i.test(value)) {
+  // The numeric part is factored as \d+(?:\.\d*)?|\.\d+ so a run of digits has
+  // exactly one parse; the naive \d+\.?\d* alternation backtracks
+  // quadratically on long digit runs that ultimately fail to match.
+  if (typeof value === "string" && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?%$/i.test(value)) {
     return Number.isFinite(Math.fround(Number(value.slice(0, -1))))
   }
   return false

@@ -21,6 +21,15 @@ describe("layout input boundaries", () => {
     expect(isValidPercentage(value)).toBe(false)
   })
 
+  test("accepts dot-without-fraction and exponent percentages, fails fast on near-misses", () => {
+    expect(isValidPercentage("5.%")).toBe(true)
+    expect(isValidPercentage("5.e2%")).toBe(true)
+    expect(isValidPercentage(".5%")).toBe(true)
+    expect(isValidPercentage(`${"9".repeat(10_000)}%`)).toBe(false) // numeric value overflows to Infinity
+    // This shape used to trigger quadratic backtracking in the validator.
+    expect(isValidPercentage(`${"9".repeat(10_000)}x%`)).toBe(false)
+  })
+
   test("retains fractional sizing and negative margins but rejects negative dimensions", () => {
     expect(isDimensionType(1.5)).toBe(true)
     expect(isDimensionType(-1)).toBe(false)

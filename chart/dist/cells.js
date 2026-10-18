@@ -54,6 +54,10 @@ export function paintText(out, text, x, y, fg, bg, maxWidth = Number.POSITIVE_IN
 export function cellsToFrame(cells, width, height, fill = " ") {
     const rows = Array.from({ length: height }, () => Array(width).fill(fill));
     for (const cell of cells) {
+        // Reject non-integer coordinates: they can never address a real cell, and
+        // string keys would land on object properties instead of array elements.
+        if (!Number.isInteger(cell.x) || !Number.isInteger(cell.y))
+            continue;
         if (cell.x < 0 || cell.y < 0 || cell.x >= width || cell.y >= height)
             continue;
         rows[cell.y][cell.x] = cell.char;

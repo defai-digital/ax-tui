@@ -111,7 +111,7 @@ export type AudioEngineHandle = NativeHandle<"audio_engine">
 let targetLibPath = (await prepareNativeLibrary(vendoredNativeTarget)).libraryPath
 
 if (isBunfsPath(targetLibPath)) {
-  targetLibPath = targetLibPath.replace("../", "")
+  targetLibPath = targetLibPath.replaceAll("../", "")
 }
 
 if (!existsSync(targetLibPath)) {

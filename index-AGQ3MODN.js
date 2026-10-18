@@ -4615,7 +4615,7 @@ function validateOptions(id, options) {
   }
 }
 function isValidPercentage(value) {
-  if (typeof value === "string" && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%$/i.test(value)) {
+  if (typeof value === "string" && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?%$/i.test(value)) {
     return Number.isFinite(Math.fround(Number(value.slice(0, -1))));
   }
   return false;
@@ -12888,7 +12888,7 @@ function resolveVendoredNativeTarget() {
 var vendoredNativeTarget = resolveVendoredNativeTarget();
 var targetLibPath = (await prepareNativeLibrary(vendoredNativeTarget)).libraryPath;
 if (isBunfsPath(targetLibPath)) {
-  targetLibPath = targetLibPath.replace("../", "");
+  targetLibPath = targetLibPath.replaceAll("../", "");
 }
 if (!existsSync3(targetLibPath)) {
   throw new Error(`AX TUI is not supported on the current platform: ${process.platform}-${process.arch}`);

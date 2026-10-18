@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-N4ORR7BS.js";
+} from "./index-AGQ3MODN.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -4599,10 +4599,10 @@ function isCapabilityResponse(sequence) {
   if (/\x1b\[1;(?!1R)\d+R/.test(sequence)) {
     return true;
   }
-  if (/\x1bP>\|[\s\S]*?\x1b\\/.test(sequence)) {
+  if (/\x1bP>\|[^\x1b]*\x1b\\/.test(sequence)) {
     return true;
   }
-  if (/\x1b_G[\s\S]*?\x1b\\/.test(sequence)) {
+  if (/\x1b_G[^\x1b]*\x1b\\/.test(sequence)) {
     return true;
   }
   if (/\x1b\[\?\d+(?:;\d+)?u/.test(sequence)) {
@@ -4611,10 +4611,10 @@ function isCapabilityResponse(sequence) {
   if (/\x1b\[\?[0-9;]*c/.test(sequence)) {
     return true;
   }
-  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
+  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[^\x07\x1b]*(?:\x07|\x1b\\)/.test(sequence)) {
     return true;
   }
-  if (/\x1b\]1337;Capabilities=[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
+  if (/\x1b\]1337;Capabilities=[^\x07\x1b]*(?:\x07|\x1b\\)/.test(sequence)) {
     return true;
   }
   return false;

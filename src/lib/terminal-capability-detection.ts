@@ -33,14 +33,15 @@ export function isCapabilityResponse(sequence: string): boolean {
   }
 
   // XTVersion: ESC P >| ... ESC \
-  if (/\x1bP>\|[\s\S]*?\x1b\\/.test(sequence)) {
+  // The payload never contains ESC, so excluding it keeps the scan linear.
+  if (/\x1bP>\|[^\x1b]*\x1b\\/.test(sequence)) {
     return true
   }
 
   // Kitty graphics response: ESC _ G ... ESC \
   // Matches any graphics response including OK, errors, etc.
   // This is for filtering capability responses from user input
-  if (/\x1b_G[\s\S]*?\x1b\\/.test(sequence)) {
+  if (/\x1b_G[^\x1b]*\x1b\\/.test(sequence)) {
     return true
   }
 
@@ -55,13 +56,14 @@ export function isCapabilityResponse(sequence: string): boolean {
   }
 
   // Kitty desktop notification capability query response.
-  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
+  // Payload segments exclude the terminators (BEL/ESC) so matching stays linear.
+  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[^\x07\x1b]*(?:\x07|\x1b\\)/.test(sequence)) {
     return true
   }
 
   // iTerm2 feature reporting response. The native parser decides whether the
   // feature string contains the Notifications feature code.
-  if (/\x1b\]1337;Capabilities=[\s\S]*?(?:\x07|\x1b\\)/.test(sequence)) {
+  if (/\x1b\]1337;Capabilities=[^\x07\x1b]*(?:\x07|\x1b\\)/.test(sequence)) {
     return true
   }
 
