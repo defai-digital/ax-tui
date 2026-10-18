@@ -9,6 +9,8 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ### Fixed
 
+- Accept OSC 66 width and scaling support only from the corresponding pending
+  probe, ignoring startup cursor positions and unrelated cursor reports.
 - Select UTF-8 for native Windows console output and restore the original code
   page when the last stdout backend closes, preserving redirected output and
   subsequent external code-page changes.

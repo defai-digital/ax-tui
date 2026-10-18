@@ -360,7 +360,8 @@ pub const ANSI = struct {
     pub const capabilityQueriesFootIsBrokenTmux = wrapForTmux(capabilityQueriesBase) ++ csiUQuery;
     pub const sixelGeometryQuery = "\x1b[?2;1;0S";
     pub const cursorPositionRequest = "\x1b[6n";
-    pub const explicitWidthQuery = "\x1b]66;w=1; \x1b\\";
+    // A two-cell space distinguishes OSC66 support from plain payload echo.
+    pub const explicitWidthQuery = "\x1b]66;w=2; \x1b\\";
     pub const scaledTextQuery = "\x1b]66;s=2; \x1b\\";
 
     // Focus tracking

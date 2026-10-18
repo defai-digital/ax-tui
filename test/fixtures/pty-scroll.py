@@ -74,7 +74,7 @@ class Screen:
                             body in ("10;?", "11;?", "1337;Capabilities")
                             or re.fullmatch(r"4;\d+;\?", body)
                             or body == "99;i=ax-tui-notifications:p=?;"
-                            or not self.frames and body in ("66;w=1; ", "66;s=2; ")
+                            or not self.frames and body in ("66;w=2; ", "66;s=2; ")
                         ), f"Unsupported terminal string: {kind}{body!r}"
                     self.pending = self.pending[2 + match.end():]
                     continue

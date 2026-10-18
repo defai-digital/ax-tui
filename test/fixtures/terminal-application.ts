@@ -68,7 +68,9 @@ function reply(id: string) {
   process.stdout.write(`\x1b]2;ax-terminal;${id}\x07`)
   control.write(JSON.stringify({ id, value: input.value, focus: renderer.currentFocusedRenderable?.id,
     top: list.scrollTop, mounted: list.mountedCount, wheelEvents, chunks,
-    width: renderer.width, height: renderer.height, frame: renderer.frameId }) + "\n")
+    width: renderer.width, height: renderer.height, frame: renderer.frameId,
+    nativeFrame: new TextDecoder().decode(renderer.currentRenderBuffer.getRealCharBytes(true)),
+    capabilities: renderer.capabilities }) + "\n")
 }
 
 try {

@@ -249,10 +249,11 @@ test "remote detection - explicit local mode ignores SSH environment" {
 
 test "processCapabilityResponse captures startup cursor report before home probes" {
     var term = Terminal.init(.{});
-    term.startup_cursor_query_pending = true;
-    term.startup_cursor_query_captured = false;
+    var bytes: [8192]u8 = undefined;
+    var stream = std.io.fixedBufferStream(&bytes);
+    try term.queryTerminalSend(stream.writer());
 
-    term.processCapabilityResponse("\x1b[7;11R\x1b[1;2R\x1b[1;3R");
+    term.processCapabilityResponse("\x1b[7;11R\x1b[1;3R\x1b[1;3R");
 
     const cursor = term.getCursorPosition();
     try testing.expectEqual(@as(u32, 11), cursor.x);
@@ -1088,7 +1089,7 @@ test "queryTerminalSend - sends OSC 66 queries by default" {
     const output = writer.getWritten();
 
     // Should contain OSC 66 explicit width query
-    try testing.expect(std.mem.indexOf(u8, output, "\x1b]66;w=1; \x1b\\") != null);
+    try testing.expect(std.mem.indexOf(u8, output, "\x1b]66;w=2; \x1b\\") != null);
 
     // Should contain OSC 66 scaled text query
     try testing.expect(std.mem.indexOf(u8, output, "\x1b]66;s=2; \x1b\\") != null);
@@ -1114,7 +1115,7 @@ test "queryTerminalSend - sends OSC 66 queries when AX_CODE_TUI_FORCE_EXPLICIT_W
     const output = writer.getWritten();
 
     // Should contain OSC 66 queries
-    try testing.expect(std.mem.indexOf(u8, output, "\x1b]66;w=1; \x1b\\") != null);
+    try testing.expect(std.mem.indexOf(u8, output, "\x1b]66;w=2; \x1b\\") != null);
     try testing.expect(std.mem.indexOf(u8, output, "\x1b]66;s=2; \x1b\\") != null);
 
     // Verify the capability was forced on
@@ -1239,4 +1240,53 @@ test "resetState - skips mouse disable when mouse was never enabled" {
     try testing.expect(std.mem.indexOf(u8, output, ansi.ANSI.disableButtonEventTracking) == null);
     try testing.expect(std.mem.indexOf(u8, output, ansi.ANSI.disableMouseTracking) == null);
     try testing.expect(std.mem.indexOf(u8, output, ansi.ANSI.disableSGRMouseMode) == null);
+}
+
+
+test "startup cursor position does not advertise OSC66 support" {
+    var term = Terminal.init(.{});
+    var bytes: [8192]u8 = undefined;
+    var stream = std.io.fixedBufferStream(&bytes);
+    try term.queryTerminalSend(stream.writer());
+    term.processCapabilityResponse("\x1b[1;40R\x1b[1;1R\x1b[1;1R");
+    try testing.expectEqual(@as(u32, 40), term.getCursorPosition().x);
+    try testing.expect(!term.caps.explicit_width);
+    try testing.expect(!term.caps.scaled_text);
+}
+
+test "OSC66 capabilities require their own exact pending probe response" {
+    var term = Terminal.init(.{});
+    term.processCapabilityResponse("\x1b[1;3R\x1b[1;3R");
+    try testing.expect(!term.caps.explicit_width);
+    try testing.expect(!term.caps.scaled_text);
+    var bytes: [8192]u8 = undefined;
+    var stream = std.io.fixedBufferStream(&bytes);
+    try term.queryTerminalSend(stream.writer());
+    term.processCapabilityResponse("\x1b[7;11R");
+    term.processCapabilityResponse("\x1b[1;3R");
+    try testing.expect(term.caps.explicit_width);
+    try testing.expect(!term.caps.scaled_text);
+    term.processCapabilityResponse("\x1b[1;3R");
+    try testing.expect(term.caps.scaled_text);
+}
+
+test "unrelated cursor columns do not enable OSC66 capabilities" {
+    var term = Terminal.init(.{});
+    var bytes: [8192]u8 = undefined;
+    var stream = std.io.fixedBufferStream(&bytes);
+    try term.queryTerminalSend(stream.writer());
+    term.processCapabilityResponse("\x1b[7;11R\x1b[1;4R\x1b[1;40R");
+    try testing.expect(!term.caps.explicit_width);
+    try testing.expect(!term.caps.scaled_text);
+}
+
+
+test "OSC66 probe distinguishes explicit width from a plain echoed space" {
+    var term = Terminal.init(.{});
+    var bytes: [8192]u8 = undefined;
+    var stream = std.io.fixedBufferStream(&bytes);
+    try term.queryTerminalSend(stream.writer());
+    term.processCapabilityResponse("\x1b[1;1R\x1b[1;2R\x1b[1;2R");
+    try testing.expect(!term.caps.explicit_width);
+    try testing.expect(!term.caps.scaled_text);
 }

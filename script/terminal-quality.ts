@@ -23,6 +23,8 @@ interface State {
   width: number
   height: number
   frame: number
+  nativeFrame: string
+  capabilities: unknown
 }
 
 // node-pty 1.1.0 ships its macOS spawn helper without the executable bit.
@@ -45,6 +47,7 @@ export async function terminalQuality(tmux?: string) {
   const screens = new Map<string, string[]>()
   let control: Socket | undefined
   let controlError: Error | undefined
+  let lastState: State | undefined
   let transcript = ""
   let serial = 0
   let exit: { exitCode: number, signal?: number } | undefined
@@ -104,6 +107,7 @@ export async function terminalQuality(tmux?: string) {
     // The PTY OSC barrier and the independent control ACK must both arrive.
     await waitFor(() => states.has(id) && screens.has(id), `Missing barrier/ACK ${id}`)
     const state = states.get(id)!
+    lastState = state
     const screen = screens.get(id)!
     states.delete(id)
     screens.delete(id)
@@ -216,7 +220,8 @@ export async function terminalQuality(tmux?: string) {
     // Preserve both the barrier snapshot and a later screen when a contract fails.
     await new Promise(resolve => setTimeout(resolve, 250))
     await new Promise<void>(resolve => terminal.write("", resolve))
-    console.error("AX_TERMINAL_FAILURE", JSON.stringify({ screen: lines(), transcript: transcript.slice(-16000) }))
+    console.error("AX_TERMINAL_FAILURE", JSON.stringify({ state: lastState, screen: lines(),
+      transcript: transcript.slice(-16000) }))
     throw error
   } finally {
     if (child && !exit) child.kill()

@@ -143,6 +143,7 @@ graphics_query_pending: bool = false,
 capability_queries_pending: bool = false,
 startup_cursor_query_pending: bool = false,
 startup_cursor_query_captured: bool = false,
+explicit_width_query_reports: u2 = 0,
 
 state: struct {
     alt_screen: bool = false,
@@ -276,6 +277,7 @@ pub fn queryTerminalSend(self: *Terminal, tty: anytype) !void {
     self.capability_queries_pending = false;
     self.startup_cursor_query_pending = true;
     self.startup_cursor_query_captured = false;
+    self.explicit_width_query_reports = 0;
 
     // We intentionally do not send CSI ?996n here. Terminals disagree on the
     // meaning and reliability of the ?997 reply, so startup theme detection is
@@ -309,6 +311,7 @@ pub fn queryTerminalSend(self: *Terminal, tty: anytype) !void {
     }
 
     if (!self.skip_explicit_width_query) {
+        self.explicit_width_query_reports = 2;
         try tty.writeAll(ansi.ANSI.home ++
             ansi.ANSI.explicitWidthQuery ++
             ansi.ANSI.cursorPositionRequest ++
@@ -818,6 +821,7 @@ fn checkEnvironmentOverrides(self: *Terminal) void {
         } else if (std.mem.eql(u8, val, "false") or std.mem.eql(u8, val, "0")) {
             self.caps.explicit_width = false;
             self.skip_explicit_width_query = true;
+            self.explicit_width_query_reports = 0;
         }
     }
 
@@ -1099,15 +1103,19 @@ pub fn processCapabilityResponse(self: *Terminal, response: []const u8) void {
             self.setCursorPosition(col, row, self.state.cursor.visible);
             self.startup_cursor_query_captured = true;
             self.startup_cursor_query_pending = false;
+            // This report describes the pre-home cursor, not an OSC66 probe.
+            scan_pos = pos + 1;
+            continue;
         }
 
-        if (row == 1) {
-            if (col >= 2) {
+        if (self.explicit_width_query_reports > 0) {
+            if (self.explicit_width_query_reports == 2 and row == 1 and col == 3) {
                 self.caps.explicit_width = true;
             }
-            if (col >= 3) {
+            if (self.explicit_width_query_reports == 1 and row == 1 and col == 3) {
                 self.caps.scaled_text = true;
             }
+            self.explicit_width_query_reports -= 1;
         }
 
         scan_pos = pos + 1;
