@@ -309,6 +309,7 @@ export class TextareaRenderable extends EditBufferRenderable {
 
   public focus(): void {
     super.focus()
+    if (this.isDestroyed || !this.focused) return
     this.updateColors()
   }
 

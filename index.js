@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-4IW25A2O.js";
+} from "./index-HPFCYRNH.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-5TUEBHVO.js";
+} from "./index-I6I64Z4M.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -5041,6 +5041,7 @@ var TextareaRenderable = class _TextareaRenderable extends EditBufferRenderable 
   }
   focus() {
     super.focus();
+    if (this.isDestroyed || !this.focused) return;
     this.updateColors();
   }
   blur() {
@@ -5139,6 +5140,12 @@ var TextareaRenderable = class _TextareaRenderable extends EditBufferRenderable 
 };
 
 // src/renderables/Input.ts
+function truncateInput(text, maxLength) {
+  const value = text.substring(0, maxLength);
+  const last = value.charCodeAt(value.length - 1);
+  const next = text.charCodeAt(value.length);
+  return last >= 55296 && last <= 56319 && next >= 56320 && next <= 57343 ? value.slice(0, -1) : value;
+}
 var InputRenderableEvents = /* @__PURE__ */ ((InputRenderableEvents2) => {
   InputRenderableEvents2["INPUT"] = "input";
   InputRenderableEvents2["CHANGE"] = "change";
@@ -5163,7 +5170,7 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     const maxLength = options.maxLength ?? defaults.maxLength;
     const minLength = options.minLength ?? defaults.minLength;
     const rawValue = options.value ?? defaults.value;
-    const initialValue = rawValue.replace(/[\n\r]/g, "").substring(0, maxLength);
+    const initialValue = truncateInput(rawValue.replace(/[\n\r]/g, ""), maxLength);
     if (minLength > maxLength) {
       throw new Error(`InputRenderable: minLength (${minLength}) cannot be greater than maxLength (${maxLength})`);
     }
@@ -5186,7 +5193,7 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     this._minLength = minLength;
     this._lastCommittedValue = this.plainText;
     if (initialValue) {
-      this.cursorOffset = initialValue.length;
+      this.gotoLineTextEnd();
     }
   }
   /**
@@ -5213,7 +5220,7 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     const currentLength = this.plainText.length;
     const remaining = this._maxLength - currentLength;
     if (remaining <= 0) return;
-    const toInsert = sanitized.substring(0, remaining);
+    const toInsert = truncateInput(sanitized, remaining);
     super.insertText(toInsert);
     this.emit("input" /* INPUT */, this.plainText);
   }
@@ -5221,16 +5228,23 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     return this.plainText;
   }
   set value(value) {
-    const newValue = value.substring(0, this._maxLength).replace(/[\n\r]/g, "");
+    const newValue = truncateInput(value.replace(/[\n\r]/g, ""), this._maxLength);
     const currentValue = this.plainText;
     if (currentValue !== newValue) {
       this.setText(newValue);
-      this.cursorOffset = newValue.length;
+      this.gotoLineTextEnd();
       this.emit("input" /* INPUT */, newValue);
     }
   }
+  /** Preserve single-line and length constraints for undoable programmatic edits such as completion. */
+  replaceText(text) {
+    const value = truncateInput(text.replace(/[\n\r]/g, ""), this._maxLength);
+    super.replaceText(value);
+    this.emit("input" /* INPUT */, this.plainText);
+  }
   focus() {
     super.focus();
+    if (this.isDestroyed || !this.focused) return;
     this._lastCommittedValue = this.plainText;
   }
   blur() {
@@ -5311,7 +5325,7 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     this._maxLength = maxLength;
     const currentValue = this.plainText;
     if (currentValue.length > maxLength) {
-      this.setText(currentValue.substring(0, maxLength));
+      this.setText(truncateInput(currentValue, maxLength));
     }
   }
   get maxLength() {
@@ -9974,6 +9988,428 @@ var TimeToFirstDrawRenderable = class extends Renderable {
     return Math.max(0, Math.floor(value));
   }
 };
+
+// src/lib/autocomplete.ts
+import { readdir, stat } from "node:fs/promises";
+import { homedir } from "node:os";
+import path from "node:path";
+function validOffset(text, offset) {
+  if (!Number.isInteger(offset) || offset < 0 || offset > text.length) return false;
+  const before = text.charCodeAt(offset - 1);
+  const after = text.charCodeAt(offset);
+  return !(before >= 55296 && before <= 56319 && after >= 56320 && after <= 57343);
+}
+function validateRequest(request) {
+  if (!validOffset(request.text, request.cursor)) throw new RangeError("Invalid autocomplete cursor");
+}
+function sameRequest(a, b) {
+  return a.text === b.text && a.cursor === b.cursor;
+}
+function applyAutocomplete(request, result, item) {
+  validateRequest(request);
+  if (!sameRequest(request, result.request) || !result.items.includes(item)) return null;
+  if (!validOffset(request.text, result.start) || !validOffset(request.text, result.end) || result.start > request.cursor || result.end < request.cursor) {
+    throw new RangeError("Invalid autocomplete replacement range");
+  }
+  const cursorOffset = item.cursorOffset ?? item.insertText.length;
+  if (!validOffset(item.insertText, cursorOffset)) throw new RangeError("Invalid autocomplete item cursor");
+  return {
+    text: request.text.slice(0, result.start) + item.insertText + request.text.slice(result.end),
+    cursor: result.start + cursorOffset
+  };
+}
+var AutocompleteController = class {
+  constructor(provider) {
+    this.provider = provider;
+  }
+  provider;
+  pending;
+  disposed = false;
+  async request(request) {
+    if (this.disposed) return null;
+    validateRequest(request);
+    this.cancel();
+    const pending = new AbortController();
+    this.pending = pending;
+    const snapshot = Object.freeze({ ...request });
+    try {
+      const result = await this.provider(snapshot, pending.signal);
+      if (pending.signal.aborted || this.pending !== pending) return null;
+      if (result && !sameRequest(snapshot, result.request)) {
+        throw new Error("Autocomplete provider returned a stale result");
+      }
+      return result;
+    } catch (error) {
+      if (pending.signal.aborted) return null;
+      throw error;
+    } finally {
+      if (this.pending === pending) this.pending = void 0;
+    }
+  }
+  cancel() {
+    this.pending?.abort();
+    this.pending = void 0;
+  }
+  dispose() {
+    this.disposed = true;
+    this.cancel();
+  }
+};
+function createSlashCommandProvider(commands) {
+  const entries = commands.map((command) => {
+    if (!command.name || /[\s/]/u.test(command.name)) {
+      throw new Error("Slash command names must be single bare tokens");
+    }
+    return { ...command };
+  });
+  return (request, signal) => {
+    validateRequest(request);
+    if (signal.aborted || request.cursor === 0 || !request.text.startsWith("/")) return null;
+    const end = request.text.search(/\s/u);
+    const tokenEnd = end < 0 ? request.text.length : end;
+    if (request.cursor > tokenEnd) return null;
+    const prefix = request.text.slice(1, request.cursor).toLowerCase();
+    const items = entries.filter((command) => command.name.toLowerCase().startsWith(prefix)).map((command) => ({
+      label: `/${command.name}`,
+      insertText: `/${command.name}`,
+      description: command.description
+    }));
+    return { request: { ...request }, start: 0, end: tokenEnd, items };
+  };
+}
+function createFilePathProvider(options = {}) {
+  const cwd = path.resolve(options.cwd ?? process.cwd());
+  const home = options.home ?? homedir();
+  const limit = options.maxResults ?? 100;
+  if (!Number.isSafeInteger(limit) || limit < 1) throw new RangeError("maxResults must be a positive integer");
+  return async (request, signal) => {
+    validateRequest(request);
+    if (signal.aborted) return null;
+    const tokens = /@?"[^"\r\n]*(?:"|$)|[^\s"]+/gu;
+    let match;
+    let token;
+    while (match = tokens.exec(request.text)) {
+      const end = match.index + match[0].length;
+      if (match.index <= request.cursor && request.cursor <= end) {
+        token = { text: match[0], start: match.index, end };
+        break;
+      }
+    }
+    if (!token) return null;
+    const mention = token.text.startsWith("@") ? "@" : "";
+    const quoted = token.text[mention.length] === '"';
+    const contentStart = token.start + mention.length + Number(quoted);
+    const contentEnd = token.end - Number(quoted && token.text.endsWith('"') && token.end > contentStart);
+    if (request.cursor < contentStart) return null;
+    const prefix = request.text.slice(contentStart, Math.min(request.cursor, contentEnd));
+    if (!prefix && !mention && !quoted) return null;
+    const separator = process.platform === "win32" ? /[\\/]/u : /\//u;
+    let slash = -1;
+    for (let index = 0; index < prefix.length; index++) if (separator.test(prefix[index])) slash = index;
+    const directory = prefix.slice(0, slash + 1);
+    const name = prefix.slice(slash + 1);
+    const expanded = directory.startsWith("~/") || directory.startsWith("~\\") ? path.join(home, directory.slice(2)) : directory;
+    let entries;
+    try {
+      entries = await readdir(path.resolve(cwd, expanded || "."), { withFileTypes: true });
+    } catch (error) {
+      const code = error.code ?? "";
+      if (signal.aborted || ["ENOENT", "ENOTDIR", "EACCES", "EPERM"].includes(code)) {
+        return null;
+      }
+      throw error;
+    }
+    if (signal.aborted) return null;
+    const matches = entries.filter((entry) => entry.name.startsWith(name)).filter((entry) => options.includeHidden || name.startsWith(".") || !entry.name.startsWith(".")).filter((entry) => !/["\x00-\x1f\x7f-\x9f]/u.test(entry.name)).sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name)).slice(0, limit);
+    const items = await Promise.all(
+      matches.map(async (entry) => {
+        let isDirectory = entry.isDirectory();
+        if (entry.isSymbolicLink() && !signal.aborted) {
+          try {
+            isDirectory = (await stat(path.resolve(cwd, expanded || ".", entry.name))).isDirectory();
+          } catch {
+          }
+        }
+        const suffix = isDirectory ? directory.endsWith("\\") ? "\\" : "/" : "";
+        const value = directory + entry.name + suffix;
+        const needsQuotes = quoted || /\s/u.test(value);
+        const insertText = needsQuotes ? `${mention}"${value}"` : mention + value;
+        return {
+          label: entry.name + suffix,
+          insertText,
+          cursorOffset: needsQuotes && isDirectory ? insertText.length - 1 : insertText.length,
+          description: isDirectory ? "Directory" : entry.isSymbolicLink() ? "Symbolic link" : "File"
+        };
+      })
+    );
+    if (signal.aborted) return null;
+    items.sort(
+      (a, b) => Number(b.description === "Directory") - Number(a.description === "Directory") || a.label.localeCompare(b.label)
+    );
+    return { request: { ...request }, start: token.start, end: token.end, items };
+  };
+}
+function combineAutocompleteProviders(...providers) {
+  return async (request, signal) => {
+    for (const provider of providers) {
+      if (signal.aborted) return null;
+      const result = await provider(request, signal);
+      if (signal.aborted) return null;
+      if (result) return result;
+    }
+    return null;
+  };
+}
+
+// src/lib/editor-autocomplete.ts
+function getEditorAutocompleteRequest(editor) {
+  return { text: editor.plainText, cursor: editor.editBuffer.getTextRange(0, editor.cursorOffset).length };
+}
+function applyEditorAutocomplete(editor, result, item) {
+  if (editor.isDestroyed || editor.hasSelection()) return false;
+  const replacement = applyAutocomplete(getEditorAutocompleteRequest(editor), result, item);
+  if (!replacement) return false;
+  const cursor = editor instanceof InputRenderable ? replacement.text.slice(0, replacement.cursor).replace(/[\n\r]/g, "").length : replacement.cursor;
+  editor.replaceText(replacement.text);
+  if (editor.isDestroyed) return true;
+  const measurement = TextBuffer.create(editor.ctx.widthMethod);
+  try {
+    measurement.setText(editor.plainText.slice(0, cursor));
+    editor.cursorOffset = measurement.length + measurement.getLineCount() - 1;
+  } finally {
+    measurement.destroy();
+  }
+  return true;
+}
+
+// src/lib/overlay.ts
+function contains(parent, child) {
+  for (let node = child; node; node = node.parent instanceof Renderable ? node.parent : null) {
+    if (node === parent) return true;
+  }
+  return false;
+}
+function dimension(value, available) {
+  const cells = typeof value === "number" ? value : available * Number(value.slice(0, -1)) / 100;
+  if (!Number.isFinite(cells) || cells < 0 || typeof value === "string" && !/^\d+(?:\.\d+)?%$/u.test(value)) throw new RangeError("Invalid overlay size");
+  return Math.min(available, Math.floor(cells));
+}
+var OverlayManager = class _OverlayManager {
+  constructor(renderer) {
+    this.renderer = renderer;
+    if (renderer.isDestroyed) throw new Error("Cannot create overlays on a destroyed renderer");
+    renderer.on("resize", this.resize);
+    renderer.on("focused_renderable", this.trackFocus);
+    renderer.once("destroy", this.dispose);
+  }
+  renderer;
+  entries = [];
+  disposed = false;
+  disposing = false;
+  serial = 0;
+  static forRenderer(renderer) {
+    let manager = managers.get(renderer);
+    if (!manager) {
+      manager = new _OverlayManager(renderer);
+      managers.set(renderer, manager);
+    }
+    return manager;
+  }
+  show(content, options = {}) {
+    if (this.disposed || this.disposing || this.renderer.isDestroyed) throw new Error("Overlay manager is disposed");
+    if (content.isDestroyed || content.parent || content.ctx !== this.renderer) {
+      throw new Error("Overlay content must be an unattached live renderable belonging to this renderer");
+    }
+    const target = options.focus ?? (content.focusable ? content : void 0);
+    if (target && (!contains(content, target) || target.isDestroyed || !target.focusable)) {
+      throw new Error("Overlay focus target must be a live focusable descendant of its content");
+    }
+    for (const value of [options.margin ?? 0, options.offsetX ?? 0, options.offsetY ?? 0]) {
+      if (!Number.isSafeInteger(value)) throw new RangeError("Overlay offsets and margin must be finite integers");
+    }
+    if ((options.margin ?? 0) < 0) throw new RangeError("Overlay margin cannot be negative");
+    const anchors = [
+      "center",
+      "top-left",
+      "top-center",
+      "top-right",
+      "left-center",
+      "right-center",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right"
+    ];
+    if (options.anchor !== void 0 && !anchors.includes(options.anchor)) throw new Error("Invalid overlay anchor");
+    dimension(options.width ?? 60, this.renderer.width);
+    dimension(options.height ?? 10, this.renderer.height);
+    const visible = options.visible?.(this.renderer.width, this.renderer.height) ?? true;
+    const container = new BoxRenderable(this.renderer, {
+      id: `ax-tui-overlay-${++this.serial}`,
+      position: "absolute",
+      overflow: "hidden",
+      flexShrink: 0,
+      visible
+    });
+    const entry = {
+      container,
+      content,
+      target,
+      previous: this.renderer.currentFocusedRenderable,
+      options: { ...options },
+      hidden: false,
+      removed: false,
+      lastBlurred: null,
+      onDestroyed: () => this.remove(entry)
+    };
+    container.add(content);
+    this.renderer.root.add(container);
+    this.entries.push(entry);
+    content.once("destroyed" /* DESTROYED */, entry.onDestroyed);
+    container.once("destroyed" /* DESTROYED */, entry.onDestroyed);
+    if (target && target !== content) target.once("destroyed" /* DESTROYED */, entry.onDestroyed);
+    this.layout(entry, visible);
+    this.order();
+    if (!options.nonCapturing && visible) this.focus(entry);
+    return {
+      close: () => this.remove(entry),
+      setHidden: (hidden) => {
+        if (entry.removed || hidden === entry.hidden) return;
+        entry.hidden = hidden;
+        this.layout(entry);
+      },
+      isHidden: () => entry.removed || !entry.container.visible,
+      focus: () => this.focus(entry),
+      isFocused: () => !entry.removed && contains(entry.container, this.renderer.currentFocusedRenderable)
+    };
+  }
+  eligible(target) {
+    if (!target || target.isDestroyed || !target.focusable) return false;
+    for (let node = target; node; node = node.parent instanceof Renderable ? node.parent : null) {
+      if (node.isDestroyed || !node.visible) return false;
+      if (node === this.renderer.root) return true;
+    }
+    return false;
+  }
+  focus(entry) {
+    if (entry.removed || !entry.container.visible || !this.eligible(entry.target)) return;
+    const current = this.renderer.currentFocusedRenderable;
+    if (!contains(entry.container, current)) {
+      for (const candidate of this.entries) {
+        if (candidate !== entry && contains(entry.container, candidate.previous)) candidate.previous = entry.previous;
+      }
+      entry.previous = current;
+    }
+    this.entries = this.entries.filter((candidate) => candidate !== entry);
+    this.entries.push(entry);
+    this.order();
+    entry.target.focus();
+  }
+  restore(entry) {
+    if (this.disposed || this.renderer.isDestroyed) return;
+    const current = this.renderer.currentFocusedRenderable;
+    const destroyedFocus = !current && entry.lastBlurred?.isDestroyed;
+    if (!contains(entry.container, current) && !destroyedFocus) return;
+    current?.blur();
+    let previous = entry.previous;
+    const visited = /* @__PURE__ */ new Set();
+    while (previous && !this.eligible(previous) && !visited.has(previous)) {
+      visited.add(previous);
+      previous = this.entries.find((candidate) => contains(candidate.container, previous))?.previous ?? null;
+    }
+    if (this.eligible(previous)) {
+      previous.focus();
+      return;
+    }
+    for (const candidate of [...this.entries].reverse()) {
+      if (candidate !== entry && !candidate.options.nonCapturing && this.eligible(candidate.target)) {
+        candidate.target.focus();
+        return;
+      }
+    }
+  }
+  layout(entry, visible) {
+    const { width, height } = this.renderer;
+    const options = entry.options;
+    const show = !entry.hidden && (visible ?? options.visible?.(width, height) ?? true);
+    if (!show) this.restore(entry);
+    entry.container.visible = show;
+    const marginX = Math.min(options.margin ?? 0, Math.floor(width / 2));
+    const marginY = Math.min(options.margin ?? 0, Math.floor(height / 2));
+    const availableWidth = Math.max(0, width - marginX * 2);
+    const availableHeight = Math.max(0, height - marginY * 2);
+    const w = dimension(options.width ?? 60, availableWidth);
+    const h2 = dimension(options.height ?? 10, availableHeight);
+    const anchor = options.anchor ?? "center";
+    const x = anchor.includes("left") ? 0 : anchor.includes("right") ? availableWidth - w : (availableWidth - w) / 2;
+    const y = anchor.includes("top") ? 0 : anchor.includes("bottom") ? availableHeight - h2 : (availableHeight - h2) / 2;
+    entry.container.width = w;
+    entry.container.height = h2;
+    entry.container.left = marginX + Math.max(0, Math.min(availableWidth - w, Math.floor(x) + (options.offsetX ?? 0)));
+    entry.container.top = marginY + Math.max(0, Math.min(availableHeight - h2, Math.floor(y) + (options.offsetY ?? 0)));
+  }
+  order() {
+    const own = new Set(this.entries.map((entry) => entry.container));
+    const base = Math.max(0, ...this.renderer.root.getChildren().filter((child) => !own.has(child)).map((child) => child instanceof Renderable ? child.zIndex : 0));
+    this.entries.forEach((entry, index) => {
+      entry.container.zIndex = base + index + 1;
+    });
+  }
+  remove(entry) {
+    if (entry.removed) return;
+    entry.removed = true;
+    this.entries = this.entries.filter((candidate) => candidate !== entry);
+    for (const candidate of this.entries) {
+      if (contains(entry.container, candidate.previous)) candidate.previous = entry.previous;
+    }
+    try {
+      this.restore(entry);
+    } finally {
+      entry.content.off("destroyed" /* DESTROYED */, entry.onDestroyed);
+      entry.container.off("destroyed" /* DESTROYED */, entry.onDestroyed);
+      entry.target?.off("destroyed" /* DESTROYED */, entry.onDestroyed);
+      try {
+        if (!entry.container.isDestroyed) entry.container.destroyRecursively();
+      } finally {
+        this.order();
+      }
+    }
+  }
+  resize = () => {
+    for (const entry of [...this.entries]) if (!entry.removed) this.layout(entry);
+  };
+  trackFocus = (current, previous) => {
+    for (const entry of this.entries) {
+      entry.lastBlurred = !current && contains(entry.container, previous) ? previous : null;
+    }
+  };
+  /** Destroy all owned overlays and remove renderer listeners. Safe during renderer teardown. */
+  dispose = () => {
+    if (this.disposed || this.disposing) return;
+    this.disposing = true;
+    const errors = [];
+    try {
+      for (const entry of [...this.entries].reverse()) {
+        try {
+          this.remove(entry);
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    } finally {
+      this.disposed = true;
+      this.disposing = false;
+      this.renderer.off("resize", this.resize);
+      this.renderer.off("focused_renderable", this.trackFocus);
+      this.renderer.off("destroy", this.dispose);
+      managers.delete(this.renderer);
+    }
+    if (errors.length) throw new AggregateError(errors, "Overlay disposal failed");
+  };
+};
+var managers = /* @__PURE__ */ new WeakMap();
+function getOverlayManager(renderer) {
+  return OverlayManager.forRenderer(renderer);
+}
 export {
   ACHROMATOPSIA_MATRIX,
   ASCIIFont,
@@ -9983,6 +10419,7 @@ export {
   ATTRIBUTE_BASE_MASK,
   ArrowRenderable,
   Audio,
+  AutocompleteController,
   BaseRenderable,
   BloomEffect,
   BorderCharArrays,
@@ -10033,6 +10470,7 @@ export {
   MouseParser,
   NativeSpanFeed,
   OptimizedBuffer,
+  OverlayManager,
   PROTANOPIA_COMP_MATRIX,
   PROTANOPIA_SIM_MATRIX,
   PasteEvent,
@@ -10087,8 +10525,10 @@ export {
   addDefaultParsers,
   ansi256IndexToRgb,
   applyAsciiArt,
+  applyAutocomplete,
   applyBrightness,
   applyChromaticAberration,
+  applyEditorAutocomplete,
   applyGain,
   applyInvert,
   applyNoise,
@@ -10122,13 +10562,16 @@ export {
   buildTerminalPaletteSignature,
   capture,
   clearEnvCache,
+  combineAutocompleteProviders,
   convertGlobalToLocalSelection,
   convertThemeToStyles,
   coordinateToCharacterIndex,
   createCliRenderer,
   createCoreSlotRegistry,
   createExtmarksController,
+  createFilePathProvider,
   createMarkdownCodeBlockRenderer,
+  createSlashCommandProvider,
   createSlotRegistry,
   createTerminalPalette,
   createTextAttributes,
@@ -10154,7 +10597,9 @@ export {
   getBorderSides,
   getCharacterPositions,
   getDataPaths,
+  getEditorAutocompleteRequest,
   getLinkId,
+  getOverlayManager,
   getTreeSitterClient,
   green,
   h,

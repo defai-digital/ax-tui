@@ -49,6 +49,8 @@ export declare class InputRenderable extends TextareaRenderable {
     insertText(text: string): void;
     get value(): string;
     set value(value: string);
+    /** Preserve single-line and length constraints for undoable programmatic edits such as completion. */
+    replaceText(text: string): void;
     focus(): void;
     blur(): void;
     submit(): boolean;

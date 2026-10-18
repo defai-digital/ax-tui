@@ -51,6 +51,21 @@ Chart behavior is informed by ratatui 0.30.2, and spinner presets derive from
 cli-spinners; their source attribution remains in the widget modules. Kimi
 Code and Grok Build are read-only design influences with no code extraction.
 
+The autocomplete and overlay APIs use the documented behavior of Kimi Code's
+`packages/pi-tui/README.md` at commit
+[`4a82a07f08d0b135c4349c20aae53a2d51e5c3fa`](https://github.com/MoonshotAI/kimi-code/tree/4a82a07f08d0b135c4349c20aae53a2d51e5c3fa/packages/pi-tui)
+as a reviewed design reference: slash-command/path completion, positioned
+overlays, reversible visibility, noncapturing focus, and previous-focus
+restoration. That package retains Mario Zechner's 2025 MIT license. AX's
+`src/lib/autocomplete.ts`, `src/lib/editor-autocomplete.ts`, and
+`src/lib/overlay.ts` are original implementations integrated with AX's native
+text engine and renderable tree; no pi-tui source, runtime, or dependency was
+copied. `useOverlay` adds Solid owner cleanup. Compatibility tests cover stale
+requests, Unicode ranges, native editing/undo, overlay focus and destruction,
+viewport resizing, and Solid cleanup. These APIs deliberately use explicit
+UTF-16 completion ranges and `close()` for permanent overlay removal. Image
+protocols and large-paste folding are outside this integration.
+
 JSR native assets come from AX TUI's matching GitHub release, are verified
 against the manifest, and are immutable. Signed downstream bundles verify
 native inputs before signing changes the bytes. See `MAINTENANCE.md`.

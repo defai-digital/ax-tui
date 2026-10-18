@@ -1,5 +1,6 @@
 import { engine, PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "ax-tui"
 import { createContext, createSignal, onCleanup, onMount, useContext } from "solid-js"
+import { getOverlayManager, RenderableEvents, type OverlayHandle, type OverlayOptions, type Renderable } from "ax-tui"
 
 export const RendererContext = createContext<CliRenderer>()
 
@@ -11,6 +12,38 @@ export const useRenderer = () => {
   }
 
   return renderer
+}
+
+/** Show owned overlays and close only this Solid owner's handles on cleanup. */
+export const useOverlay = (): { show: (content: Renderable, options?: OverlayOptions) => OverlayHandle } => {
+  const manager = getOverlayManager(useRenderer())
+  const handles = new Set<OverlayHandle>()
+  let disposed = false
+  onCleanup(() => {
+    disposed = true
+    for (const handle of [...handles]) handle.close()
+    handles.clear()
+  })
+  return {
+    show(content, options) {
+      if (disposed) throw new Error("Overlay owner is disposed")
+      const handle = manager.show(content, options)
+      const forget = () => { handles.delete(scoped) }
+      const scoped: OverlayHandle = {
+        ...handle,
+        close() {
+          handles.delete(scoped)
+          content.off(RenderableEvents.DESTROYED, forget)
+          handle.close()
+        },
+      }
+      if (!content.isDestroyed) {
+        handles.add(scoped)
+        content.once(RenderableEvents.DESTROYED, forget)
+      }
+      return scoped
+    },
+  }
 }
 
 export const onResize = (callback: (width: number, height: number) => void) => {

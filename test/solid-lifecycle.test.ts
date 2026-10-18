@@ -65,6 +65,53 @@ async function runSolidScenario(source: string): Promise<void> {
   }
 }
 
+test.skipIf(!supportsFfi)("Solid overlay cleanup closes only the current owner's handles", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal, onMount, Show } from "solid-js"
+import { testRender, useOverlay, useRenderer } from "ax-tui/solid"
+import { InputRenderable } from "ax-tui"
+let toggle
+let childContent
+let siblingContent
+let childHandle
+let childOwner
+function Child() {
+  const renderer = useRenderer()
+  const overlays = useOverlay()
+  childOwner = overlays
+  onMount(() => {
+    childContent = new InputRenderable(renderer, { id: "child-overlay" })
+    childHandle = overlays.show(childContent, { nonCapturing: true })
+  })
+  return <text>child</text>
+}
+const setup = await testRender(() => {
+  const renderer = useRenderer()
+  const overlays = useOverlay()
+  const [visible, setVisible] = createSignal(true)
+  toggle = setVisible
+  onMount(() => {
+    siblingContent = new InputRenderable(renderer, { id: "sibling-overlay" })
+    overlays.show(siblingContent, { nonCapturing: true })
+  })
+  return <Show when={visible()}><Child /></Show>
+}, { width: 40, height: 10, useKittyKeyboard: null })
+try {
+  await setup.renderOnce()
+  toggle(false)
+  await setup.renderOnce()
+  assert.equal(childContent.isDestroyed, true)
+  assert.equal(siblingContent.isDestroyed, false)
+  childHandle.close()
+  const unused = new InputRenderable(setup.renderer, { id: "unused" })
+  assert.throws(() => childOwner.show(unused), /disposed/)
+  unused.destroy()
+} finally { setup.renderer.destroy() }
+assert.equal(siblingContent.isDestroyed, true)
+`)
+}, 30_000)
+
 test.skipIf(!supportsFfi)(
   "keyed inline text moves preserve one copy and the requested sibling order",
   async () => {

@@ -979,6 +979,7 @@ export abstract class EditBufferRenderable extends Renderable implements LineInf
 
   public focus(): void {
     super.focus()
+    if (this.isDestroyed || !this.focused) return
     this._ctx.setCursorStyle({ ...this._cursorStyle, color: this._cursorColor })
     this.requestRender()
   }

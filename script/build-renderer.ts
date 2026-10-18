@@ -1,6 +1,7 @@
 import { build, type BuildOptions, type Plugin } from "esbuild"
 import { spawnSync } from "node:child_process"
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
+import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { transformSolidSource, resolveNodeSolidRuntimeImport } from "../solid/source/scripts/solid-transform.js"
@@ -66,9 +67,27 @@ if (process.argv[2]) {
   await mkdir(output, { recursive: true })
 }
 declarations("tsconfig.build.json", output)
-declarations("solid/tsconfig.build.json", path.join(output, "solid"))
 declarations("native/tsconfig.build.json", path.join(output, "native"))
-
+// Solid must see this build's core API, including newly added exports, rather
+// than the declarations from the previous committed distribution.
+const declarationConfig = await mkdtemp(path.join(os.tmpdir(), "ax-tui-declarations-"))
+try {
+  const config = path.join(declarationConfig, "tsconfig.json")
+  await writeFile(config, JSON.stringify({
+    extends: path.join(root, "solid/tsconfig.build.json"),
+    compilerOptions: {
+      typeRoots: [path.join(root, "node_modules/@types")],
+      paths: {
+        "ax-tui": [path.join(output, "index.d.ts")],
+        "ax-tui/testing": [path.join(output, "testing.d.ts")],
+        "ax-tui/runtime-plugin": [path.join(output, "runtime-plugin.d.ts")],
+      },
+    },
+  }))
+  declarations(config, path.join(output, "solid"))
+} finally {
+  await rm(declarationConfig, { recursive: true, force: true })
+}
 await build({
   ...common,
   entryPoints: ["src/index.ts", "src/testing.ts", "src/yoga.ts"],

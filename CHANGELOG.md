@@ -3,6 +3,25 @@
 All notable changes to ax-tui are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Breaking changes are called out explicitly when they occur.
 
+## [Unreleased]
+
+### Added
+
+- Add slash-command and file-path autocomplete providers, cancellable requests,
+  explicit replacement ranges, and an undo-preserving native editor adapter.
+- Add positioned, clipped overlays with reversible visibility, focus restoration,
+  and Solid owner-scoped cleanup through `useOverlay`.
+
+### Fixed
+
+- Size native text-range output by actual UTF-8 bytes rather than display-width
+  offsets, preserving CJK, combining characters, and emoji sequences.
+- Position single-line input cursors at the native line end for Unicode values,
+  and retain single-line/length constraints during undoable replacement.
+- Stop installing input handlers or accessing destroyed editors when synchronous
+  focus listeners redirect focus or close the focused renderable.
+- Build Solid declarations against the current staged core exports.
+
 ## [1.0.6] - 2026-10-17
 
 ### Fixed

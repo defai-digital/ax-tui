@@ -26,6 +26,14 @@ const totalBytes = 64 * 32768 + 63
 
 const buffer = EditBuffer.create("wcwidth")
 try {
+  // Display-width offsets must not be reused as a UTF-8 allocation size.
+  for (const text of ["中文😀", "e\\u0301", "👩‍💻", "中\\na"]) {
+    buffer.setText(text)
+    buffer.setCursor(999, 65535)
+    const end = buffer.getCursorPosition().offset
+    assert.equal(buffer.getTextRange(0, end), text)
+  }
+
   // Undo/redo must emit the same "cursor-changed" event as every other
   // cursor update (the native side briefly emitted "cursorChanged").
   let cursorEvents = 0

@@ -79,6 +79,98 @@ import { ChartRenderable, SparklineRenderable } from "ax-tui/chart"
 import "ax-tui/chart/solid"
 ```
 
+### Autocomplete
+
+The root export provides reusable completion providers and an editor adapter:
+
+```ts
+import {
+  AutocompleteController,
+  combineAutocompleteProviders,
+  createSlashCommandProvider,
+  createFilePathProvider,
+  getEditorAutocompleteRequest,
+  applyEditorAutocomplete,
+} from "ax-tui"
+
+const completions = new AutocompleteController(combineAutocompleteProviders(
+  createSlashCommandProvider([{ name: "help", description: "Show available commands" }]),
+  createFilePathProvider({ cwd: process.cwd(), maxResults: 50 }),
+))
+
+// editor is an attached TextareaRenderable or InputRenderable.
+// Call again after each input/cursor change; handle provider errors in the caller.
+const result = await completions.request(getEditorAutocompleteRequest(editor))
+// Render result.items in your suggestion UI, then accept the user's selected item:
+if (result?.items[0]) applyEditorAutocomplete(editor, result, result.items[0])
+
+// Cancel when dismissing suggestions; dispose when the owning UI is destroyed.
+completions.cancel()
+completions.dispose()
+```
+
+Requests and replacement ranges use JavaScript UTF-16 indices. An item's optional
+`cursorOffset` positions the caret inside its inserted text; quoted directory
+completion uses it to keep subsequent typing inside the quotes. The adapter
+converts through AX's native display-width rules, preserves undo, rejects stale
+text/cursor snapshots, and declines edits while text is selected. Input replacement
+retains its single-line and maximum-length constraints. Custom providers receive
+an `AbortSignal`; superseded results are ignored even if the provider ignores it.
+Cancellation suppresses errors from cancelled work; other provider errors reject
+the request promise and should be handled by the application.
+
+Slash completion applies to the first token at the beginning of the input.
+Providers run in order; the first non-null result wins, including an empty list.
+With slash completion first, leading `/` belongs to commands; use the path provider
+alone for absolute POSIX paths, or `./`, `../`, `~/`, and `@` paths in a combined
+provider. File completion reads one directory asynchronously, supports double-quoted
+paths with spaces, and bounds the number of returned suggestions. It is not a shell
+parser: backslashes are literal characters or Windows separators, and quotes/control
+characters in filenames are excluded. Matching symlinks in the bounded result set
+are checked for directory targets without recursively traversing them.
+
+### Overlays
+
+```ts
+import { InputRenderable, getOverlayManager } from "ax-tui"
+
+const input = new InputRenderable(renderer, { id: "dialog-input", width: "100%" })
+const dialog = getOverlayManager(renderer).show(input, {
+  width: "60%",
+  height: 3,
+  anchor: "center",
+  margin: 1,
+  visible: (width) => width >= 20,
+})
+
+dialog.setHidden(true)  // Keep the content alive and release its focus.
+dialog.setHidden(false)
+dialog.focus()          // Re-showing alone does not steal focus.
+dialog.close()          // Permanently remove and destroy owned content; safe to repeat.
+```
+
+Each renderer has one shared manager. Content must be unattached and belong to
+that renderer; showing it transfers ownership to the manager. A wrapper clips the
+content and positions it above existing ordinary root children when shown or
+focused. Dimensions can be cell
+counts or percentages of the viewport remaining after margins. Anchors support
+center, corners, and edge centers; offsets are clamped to the available area.
+Responsive visibility is evaluated on show and renderer resize.
+
+For a container with an embedded input, pass that input as `focus`. A focusable
+content root is the default target. `nonCapturing: true` leaves keyboard focus in
+the editor, which is useful for suggestion lists. This controls initial keyboard
+focus, not mouse click-through. Overlays do not implement a modal focus trap,
+Escape handling, or list navigation; those policies belong to the application.
+Closing or hiding restores previous eligible focus only when focus remains inside
+the overlay. Nested overlays support out-of-order closure and skip hidden or
+destroyed restoration targets. Renderer destruction cleans up all overlays.
+
+In Solid components, `useOverlay()` from `ax-tui/solid` returns a scoped `show`
+method with the same arguments. Its handles close automatically when that owner
+is disposed, without closing sibling owners' overlays. Use imperative renderables
+as content; already mounted JSX/Portal nodes must not be reparented into overlays.
+
 ### Subpath exports
 
 | Export                     | Contents                                                                                                              |

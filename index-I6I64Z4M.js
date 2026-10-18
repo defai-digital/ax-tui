@@ -4894,6 +4894,7 @@ var Renderable = class _Renderable extends BaseRenderable {
     if (this._isDestroyed || this._focused || !this._focusable) return;
     this._focused = true;
     this._ctx.focusRenderable(this);
+    if (this._isDestroyed || !this._focused || this._ctx.currentFocusedRenderable !== this) return;
     this.requestRender();
     this.keypressHandler = (key) => {
       if (this._isDestroyed) return;

@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-5TUEBHVO.js";
+} from "./index-I6I64Z4M.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -397,7 +397,7 @@ var EditBuffer = class _EditBuffer extends EventEmitter {
   getTextRange(startOffset, endOffset) {
     this.guard();
     if (startOffset >= endOffset) return "";
-    const maxSize = Math.min(this.lib.textBufferGetByteSize(this.textBufferPtr), endOffset);
+    const maxSize = this.lib.textBufferGetByteSize(this.textBufferPtr);
     if (maxSize <= 0) return "";
     const textBytes = this.lib.editBufferGetTextRange(this.bufferPtr, startOffset, endOffset, maxSize);
     if (!textBytes) return "";
@@ -4337,6 +4337,7 @@ var EditBufferRenderable = class extends Renderable {
   }
   focus() {
     super.focus();
+    if (this.isDestroyed || !this.focused) return;
     this._ctx.setCursorStyle({ ...this._cursorStyle, color: this._cursorColor });
     this.requestRender();
   }

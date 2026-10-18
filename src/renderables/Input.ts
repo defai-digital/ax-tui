@@ -11,6 +11,13 @@ import {
 export type InputAction = TextareaAction
 export type InputKeyBinding = TextareaKeyBinding
 
+function truncateInput(text: string, maxLength: number): string {
+  const value = text.substring(0, maxLength)
+  const last = value.charCodeAt(value.length - 1)
+  const next = text.charCodeAt(value.length)
+  return last >= 0xd800 && last <= 0xdbff && next >= 0xdc00 && next <= 0xdfff ? value.slice(0, -1) : value
+}
+
 export interface InputRenderableOptions
   extends Omit<TextareaOptions, "height" | "minHeight" | "maxHeight" | "initialValue"> {
   /** Initial text value (newlines are stripped) */
@@ -62,7 +69,7 @@ export class InputRenderable extends TextareaRenderable {
     const minLength = options.minLength ?? defaults.minLength
     // Sanitize initial value: strip newlines and enforce maxLength
     const rawValue = options.value ?? defaults.value
-    const initialValue = rawValue.replace(/[\n\r]/g, "").substring(0, maxLength)
+    const initialValue = truncateInput(rawValue.replace(/[\n\r]/g, ""), maxLength)
 
     if (minLength > maxLength) {
       throw new Error(`InputRenderable: minLength (${minLength}) cannot be greater than maxLength (${maxLength})`)
@@ -90,7 +97,7 @@ export class InputRenderable extends TextareaRenderable {
 
     // Set cursor to end of initial value
     if (initialValue) {
-      this.cursorOffset = initialValue.length
+      this.gotoLineTextEnd()
     }
   }
 
@@ -122,7 +129,7 @@ export class InputRenderable extends TextareaRenderable {
     const remaining = this._maxLength - currentLength
     if (remaining <= 0) return
 
-    const toInsert = sanitized.substring(0, remaining)
+    const toInsert = truncateInput(sanitized, remaining)
     super.insertText(toInsert)
     this.emit(InputRenderableEvents.INPUT, this.plainText)
   }
@@ -132,17 +139,25 @@ export class InputRenderable extends TextareaRenderable {
   }
 
   public set value(value: string) {
-    const newValue = value.substring(0, this._maxLength).replace(/[\n\r]/g, "")
+    const newValue = truncateInput(value.replace(/[\n\r]/g, ""), this._maxLength)
     const currentValue = this.plainText
     if (currentValue !== newValue) {
       this.setText(newValue)
-      this.cursorOffset = newValue.length
+      this.gotoLineTextEnd()
       this.emit(InputRenderableEvents.INPUT, newValue)
     }
   }
 
+  /** Preserve single-line and length constraints for undoable programmatic edits such as completion. */
+  public override replaceText(text: string): void {
+    const value = truncateInput(text.replace(/[\n\r]/g, ""), this._maxLength)
+    super.replaceText(value)
+    this.emit(InputRenderableEvents.INPUT, this.plainText)
+  }
+
   public override focus(): void {
     super.focus()
+    if (this.isDestroyed || !this.focused) return
     this._lastCommittedValue = this.plainText
   }
 
@@ -237,7 +252,7 @@ export class InputRenderable extends TextareaRenderable {
     this._maxLength = maxLength
     const currentValue = this.plainText
     if (currentValue.length > maxLength) {
-      this.setText(currentValue.substring(0, maxLength))
+      this.setText(truncateInput(currentValue, maxLength))
     }
   }
 

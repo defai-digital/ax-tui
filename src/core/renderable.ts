@@ -417,6 +417,9 @@ export abstract class Renderable extends BaseRenderable {
 
     this._focused = true
     this._ctx.focusRenderable(this)
+    // Focus listeners may synchronously close a dialog or focus another node.
+    // Do not attach input handlers after that transition has already revoked focus.
+    if (this._isDestroyed || !this._focused || this._ctx.currentFocusedRenderable !== this) return
     this.requestRender()
 
     this.keypressHandler = (key: KeyEvent) => {

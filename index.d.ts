@@ -28,3 +28,6 @@ export * from "./renderables/index.js";
 export * from "./core/zig.js";
 export * from "./core/console.js";
 export * as Yoga from "./yoga.js";
+export * from "./lib/autocomplete.js";
+export * from "./lib/editor-autocomplete.js";
+export * from "./lib/overlay.js";

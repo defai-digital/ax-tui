@@ -1,6 +1,11 @@
 import { PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "ax-tui";
+import { type OverlayHandle, type OverlayOptions, type Renderable } from "ax-tui";
 export declare const RendererContext: import("solid-js").Context<CliRenderer | undefined>;
 export declare const useRenderer: () => CliRenderer;
+/** Show owned overlays and close only this Solid owner's handles on cleanup. */
+export declare const useOverlay: () => {
+    show: (content: Renderable, options?: OverlayOptions) => OverlayHandle;
+};
 export declare const onResize: (callback: (width: number, height: number) => void) => void;
 export declare const useTerminalDimensions: () => import("solid-js").Accessor<{
     width: number;

@@ -276,9 +276,9 @@ export class EditBuffer extends EventEmitter {
     this.guard()
     if (startOffset >= endOffset) return ""
 
-    // Offsets are rope byte offsets, so the result is bounded by the clamped
-    // end offset; a fixed 1MB cap would silently truncate larger ranges.
-    const maxSize = Math.min(this.lib.textBufferGetByteSize(this.textBufferPtr), endOffset)
+    // Offsets are display widths (plus line breaks), not bytes. Even a single
+    // grapheme can require many UTF-8 bytes, so size from the actual buffer.
+    const maxSize = this.lib.textBufferGetByteSize(this.textBufferPtr)
     if (maxSize <= 0) return ""
 
     const textBytes = this.lib.editBufferGetTextRange(this.bufferPtr, startOffset, endOffset, maxSize)

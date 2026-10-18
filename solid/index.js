@@ -100,6 +100,7 @@ function getComponentCatalogue() {
 // solid/source/src/elements/hooks.ts
 import { engine, Timeline } from "ax-tui";
 import { createContext, createSignal, onCleanup, onMount, useContext } from "solid-js/dist/solid.js";
+import { getOverlayManager, RenderableEvents } from "ax-tui";
 var RendererContext = createContext();
 var useRenderer = () => {
   const renderer = useContext(RendererContext);
@@ -107,6 +108,38 @@ var useRenderer = () => {
     throw new Error("No renderer found");
   }
   return renderer;
+};
+var useOverlay = () => {
+  const manager = getOverlayManager(useRenderer());
+  const handles = /* @__PURE__ */ new Set();
+  let disposed = false;
+  onCleanup(() => {
+    disposed = true;
+    for (const handle of [...handles]) handle.close();
+    handles.clear();
+  });
+  return {
+    show(content, options) {
+      if (disposed) throw new Error("Overlay owner is disposed");
+      const handle = manager.show(content, options);
+      const forget = () => {
+        handles.delete(scoped);
+      };
+      const scoped = {
+        ...handle,
+        close() {
+          handles.delete(scoped);
+          content.off(RenderableEvents.DESTROYED, forget);
+          handle.close();
+        }
+      };
+      if (!content.isDestroyed) {
+        handles.add(scoped);
+        content.once(RenderableEvents.DESTROYED, forget);
+      }
+      return scoped;
+    }
+  };
 };
 var onResize = (callback) => {
   const renderer = useRenderer();
@@ -1632,6 +1665,7 @@ export {
   use,
   useKeyHandler,
   useKeyboard,
+  useOverlay,
   usePaste,
   useRenderer,
   useSelectionHandler,
