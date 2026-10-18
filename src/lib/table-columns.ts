@@ -96,11 +96,18 @@ export function allocateShrinkByWeight(shrinkable: number[], targetShrink: numbe
  * (content width capped at `minWidth + 1`), distributing the reduction by
  * exact proportional share with largest-remainder rounding.
  */
-export function fitColumnWidthsProportional(widths: number[], targetContentWidth: number, minWidth: number): number[] {
-  const hardMinWidths = new Array(widths.length).fill(minWidth)
+export function fitColumnWidthsProportional(
+  widths: number[],
+  targetContentWidth: number,
+  minWidth: number,
+  columnMinWidths?: readonly number[],
+): number[] {
+  const hardMinWidths = widths.map((_, idx) => Math.max(minWidth, columnMinWidths?.[idx] ?? minWidth))
   const baseWidths = widths.map(normalizeColumnWidth)
 
-  const preferredMinWidths = baseWidths.map((width) => Math.min(width, minWidth + 1))
+  const preferredMinWidths = baseWidths.map((width, idx) =>
+    Math.min(width, Math.max(minWidth + 1, hardMinWidths[idx]!)),
+  )
   const preferredMinTotal = sumWidths(preferredMinWidths)
 
   const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths
@@ -162,8 +169,13 @@ export function fitColumnWidthsProportional(widths: number[], targetContentWidth
  * Balanced fitting: even out columns toward a shared width before shrinking
  * the residual by square-root-weighted allocation.
  */
-export function fitColumnWidthsBalanced(widths: number[], targetContentWidth: number, minWidth: number): number[] {
-  const hardMinWidths = new Array(widths.length).fill(minWidth)
+export function fitColumnWidthsBalanced(
+  widths: number[],
+  targetContentWidth: number,
+  minWidth: number,
+  columnMinWidths?: readonly number[],
+): number[] {
+  const hardMinWidths = widths.map((_, idx) => Math.max(minWidth, columnMinWidths?.[idx] ?? minWidth))
   const baseWidths = widths.map(normalizeColumnWidth)
   const totalBaseWidth = sumWidths(baseWidths)
   const columns = baseWidths.length
@@ -173,7 +185,9 @@ export function fitColumnWidthsBalanced(widths: number[], targetContentWidth: nu
   }
 
   const evenShare = Math.max(minWidth, Math.floor(targetContentWidth / columns))
-  const preferredMinWidths = baseWidths.map((width) => Math.min(width, evenShare))
+  const preferredMinWidths = baseWidths.map((width, idx) =>
+    Math.min(width, Math.max(evenShare, hardMinWidths[idx]!)),
+  )
   const preferredMinTotal = sumWidths(preferredMinWidths)
   const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths
   const floorTotal = sumWidths(floorWidths)

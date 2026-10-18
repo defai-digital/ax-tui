@@ -5409,10 +5409,12 @@ function allocateShrinkByWeight(shrinkable, targetShrink, mode) {
   }
   return shrink;
 }
-function fitColumnWidthsProportional(widths, targetContentWidth, minWidth) {
-  const hardMinWidths = new Array(widths.length).fill(minWidth);
+function fitColumnWidthsProportional(widths, targetContentWidth, minWidth, columnMinWidths) {
+  const hardMinWidths = widths.map((_, idx) => Math.max(minWidth, columnMinWidths?.[idx] ?? minWidth));
   const baseWidths = widths.map(normalizeColumnWidth);
-  const preferredMinWidths = baseWidths.map((width) => Math.min(width, minWidth + 1));
+  const preferredMinWidths = baseWidths.map(
+    (width, idx) => Math.min(width, Math.max(minWidth + 1, hardMinWidths[idx]))
+  );
   const preferredMinTotal = sumWidths(preferredMinWidths);
   const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths;
   const floorTotal = sumWidths(floorWidths);
@@ -5456,8 +5458,8 @@ function fitColumnWidthsProportional(widths, targetContentWidth, minWidth) {
   }
   return baseWidths.map((width, idx) => Math.max(floorWidths[idx], width - integerShrink[idx]));
 }
-function fitColumnWidthsBalanced(widths, targetContentWidth, minWidth) {
-  const hardMinWidths = new Array(widths.length).fill(minWidth);
+function fitColumnWidthsBalanced(widths, targetContentWidth, minWidth, columnMinWidths) {
+  const hardMinWidths = widths.map((_, idx) => Math.max(minWidth, columnMinWidths?.[idx] ?? minWidth));
   const baseWidths = widths.map(normalizeColumnWidth);
   const totalBaseWidth = sumWidths(baseWidths);
   const columns = baseWidths.length;
@@ -5465,7 +5467,9 @@ function fitColumnWidthsBalanced(widths, targetContentWidth, minWidth) {
     return baseWidths;
   }
   const evenShare = Math.max(minWidth, Math.floor(targetContentWidth / columns));
-  const preferredMinWidths = baseWidths.map((width) => Math.min(width, evenShare));
+  const preferredMinWidths = baseWidths.map(
+    (width, idx) => Math.min(width, Math.max(evenShare, hardMinWidths[idx]))
+  );
   const preferredMinTotal = sumWidths(preferredMinWidths);
   const floorWidths = preferredMinTotal <= targetContentWidth ? preferredMinWidths : hardMinWidths;
   const floorTotal = sumWidths(floorWidths);
@@ -5484,6 +5488,17 @@ function fitColumnWidthsBalanced(widths, targetContentWidth, minWidth) {
 }
 
 // src/renderables/TextTable.ts
+var cellSegmenter = new Intl.Segmenter(void 0, { granularity: "grapheme" });
+function maxGraphemeWidth(content) {
+  let width = 0;
+  for (const chunk of content ?? []) {
+    for (const { segment } of cellSegmenter.segment(chunk.text)) {
+      if (segment === "\n") continue;
+      width = Math.max(width, stringWidth(segment));
+    }
+  }
+  return width;
+}
 var MEASURE_HEIGHT = 1e4;
 var TextTableRenderable = class extends Renderable {
   _content;
@@ -5974,6 +5989,7 @@ var TextTableRenderable = class extends Renderable {
   computeColumnWidths(maxTableWidth, borderLayout) {
     const horizontalPadding = this.getHorizontalCellPadding();
     const intrinsicWidths = new Array(this._columnCount).fill(1 + horizontalPadding);
+    const columnMinWidths = new Array(this._columnCount).fill(1 + horizontalPadding);
     const intrinsic = [];
     for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
       const rowMeasures = [];
@@ -5988,6 +6004,10 @@ var TextTableRenderable = class extends Renderable {
         };
         rowMeasures[colIdx] = intrinsicCell;
         intrinsicWidths[colIdx] = Math.max(intrinsicWidths[colIdx], intrinsicCell.width + horizontalPadding);
+        columnMinWidths[colIdx] = Math.max(
+          columnMinWidths[colIdx],
+          maxGraphemeWidth(this._content[rowIdx]?.[colIdx]) + horizontalPadding
+        );
       }
     }
     if (maxTableWidth === void 0 || !Number.isFinite(maxTableWidth) || maxTableWidth <= 0) {
@@ -6010,7 +6030,7 @@ var TextTableRenderable = class extends Renderable {
     if (this._wrapMode === "none") {
       return { widths: intrinsicWidths, intrinsic };
     }
-    return { widths: this.fitColumnWidths(intrinsicWidths, maxContentWidth), intrinsic };
+    return { widths: this.fitColumnWidths(intrinsicWidths, maxContentWidth, columnMinWidths), intrinsic };
   }
   expandColumnWidths(widths, targetContentWidth) {
     const baseWidths = widths.map(normalizeColumnWidth);
@@ -6031,12 +6051,12 @@ var TextTableRenderable = class extends Renderable {
     }
     return expanded;
   }
-  fitColumnWidths(widths, targetContentWidth) {
+  fitColumnWidths(widths, targetContentWidth, columnMinWidths) {
     const minWidth = 1 + this.getHorizontalCellPadding();
     if (this._columnFitter === "balanced") {
-      return fitColumnWidthsBalanced(widths, targetContentWidth, minWidth);
+      return fitColumnWidthsBalanced(widths, targetContentWidth, minWidth, columnMinWidths);
     }
-    return fitColumnWidthsProportional(widths, targetContentWidth, minWidth);
+    return fitColumnWidthsProportional(widths, targetContentWidth, minWidth, columnMinWidths);
   }
   computeRowHeights(columnWidths, intrinsic) {
     const horizontalPadding = this.getHorizontalCellPadding();

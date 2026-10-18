@@ -34,6 +34,8 @@ All notable changes to ax-tui are documented here. The format is based on
   targets through nested inline styles, and apply table options to tables nested
   inside list items.
 - Re-clamp text-buffer scroll offsets after resize and wrap-mode changes.
+- Give table columns a grapheme-aware minimum width so a wide character cannot
+  overwrite the adjacent border or cell.
 
 ### Added
 

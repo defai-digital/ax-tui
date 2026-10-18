@@ -24,9 +24,9 @@ export declare function allocateShrinkByWeight(shrinkable: number[], targetShrin
  * (content width capped at `minWidth + 1`), distributing the reduction by
  * exact proportional share with largest-remainder rounding.
  */
-export declare function fitColumnWidthsProportional(widths: number[], targetContentWidth: number, minWidth: number): number[];
+export declare function fitColumnWidthsProportional(widths: number[], targetContentWidth: number, minWidth: number, columnMinWidths?: readonly number[]): number[];
 /**
  * Balanced fitting: even out columns toward a shared width before shrinking
  * the residual by square-root-weighted allocation.
  */
-export declare function fitColumnWidthsBalanced(widths: number[], targetContentWidth: number, minWidth: number): number[];
+export declare function fitColumnWidthsBalanced(widths: number[], targetContentWidth: number, minWidth: number, columnMinWidths?: readonly number[]): number[];

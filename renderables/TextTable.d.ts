@@ -4,7 +4,7 @@ import { type BorderStyle } from "../lib/border.js";
 import { type Selection } from "../lib/selection.js";
 import { RGBA, type ColorInput } from "../lib/rgba.js";
 import { type TextChunk } from "../core/text-buffer.js";
-import type { RenderContext } from "../core/types.js";
+import { type RenderContext } from "../core/types.js";
 export type TextTableCellContent = TextChunk[] | null | undefined;
 export type TextTableContent = TextTableCellContent[][];
 export type TextTableColumnWidthMode = "content" | "full";

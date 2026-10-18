@@ -13,7 +13,21 @@ import { RGBA, parseColor, type ColorInput } from "../lib/rgba.js"
 import { SyntaxStyle } from "../core/syntax-style.js"
 import { type TextChunk, TextBuffer } from "../core/text-buffer.js"
 import { TextBufferView } from "../core/text-buffer-view.js"
-import type { RenderContext } from "../core/types.js"
+import { type RenderContext } from "../core/types.js"
+import { stringWidth } from "../platform/runtime.js"
+
+const cellSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" })
+
+function maxGraphemeWidth(content: TextTableCellContent): number {
+  let width = 0
+  for (const chunk of content ?? []) {
+    for (const { segment } of cellSegmenter.segment(chunk.text)) {
+      if (segment === "\n") continue
+      width = Math.max(width, stringWidth(segment))
+    }
+  }
+  return width
+}
 
 // Large sentinel height for text measurement. The Zig measure path currently
 // ignores height, but we pass an effectively unbounded value so if height-aware
@@ -709,6 +723,7 @@ export class TextTableRenderable extends Renderable {
   ): { widths: number[]; intrinsic: (CellIntrinsicMeasure | undefined)[][] } {
     const horizontalPadding = this.getHorizontalCellPadding()
     const intrinsicWidths = new Array(this._columnCount).fill(1 + horizontalPadding)
+    const columnMinWidths = new Array(this._columnCount).fill(1 + horizontalPadding)
     const intrinsic: (CellIntrinsicMeasure | undefined)[][] = []
 
     for (let rowIdx = 0; rowIdx < this._rowCount; rowIdx++) {
@@ -726,6 +741,10 @@ export class TextTableRenderable extends Renderable {
         }
         rowMeasures[colIdx] = intrinsicCell
         intrinsicWidths[colIdx] = Math.max(intrinsicWidths[colIdx], intrinsicCell.width + horizontalPadding)
+        columnMinWidths[colIdx] = Math.max(
+          columnMinWidths[colIdx],
+          maxGraphemeWidth(this._content[rowIdx]?.[colIdx]) + horizontalPadding,
+        )
       }
     }
 
@@ -755,7 +774,7 @@ export class TextTableRenderable extends Renderable {
       return { widths: intrinsicWidths, intrinsic }
     }
 
-    return { widths: this.fitColumnWidths(intrinsicWidths, maxContentWidth), intrinsic }
+    return { widths: this.fitColumnWidths(intrinsicWidths, maxContentWidth, columnMinWidths), intrinsic }
   }
 
   private expandColumnWidths(widths: number[], targetContentWidth: number): number[] {
@@ -782,14 +801,14 @@ export class TextTableRenderable extends Renderable {
     return expanded
   }
 
-  private fitColumnWidths(widths: number[], targetContentWidth: number): number[] {
+  private fitColumnWidths(widths: number[], targetContentWidth: number, columnMinWidths: number[]): number[] {
     const minWidth = 1 + this.getHorizontalCellPadding()
 
     if (this._columnFitter === "balanced") {
-      return fitColumnWidthsBalanced(widths, targetContentWidth, minWidth)
+      return fitColumnWidthsBalanced(widths, targetContentWidth, minWidth, columnMinWidths)
     }
 
-    return fitColumnWidthsProportional(widths, targetContentWidth, minWidth)
+    return fitColumnWidthsProportional(widths, targetContentWidth, minWidth, columnMinWidths)
   }
 
   private computeRowHeights(columnWidths: number[], intrinsic: (CellIntrinsicMeasure | undefined)[][]): number[] {

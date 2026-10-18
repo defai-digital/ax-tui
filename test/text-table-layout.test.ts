@@ -166,3 +166,26 @@ try {
 console.log("text-table measure-pass ok")
 `)
 })
+
+test.skipIf(!supportsFfi)("wide graphemes keep their cell width instead of covering the separator", () => {
+  runDriver(`
+${PREAMBLE}
+const setup = await createTestRenderer({ width: 20, height: 6 })
+try {
+  const table = new TextTableRenderable(setup.renderer, {
+    width: 6,
+    content: [[cell("界"), cell("ab")]],
+    wrapMode: "char",
+  })
+  setup.renderer.root.add(table)
+  await setup.renderOnce()
+
+  const frame = setup.captureCharFrame()
+  assert.ok(!frame.includes("│界ab│"), frame)
+  assert.ok(frame.includes("│界│"), frame)
+} finally {
+  setup.renderer.destroy()
+}
+console.log("text-table wide grapheme ok")
+`)
+})
