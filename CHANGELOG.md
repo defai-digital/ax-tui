@@ -5,6 +5,8 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-18
+
 ### Added
 
 - Add opt-in tree-order focus navigation, explicit ordering and modal Tab scopes,
@@ -20,6 +22,15 @@ All notable changes to ax-tui are documented here. The format is based on
 
 - Advance the native ABI to 3 for the terminal-control queue entrypoint and
   rebuild all supported native targets together with the TypeScript interface.
+
+### Fixed
+
+- Copy PNG Buffer inputs before deferred decoding so caller mutations cannot
+  corrupt an image, and avoid starting loaders after replacement or destruction.
+- Require complete OSC 99 notification capability responses, keep matching
+  within one escape sequence, and scan repeated prefixes in linear time.
+- Harden terminal capability matching and chart coordinate indexing against
+  pathological input identified by security analysis.
 
 ## [2.0.1] - 2026-10-17
 

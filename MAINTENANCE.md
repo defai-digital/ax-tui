@@ -150,7 +150,8 @@ on Linux, macOS, and Windows. On macOS the installer copies the active SDK and
 adds `arm64-macos` beside `arm64e-macos` stub targets when Zig 0.15.2 would
 otherwise skip them. Linux, macOS, and Windows must pass before a release
 uploads immutable native assets. Native source changes also require rebuilding
-all eight targets. ABI 2 reports buffer resize failure; ABI 1 is incompatible.
+all eight targets. ABI 3 adds the terminal-control FIFO and retains ABI 2's buffer
+resize failure reporting; older native libraries are incompatible.
 `check:abi` compares `src/core/zig-structs.ts` with `native/renderer/abi-layout.json`.
 The Zig suite compares that file with the native `extern` struct offsets. Update
 both sides, then run `pnpm exec tsx script/native-abi-layout.ts --write`.
