@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-KLKH4KBA.js";
+} from "./index-42JJTW3W.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-BUSAXULS.js";
+} from "./index-U43LFUIA.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -227,12 +227,12 @@ var DistortionEffect = class {
     const width = buffer.width;
     const height = buffer.height;
     const buf = buffer.buffers;
-    this.lastGlitchTime += deltaTime;
+    this.lastGlitchTime += deltaTime / 1e3;
     if (this.activeGlitches.length > 0 && this.lastGlitchTime >= this.glitchDuration) {
       this.activeGlitches = [];
       this.glitchDuration = 0;
     }
-    if (this.activeGlitches.length === 0 && Math.random() < this.glitchChancePerSecond * deltaTime) {
+    if (this.activeGlitches.length === 0 && Math.random() < this.glitchChancePerSecond * (deltaTime / 1e3)) {
       this.lastGlitchTime = 0;
       this.glitchDuration = this.minGlitchDuration + Math.random() * (this.maxGlitchDuration - this.minGlitchDuration);
       const numGlitches = 1 + Math.floor(Math.random() * this.maxGlitchLines);
@@ -578,7 +578,7 @@ var CloudsEffect = class {
   apply(buffer, deltaTime) {
     const width = buffer.width;
     const height = buffer.height;
-    this.time += deltaTime * this._speed;
+    this.time += deltaTime / 1e3 * this._speed;
     const scale = this._scale;
     const timeOffset = this.time;
     const cellMask = new Float32Array(width * height * 3);
@@ -648,7 +648,7 @@ var FlamesEffect = class {
     const width = buffer.width;
     const height = buffer.height;
     const bg2 = buffer.buffers.bg;
-    this.time += deltaTime * this._speed;
+    this.time += deltaTime / 1e3 * this._speed;
     const scale = this._scale;
     const timeOffset = this.time;
     for (let y = 0; y < height; y++) {
@@ -874,7 +874,7 @@ var RainbowTextEffect = class {
     const width = buffer.width;
     const height = buffer.height;
     const fg2 = buffer.buffers.fg;
-    this.time += deltaTime * this._speed;
+    this.time += deltaTime / 1e3 * this._speed;
     const saturation = this._saturation;
     const value = this._value;
     const repeats = this._repeats;
@@ -3673,7 +3673,8 @@ var LineNumberRenderable = class extends Renderable {
       throw new Error("LineNumberRenderable: Cannot remove gutter directly.");
     }
     if (this.target && id === this.target.id) {
-      throw new Error("LineNumberRenderable: Cannot remove target directly. Use clearTarget() instead.");
+      this.clearTarget();
+      return;
     }
     super.remove(id);
   }

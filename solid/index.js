@@ -261,7 +261,7 @@ var useTimeline = (options = {}) => {
 };
 
 // solid/source/src/elements/extras.ts
-import { createEffect, createMemo as createMemo2, getOwner, onCleanup as onCleanup2, runWithOwner, splitProps, untrack as untrack2 } from "solid-js/dist/solid.js";
+import { createEffect, createMemo as createMemo2, createRoot as createRoot2, getOwner, onCleanup as onCleanup2, runWithOwner, splitProps, untrack as untrack2 } from "solid-js/dist/solid.js";
 
 // solid/source/src/reconciler.ts
 import {
@@ -597,6 +597,7 @@ function _insertNode(parent, node, anchor) {
     console.error("[INSERT]", "Tried to mount a non base renderable");
     throw new Error("Tried to mount a non base renderable");
   }
+  jsxManagedParents.set(node, parent);
   if (!anchor) {
     parent.add(node);
     return;
@@ -623,6 +624,9 @@ function _removeNode(parent, node) {
       return;
     }
     node = slotChild;
+  }
+  if (jsxManagedParents.get(node) === parent) {
+    jsxManagedParents.delete(node);
   }
   parent.remove(node.id);
   slotParent?.didRemoveSlotChild(parent, node);
@@ -659,6 +663,7 @@ function _getParentNode(childNode) {
   return parent;
 }
 var textStyleDefaults = /* @__PURE__ */ new WeakMap();
+var jsxManagedParents = /* @__PURE__ */ new WeakMap();
 var layoutStyleIntrinsicDefaults = {
   width: "auto",
   height: "auto",
@@ -846,7 +851,7 @@ var {
   getParentNode: _getParentNode,
   getFirstChild(node) {
     log("Getting first child of node:", logId(node));
-    const firstChild = getNodeChildren(node)[0];
+    const firstChild = getNodeChildren(node).find((child) => jsxManagedParents.get(child) === node);
     if (!firstChild) {
       log("No first child found for node:", logId(node));
       return void 0;
@@ -887,10 +892,8 @@ var {
 function Portal(props) {
   const renderer = useRenderer();
   const marker = createSlotNode(), mount = () => props.mount || renderer.root, owner = getOwner();
-  let content;
   createEffect(
     () => {
-      content || (content = runWithOwner(owner, () => createMemo2(() => props.children)));
       const el = mount();
       const container = createElement("box"), renderRoot = container;
       Object.defineProperty(container, "_$host", {
@@ -899,12 +902,21 @@ function Portal(props) {
         },
         configurable: true
       });
+      let disposeContent;
+      const content = runWithOwner(
+        owner,
+        () => createRoot2((dispose) => {
+          disposeContent = dispose;
+          return createMemo2(() => props.children);
+        })
+      );
       insert(renderRoot, content);
       el.add(container);
       props.ref && props.ref(container);
       onCleanup2(() => {
         el.remove(container.id);
         container.destroyRecursively();
+        disposeContent?.();
       });
     },
     void 0,
@@ -1242,7 +1254,7 @@ var SlotRenderable = class extends SlotBaseRenderable {
 
 // solid/source/src/elements/virtual-list.ts
 import { RenderableEvents as RenderableEvents2, VirtualListRenderable } from "ax-tui";
-import { createRoot as createRoot2, onCleanup as onCleanup3, splitProps as splitProps2 } from "solid-js/dist/solid.js";
+import { createRoot as createRoot3, onCleanup as onCleanup3, splitProps as splitProps2 } from "solid-js/dist/solid.js";
 function VirtualList(props) {
   const [fixed, reactive] = splitProps2(props, ["getKey", "renderItem", "estimateHeight", "overscan", "ref"]);
   const list = new VirtualListRenderable(useRenderer(), {
@@ -1252,7 +1264,7 @@ function VirtualList(props) {
     estimateHeight: fixed.estimateHeight,
     overscan: fixed.overscan
   });
-  const stopUpdates = createRoot2((dispose) => {
+  const stopUpdates = createRoot3((dispose) => {
     spread(list, reactive);
     return dispose;
   });
@@ -1268,11 +1280,11 @@ function VirtualList(props) {
 
 // solid/source/src/elements/keymap-help.ts
 import { KeymapHelpRenderable, RenderableEvents as RenderableEvents3 } from "ax-tui";
-import { createRoot as createRoot3, onCleanup as onCleanup4, splitProps as splitProps3 } from "solid-js/dist/solid.js";
+import { createRoot as createRoot4, onCleanup as onCleanup4, splitProps as splitProps3 } from "solid-js/dist/solid.js";
 function KeymapHelp(props) {
   const [fixed, reactive] = splitProps3(props, ["ref"]);
   const help = new KeymapHelpRenderable(useRenderer(), { ...reactive });
-  const stopUpdates = createRoot3((dispose) => {
+  const stopUpdates = createRoot4((dispose) => {
     spread(help, reactive);
     return dispose;
   });

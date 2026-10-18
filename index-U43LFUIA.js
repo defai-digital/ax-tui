@@ -7294,7 +7294,7 @@ var MouseParser = class _MouseParser {
       if (type === "down" && button !== 3) {
         this.mouseButtonsPressed.add(button);
       } else if (type === "up") {
-        this.mouseButtonsPressed.clear();
+        this.mouseButtonsPressed.delete(button);
       }
     }
     return {
@@ -9508,6 +9508,7 @@ function createNodeWorkerConstructor(node) {
       });
       this.worker.on("message", this.handleMessage);
       this.worker.on("error", this.handleError);
+      this.worker.on("exit", this.handleExit);
     }
     postMessage(value) {
       this.worker.postMessage(value);
@@ -9518,10 +9519,12 @@ function createNodeWorkerConstructor(node) {
       }
       this.worker.off("message", this.handleMessage);
       this.worker.off("error", this.handleError);
+      this.worker.off("exit", this.handleExit);
       const termination = this.worker.terminate().catch((error) => {
         this.terminationPromise = void 0;
         this.worker.on("message", this.handleMessage);
         this.worker.on("error", this.handleError);
+        this.worker.on("exit", this.handleExit);
         throw error;
       });
       this.terminationPromise = termination;
@@ -9557,6 +9560,13 @@ function createNodeWorkerConstructor(node) {
       for (const listener of this.errorListeners) {
         listener(event);
       }
+    };
+    // The bootstrap keeps the worker's event loop alive, so any exit while the
+    // listeners are attached is unexpected (process.exit, OOM kill, signal).
+    // Node only emits "error" for uncaught exceptions; without this the parent
+    // would wait on pending requests forever.
+    handleExit = (code) => {
+      this.handleError(new Error(`Worker exited unexpectedly with code ${code}`));
     };
   };
 }
@@ -11281,25 +11291,31 @@ var ExtmarksController = class {
         return;
       }
       this.saveSnapshot();
-      const text = this.editBuffer.getText();
-      const currentOffset = this.editorView.getVisualCursor().offset;
-      let lineStart = 0;
-      for (let i = currentOffset - 1; i >= 0; i--) {
-        if (text[i] === "\n") {
-          lineStart = i + 1;
-          break;
-        }
+      const position = this.editBuffer.offsetToPosition(this.editorView.getVisualCursor().offset);
+      const lineCount = this.editBuffer.getLineCount();
+      if (!position || position.row >= lineCount) {
+        this.originalDeleteLine();
+        return;
       }
-      let lineEnd = text.length;
-      for (let i = currentOffset; i < text.length; i++) {
-        if (text[i] === "\n") {
-          lineEnd = i + 1;
-          break;
-        }
+      const { row } = position;
+      const lineStart = this.editBuffer.getLineStartOffset(row);
+      const lineEnd = this.editBuffer.getEOL().offset;
+      let deleteOffset;
+      let deleteLength;
+      if (row + 1 < lineCount) {
+        deleteOffset = lineStart;
+        deleteLength = this.editBuffer.getLineStartOffset(row + 1) - lineStart;
+      } else if (row > 0) {
+        deleteOffset = lineStart - 1;
+        deleteLength = lineEnd - deleteOffset;
+      } else {
+        deleteOffset = 0;
+        deleteLength = lineEnd;
       }
-      const deleteLength = lineEnd - lineStart;
       this.originalDeleteLine();
-      this.adjustExtmarksAfterDeletion(lineStart, deleteLength);
+      if (deleteLength > 0) {
+        this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength);
+      }
     };
   }
   wrapInsertion() {

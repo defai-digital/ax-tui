@@ -42,8 +42,10 @@ interface NodeWorkerThread {
   postMessage(value: unknown): void
   on(event: "message", listener: (value: unknown) => void): void
   on(event: "error", listener: (error: Error) => void): void
+  on(event: "exit", listener: (code: number) => void): void
   off(event: "message", listener: (value: unknown) => void): void
   off(event: "error", listener: (error: Error) => void): void
+  off(event: "exit", listener: (code: number) => void): void
   terminate(): Promise<number>
 }
 
@@ -183,6 +185,7 @@ function createNodeWorkerConstructor(node: NodeWorkerThreadsModule): PlatformWor
 
       this.worker.on("message", this.handleMessage)
       this.worker.on("error", this.handleError)
+      this.worker.on("exit", this.handleExit)
     }
 
     postMessage(value: unknown): void {
@@ -196,10 +199,12 @@ function createNodeWorkerConstructor(node: NodeWorkerThreadsModule): PlatformWor
 
       this.worker.off("message", this.handleMessage)
       this.worker.off("error", this.handleError)
+      this.worker.off("exit", this.handleExit)
       const termination = this.worker.terminate().catch((error: unknown) => {
         this.terminationPromise = undefined
         this.worker.on("message", this.handleMessage)
         this.worker.on("error", this.handleError)
+        this.worker.on("exit", this.handleExit)
         throw error
       })
       this.terminationPromise = termination
@@ -245,6 +250,14 @@ function createNodeWorkerConstructor(node: NodeWorkerThreadsModule): PlatformWor
       for (const listener of this.errorListeners) {
         listener(event)
       }
+    }
+
+    // The bootstrap keeps the worker's event loop alive, so any exit while the
+    // listeners are attached is unexpected (process.exit, OOM kill, signal).
+    // Node only emits "error" for uncaught exceptions; without this the parent
+    // would wait on pending requests forever.
+    private readonly handleExit = (code: number): void => {
+      this.handleError(new Error(`Worker exited unexpectedly with code ${code}`))
     }
   }
 }

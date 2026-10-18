@@ -369,29 +369,40 @@ export class ExtmarksController {
 
       this.saveSnapshot()
 
-      const text = this.editBuffer.getText()
-      const currentOffset = this.editorView.getVisualCursor().offset
+      // Extmark offsets are display-width offsets, so the deleted range must be
+      // derived from native row/col coordinates, not UTF-16 string indices.
+      // Native deleteLine removes the current line plus its trailing newline;
+      // on the last line it joins upward, removing the preceding newline and
+      // the line's content instead.
+      const position = this.editBuffer.offsetToPosition(this.editorView.getVisualCursor().offset)
+      const lineCount = this.editBuffer.getLineCount()
 
-      let lineStart = 0
-      for (let i = currentOffset - 1; i >= 0; i--) {
-        if (text[i] === "\n") {
-          lineStart = i + 1
-          break
-        }
+      if (!position || position.row >= lineCount) {
+        this.originalDeleteLine()
+        return
       }
 
-      let lineEnd = text.length
-      for (let i = currentOffset; i < text.length; i++) {
-        if (text[i] === "\n") {
-          lineEnd = i + 1
-          break
-        }
-      }
+      const { row } = position
+      const lineStart = this.editBuffer.getLineStartOffset(row)
+      const lineEnd = this.editBuffer.getEOL().offset
 
-      const deleteLength = lineEnd - lineStart
+      let deleteOffset: number
+      let deleteLength: number
+      if (row + 1 < lineCount) {
+        deleteOffset = lineStart
+        deleteLength = this.editBuffer.getLineStartOffset(row + 1) - lineStart
+      } else if (row > 0) {
+        deleteOffset = lineStart - 1
+        deleteLength = lineEnd - deleteOffset
+      } else {
+        deleteOffset = 0
+        deleteLength = lineEnd
+      }
 
       this.originalDeleteLine()
-      this.adjustExtmarksAfterDeletion(lineStart, deleteLength)
+      if (deleteLength > 0) {
+        this.adjustExtmarksAfterDeletion(deleteOffset, deleteLength)
+      }
     }
   }
 

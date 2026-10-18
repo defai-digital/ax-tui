@@ -158,7 +158,10 @@ if (exitCode !== 0) {
 }
 
 // --- 4. Assert an explicit verdict. ---------------------------------------
-const verdictMatch = /VERDICT:\s*(NO-?FINDINGS|FINDINGS)/i.exec(stdout)
+// The prompt itself shows both verdict strings, and reasoning may quote them;
+// only the final occurrence is the actual verdict.
+const verdictMatches = [...stdout.matchAll(/VERDICT:\s*(NO-?FINDINGS|FINDINGS)/gi)]
+const verdictMatch = verdictMatches.at(-1)
 if (!verdictMatch) {
   fail(4, `deepseek CLI exited 0 but no explicit FINDINGS/NO-FINDINGS verdict was found\noutput tail: ${stdout.slice(-2_000)}`)
 }

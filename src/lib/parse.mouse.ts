@@ -175,7 +175,9 @@ export class MouseParser {
       if (type === "down" && button !== 3) {
         this.mouseButtonsPressed.add(button)
       } else if (type === "up") {
-        this.mouseButtonsPressed.clear()
+        // Release only the reported button; clearing the whole set would
+        // silently end a drag still held by another button.
+        this.mouseButtonsPressed.delete(button)
       }
     }
 

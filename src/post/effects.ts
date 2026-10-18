@@ -37,8 +37,8 @@ export class DistortionEffect {
     const buf = buffer.buffers
     // Note: Using internal timer based on deltaTime is more reliable than Date.now()
 
-    // Update glitch timer
-    this.lastGlitchTime += deltaTime
+    // Update glitch timer (deltaTime is milliseconds; durations are in seconds)
+    this.lastGlitchTime += deltaTime / 1000
 
     // End current glitch if duration is over
     if (this.activeGlitches.length > 0 && this.lastGlitchTime >= this.glitchDuration) {
@@ -47,7 +47,7 @@ export class DistortionEffect {
     }
 
     // Chance to start a new glitch
-    if (this.activeGlitches.length === 0 && Math.random() < this.glitchChancePerSecond * deltaTime) {
+    if (this.activeGlitches.length === 0 && Math.random() < this.glitchChancePerSecond * (deltaTime / 1000)) {
       this.lastGlitchTime = 0
       this.glitchDuration = this.minGlitchDuration + Math.random() * (this.maxGlitchDuration - this.minGlitchDuration)
       const numGlitches = 1 + Math.floor(Math.random() * this.maxGlitchLines)
@@ -494,8 +494,8 @@ export class CloudsEffect {
     const width = buffer.width
     const height = buffer.height
 
-    // Update time for animation
-    this.time += deltaTime * this._speed
+    // Update time for animation (deltaTime is milliseconds; speed is per second)
+    this.time += (deltaTime / 1000) * this._speed
 
     const scale = this._scale
     const timeOffset = this.time
@@ -597,8 +597,8 @@ export class FlamesEffect {
     const height = buffer.height
     const bg = buffer.buffers.bg
 
-    // Update time for animation
-    this.time += deltaTime * this._speed
+    // Update time for animation (deltaTime is milliseconds; speed is per second)
+    this.time += (deltaTime / 1000) * this._speed
 
     const scale = this._scale
     const timeOffset = this.time
@@ -898,8 +898,8 @@ export class RainbowTextEffect {
     const height = buffer.height
     const fg = buffer.buffers.fg
 
-    // Update time for animation
-    this.time += deltaTime * this._speed
+    // Update time for animation (deltaTime is milliseconds; speed is per second)
+    this.time += (deltaTime / 1000) * this._speed
 
     const saturation = this._saturation
     const value = this._value

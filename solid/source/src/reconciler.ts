@@ -98,6 +98,8 @@ function _insertNode(parent: DomNode, node: DomNode, anchor?: DomNode): void {
     throw new Error("Tried to mount a non base renderable")
   }
 
+  jsxManagedParents.set(node, parent)
+
   if (!anchor) {
     parent.add(node)
     return
@@ -131,6 +133,10 @@ function _removeNode(parent: DomNode, node: DomNode): void {
     }
 
     node = slotChild
+  }
+
+  if (jsxManagedParents.get(node) === parent) {
+    jsxManagedParents.delete(node)
   }
 
   parent.remove(node.id)
@@ -183,6 +189,13 @@ function _getParentNode(childNode: DomNode): DomNode | undefined {
 
 // Retain intrinsic/custom defaults while reactive style objects are replaced or removed.
 const textStyleDefaults = new WeakMap<TextNodeRenderable, Pick<TextNodeRenderable, "attributes" | "fg" | "bg">>()
+
+// Tracks which parent inserted each node through the reconciler. Child queries
+// (getFirstChild) and cleanChildren's wipe loop must only operate on these
+// JSX-managed children — a renderable's own internal children (Diff's sides,
+// LineNumber's gutter, Portal containers) are added outside the reconciler and
+// must never be removed by it.
+const jsxManagedParents = new WeakMap<DomNode, DomNode>()
 
 // Layout style subkeys that disappear from a later style object are restored
 // to these intrinsic defaults. x/y/width/height getters return computed values
@@ -419,7 +432,7 @@ export const {
   getFirstChild(node: DomNode): DomNode | undefined {
     log("Getting first child of node:", logId(node))
 
-    const firstChild = getNodeChildren(node)[0]
+    const firstChild = getNodeChildren(node).find((child) => jsxManagedParents.get(child) === node)
 
     if (!firstChild) {
       log("No first child found for node:", logId(node))

@@ -16,7 +16,7 @@ test.skipIf(!supportsFfi)("post effects wrap correctly at buffer boundaries", ()
 
 const script = `
 import assert from "node:assert/strict"
-import { OptimizedBuffer, RGBA, DistortionEffect, CRTRollingBarEffect, applyAsciiArt } from "ax-tui"
+import { OptimizedBuffer, RGBA, DistortionEffect, CRTRollingBarEffect, CloudsEffect, FlamesEffect, RainbowTextEffect, applyAsciiArt } from "ax-tui"
 
 const fg = RGBA.fromInts(255, 255, 255, 255)
 const bg = RGBA.fromInts(0, 0, 0, 255)
@@ -65,6 +65,40 @@ const bg = RGBA.fromInts(0, 0, 0, 255)
   try {
     buffer.clear(bg)
     assert.doesNotThrow(() => applyAsciiArt(buffer, ""))
+  } finally {
+    buffer.destroy()
+  }
+}
+
+// deltaTime arrives in milliseconds while glitch durations are in seconds:
+// a 0.1s glitch must survive a single 16ms frame.
+{
+  const buffer = OptimizedBuffer.create(5, 2, "unicode")
+  try {
+    buffer.clear(bg)
+    const effect = new DistortionEffect()
+    effect.activeGlitches = [{ y: 0, type: "shift", amount: 1 }]
+    effect.glitchDuration = 0.1
+    effect.lastGlitchTime = 0
+    effect.apply(buffer, 16)
+    assert.equal(effect.activeGlitches.length, 1, "glitch cleared before its duration elapsed")
+  } finally {
+    buffer.destroy()
+  }
+}
+
+// Animated effects interpret speed as per-second: 100ms advances time by 0.1 * speed.
+{
+  const buffer = OptimizedBuffer.create(4, 4, "unicode")
+  try {
+    buffer.clear(bg)
+    for (const effect of [new CloudsEffect(), new FlamesEffect(), new RainbowTextEffect()]) {
+      effect.apply(buffer, 100)
+      assert.ok(
+        Math.abs(effect.time - 0.1 * effect.speed) < 1e-9,
+        effect.constructor.name + " time " + effect.time + " after 100ms at speed " + effect.speed,
+      )
+    }
   } finally {
     buffer.destroy()
   }

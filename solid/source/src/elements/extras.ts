@@ -1,4 +1,4 @@
-import { createEffect, createMemo, getOwner, onCleanup, runWithOwner, splitProps, untrack } from "solid-js"
+import { createEffect, createMemo, createRoot, getOwner, onCleanup, runWithOwner, splitProps, untrack } from "solid-js"
 import { createSlotNode, createElement, insert, spread, type DomNode } from "../reconciler.js"
 import type { JSX } from "../../jsx-runtime.js"
 import type { ValidComponent, ComponentProps } from "solid-js"
@@ -17,12 +17,10 @@ export function Portal(props: { mount?: DomNode; ref?: (el: {}) => void; childre
   const marker = createSlotNode(),
     mount = () => props.mount || renderer.root,
     owner = getOwner()
-  let content: undefined | (() => JSX.Element)
 
   createEffect(
     () => {
       // basically we backdoor into a sort of renderEffect here
-      content || (content = runWithOwner(owner, () => createMemo(() => props.children)))
       const el = mount()
       const container = createElement("box"),
         renderRoot = container
@@ -33,6 +31,16 @@ export function Portal(props: { mount?: DomNode; ref?: (el: {}) => void; childre
         },
         configurable: true,
       })
+      // Each effect run gets its own content root: cleanup destroys the old
+      // container's subtree, so a memo cached across runs would re-insert
+      // destroyed renderables into the new mount.
+      let disposeContent: (() => void) | undefined
+      const content = runWithOwner(owner, () =>
+        createRoot((dispose) => {
+          disposeContent = dispose
+          return createMemo(() => props.children)
+        }),
+      )
       insert(renderRoot, content)
       el.add(container)
       props.ref && (props as any).ref(container)
@@ -43,6 +51,7 @@ export function Portal(props: { mount?: DomNode; ref?: (el: {}) => void; childre
         // destroys detached nodes on the next tick; the portal manages its
         // container directly, so it must destroy it itself.
         container.destroyRecursively()
+        disposeContent?.()
       })
     },
     undefined,

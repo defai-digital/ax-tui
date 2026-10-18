@@ -492,7 +492,11 @@ export class LineNumberRenderable extends Renderable {
       throw new Error("LineNumberRenderable: Cannot remove gutter directly.")
     }
     if (this.target && id === this.target.id) {
-      throw new Error("LineNumberRenderable: Cannot remove target directly. Use clearTarget() instead.")
+      // The reconciler removes a JSX-provided target through remove(); tearing
+      // down through clearTarget() keeps the gutter in sync instead of
+      // throwing inside Solid's update batch.
+      this.clearTarget()
+      return
     }
     super.remove(id)
   }

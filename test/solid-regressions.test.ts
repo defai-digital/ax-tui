@@ -236,3 +236,113 @@ try {
 }
 `)
 })
+
+
+test.skipIf(!supportsFfi)("moving a Portal to a new mount keeps its content alive", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal } from "solid-js"
+import { testRender, Portal } from "ax-tui/solid"
+
+let hostA
+let hostB
+const [secondHost, setSecondHost] = createSignal(false)
+const setup = await testRender(
+  () => (
+    <box>
+      <box ref={hostA} width={20} height={1} />
+      <box ref={hostB} width={20} height={1} />
+      <Portal mount={secondHost() ? hostB : hostA}>
+        <text>portaled</text>
+      </Portal>
+    </box>
+  ),
+  { width: 20, height: 3, useKittyKeyboard: null },
+)
+try {
+  await setup.renderOnce()
+  assert.ok(setup.captureCharFrame().includes("portaled"), "initial mount did not render")
+
+  // The old container is destroyed on cleanup; the new mount must receive
+  // freshly created content, not the destroyed subtree.
+  setSecondHost(true)
+  await setup.renderOnce()
+  const frame = setup.captureCharFrame()
+  assert.ok(frame.includes("portaled"), "portal content lost after mount change:\\n" + frame)
+  assert.equal(hostB.getChildren().length, 1)
+} finally {
+  setup.renderer.destroy()
+}
+`)
+})
+
+test.skipIf(!supportsFfi)("falsy JSX children do not wipe a diff's internal panes", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal } from "solid-js"
+import { testRender } from "ax-tui/solid"
+
+const sampleDiff = [
+  "--- a/file.txt",
+  "+++ b/file.txt",
+  "@@ -1,3 +1,3 @@",
+  " line1",
+  "-old line2",
+  "+new line2",
+  " line3",
+].join("\\n")
+
+const [show, setShow] = createSignal(true)
+const setup = await testRender(
+  () => (
+    <diff diff={sampleDiff} width={60} height={8}>
+      {show() ? <text content="overlay" /> : null}
+    </diff>
+  ),
+  { width: 60, height: 8, useKittyKeyboard: null },
+)
+try {
+  await setup.renderOnce()
+  const before = setup.captureCharFrame()
+  assert.ok(before.includes("old line2"), "diff did not render initially:\\n" + before)
+
+  setShow(false)
+  await setup.renderOnce()
+  const after = setup.captureCharFrame()
+  assert.ok(after.includes("old line2"), "diff internals wiped by falsy child:\\n" + after)
+} finally {
+  setup.renderer.destroy()
+}
+`)
+})
+
+test.skipIf(!supportsFfi)("falsy JSX children clear a line_number target without throwing", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal } from "solid-js"
+import { testRender } from "ax-tui/solid"
+
+const [show, setShow] = createSignal(true)
+const setup = await testRender(
+  () => (
+    <line_number width={60} height={6}>
+      {show() ? <code content={"line1\\nline2"} filetype="text" /> : null}
+    </line_number>
+  ),
+  { width: 60, height: 6, useKittyKeyboard: null },
+)
+try {
+  await setup.renderOnce()
+  const before = setup.captureCharFrame()
+  assert.ok(before.includes("line1"), "line_number target did not render:\\n" + before)
+
+  // Must not throw "Cannot remove target/gutter directly" from the update batch.
+  setShow(false)
+  await setup.renderOnce()
+  const after = setup.captureCharFrame()
+  assert.ok(!after.includes("line1"), "target still rendered after children went falsy:\\n" + after)
+} finally {
+  setup.renderer.destroy()
+}
+`)
+})
