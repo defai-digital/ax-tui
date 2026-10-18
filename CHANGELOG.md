@@ -5,6 +5,13 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-17
+
+### Breaking changes
+
+- Require Node.js 26+ for development and Node consumers. Upgrade Node before
+  installing this version and keep `--experimental-ffi` enabled for native rendering.
+
 ### Added
 
 - Add display-only shortcut help with searchable metadata, chord formatting,
