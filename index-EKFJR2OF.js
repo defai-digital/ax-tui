@@ -535,7 +535,7 @@ var suffix = backend.suffix;
 var toArrayBuffer = backend.toArrayBuffer;
 
 // src/platform/native-abi.ts
-var AX_TUI_NATIVE_ABI = 2;
+var AX_TUI_NATIVE_ABI = 3;
 function verifyNativeAbi(libraryPath) {
   let probe;
   try {
@@ -13376,6 +13376,10 @@ function openRenderLibrary(libPath) {
       args: ["u32", "ptr", "u32"],
       returns: "void"
     },
+    queueTerminalControl: {
+      args: ["u32", "ptr", "u32"],
+      returns: "bool"
+    },
     // TextBuffer functions
     createTextBuffer: {
       args: ["u8"],
@@ -15154,6 +15158,9 @@ var FFIRenderLib = class {
     const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data;
     if (bytes.length === 0) return;
     this.native.symbols.writeOut(renderer, ptrOrNull(bytes), bytes.byteLength);
+  }
+  queueTerminalControl(renderer, data) {
+    return !!this.native.symbols.queueTerminalControl(renderer, ptrOrNull(data), data.byteLength);
   }
   yogaConfigCreate() {
     const config = this.native.symbols.yogaConfigCreate();

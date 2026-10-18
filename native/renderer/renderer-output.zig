@@ -111,6 +111,19 @@ pub const OutputBackend = union(enum) {
         }
     }
 
+    /// Durably serialize a queued terminal control (Kitty APC bytes) starting
+    /// at `offset`, advancing `offset` only by bytes the transport has
+    /// accepted in order. Returns `.ok` only when `offset` reached the end of
+    /// `data`; `.skipped` means the caller must retry later with the same
+    /// data and offset. A partially written prefix is never replayed: feed
+    /// bytes already copied into pending/reserved storage are tracked by the
+    /// backend and finished on the next call.
+    pub fn writeTerminalControl(self: *OutputBackend, data: []const u8, offset: *usize) WriteStatus {
+        switch (self.*) {
+            inline else => |*b| return b.writeTerminalControl(data, offset),
+        }
+    }
+
     /// Non-mutating high-water check. Rendering uses `prepareFrame()` so pending
     /// bytes from earlier writes can be committed before deciding to skip.
     pub fn shouldSkipFrame(self: *OutputBackend) bool {
@@ -438,6 +451,19 @@ pub const BufferedBackend = struct {
         self.output.write(data);
     }
 
+    /// Emit the remaining control bytes as one external write so they cannot
+    /// be split around a later frame. `writeOut` waits for any in-flight
+    /// render-thread frame first, which keeps earlier frames before the
+    /// control and the control before every frame handed off afterwards.
+    /// The bytes go straight to the injected output; the 2 MiB frame scratch
+    /// buffers are not used, so large uploads are not truncated by them.
+    pub fn writeTerminalControl(self: *BufferedBackend, data: []const u8, offset: *usize) WriteStatus {
+        if (offset.* >= data.len) return .ok;
+        self.writeOut(data[offset.*..]);
+        offset.* = data.len;
+        return .ok;
+    }
+
     pub fn writeOutMultiple(self: *BufferedBackend, data_slices: []const []const u8) void {
         if (self.useThread) {
             self.renderMutex.lock();
@@ -501,6 +527,13 @@ pub const FeedBackend = struct {
     /// feed bytes; failures are reported so the renderer can force a later full
     /// repaint after the durable queue drains or accepts pending bytes.
     frameWriteFailed: bool = false,
+
+    /// Length of one terminal-control segment already copied into the feed
+    /// (active reservation or pending bytes) but not yet known to be
+    /// committed as a span. The caller's queue offset stays at the start of
+    /// this segment until the commit succeeds, so a retry finishes the
+    /// segment instead of copying it a second time.
+    controlInFeedLen: usize = 0,
 
     lastWriteTimeUs: ?f64 = null,
 
@@ -584,6 +617,88 @@ pub const FeedBackend = struct {
 
         self.lastWriteTimeUs = @as(f64, @floatFromInt(std.time.microTimestamp() - writeStart));
         return status;
+    }
+
+    /// Copy control bytes into the feed one feed chunk at a time with
+    /// reserve/commitReserved. `Stream.write` cannot be used here: with
+    /// auto-commit enabled it commits chunk-sized prefixes and then fails
+    /// mid-control, and with it disabled it rejects any write larger than
+    /// the rest of the current chunk, so neither mode can stream a control
+    /// larger than one feed chunk without loss or duplication.
+    ///
+    /// Progress rules:
+    ///   - `offset` advances only after commitReserved/commit succeeds for
+    ///     the segment starting at `offset`.
+    ///   - If commitReserved fails after the copy, the segment survives as
+    ///     pending bytes (or, when the failure happened before the
+    ///     reservation was consumed, as the active reservation) and
+    ///     `controlInFeedLen` records its length. The next call finishes
+    ///     that exact segment; it never copies those bytes again.
+    ///   - If the segment got committed outside this method (for example by
+    ///     `prepareFrame` committing pending bytes), the reservation and
+    ///     pending state are both clear while `controlInFeedLen` is still
+    ///     set; the segment is then credited without a rewrite.
+    ///   - Pending bytes that are not ours (earlier frames/external writes)
+    ///     are committed first so stream order is preserved.
+    pub fn writeTerminalControl(self: *FeedBackend, data: []const u8, offset: *usize) WriteStatus {
+        if (offset.* >= data.len) return .ok;
+
+        // A reservation left active by a failed commitReserved still holds
+        // the copied segment. Finish it before reserving anything new.
+        if (self.feed.reserved_active) {
+            if (self.controlInFeedLen == 0) return .skipped;
+            const segment_len = self.controlInFeedLen;
+            self.feed.commitReserved(@intCast(segment_len)) catch return .skipped;
+            self.controlInFeedLen = 0;
+            offset.* += @min(segment_len, data.len - offset.*);
+            if (offset.* >= data.len) return .ok;
+        }
+
+        // Segment committed elsewhere while we were not called: credit it.
+        if (self.controlInFeedLen > 0 and self.feed.pending_len == 0) {
+            const segment_len = self.controlInFeedLen;
+            self.controlInFeedLen = 0;
+            offset.* += @min(segment_len, data.len - offset.*);
+            if (offset.* >= data.len) return .ok;
+        }
+
+        // Commit pending bytes first. They are either our copied segment or
+        // bytes from earlier writes that must stay ahead of this control.
+        if (self.feed.pending_len > 0) {
+            const segment_len = self.controlInFeedLen;
+            self.feed.commit() catch return .skipped;
+            if (segment_len > 0) {
+                self.controlInFeedLen = 0;
+                offset.* += @min(segment_len, data.len - offset.*);
+                if (offset.* >= data.len) return .ok;
+            }
+        }
+
+        while (offset.* < data.len) {
+            // Existing high-water backpressure: do not reserve/write while
+            // the span ring is saturated, so a fixed-size ring blocks here
+            // instead of dropping or truncating the control.
+            if (self.shouldSkipFrame()) return .skipped;
+
+            const reserved = self.feed.reserve(1) catch return .skipped;
+            const dest = reserved.slice();
+            if (dest.len == 0) {
+                self.feed.commitReserved(0) catch {};
+                return .skipped;
+            }
+
+            const segment_len = @min(dest.len, data.len - offset.*);
+            @memcpy(dest[0..segment_len], data[offset.* .. offset.* + segment_len]);
+
+            // Record before committing so a failed commit can be resumed
+            // from feed state on the next call without recopying.
+            self.controlInFeedLen = segment_len;
+            self.feed.commitReserved(@intCast(segment_len)) catch return .skipped;
+            self.controlInFeedLen = 0;
+            offset.* += segment_len;
+        }
+
+        return .ok;
     }
 
     pub fn writeOut(self: *FeedBackend, data: []const u8) void {

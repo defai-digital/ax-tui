@@ -115,6 +115,10 @@ export interface RenderContext extends EventEmitter {
   setMousePointer: (shape: MousePointerStyle) => void
   widthMethod: WidthMethod
   capabilities: TerminalCapabilities | null
+  /** Native-owned FIFO; accepted controls precede the next cell frame. */
+  queueTerminalControl?: (data: Uint8Array) => boolean
+  readonly terminalControlEpoch?: number
+  readonly allowKittyImages?: boolean
   requestLive: () => void
   dropLive: () => void
   hasSelection: boolean

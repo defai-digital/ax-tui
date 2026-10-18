@@ -74,3 +74,13 @@ Cancelled debounce operations now reject with an `AbortError` instead of leaving
 promises pending forever. Internal scheduled resets consume cancellation; direct
 users of this helper must handle rejection. Invalid public buffer dimensions and
 renderer frame rates throw `RangeError` before native allocation or scheduling.
+
+- `native-image-control-order`: ABI 3 accepts whole control writes into an owned
+  32 MiB FIFO, reserves space for small cleanup controls, and retains exact byte
+  progress while a feed is saturated. Cell frames cannot overtake uploads, and
+  external control writes cannot interrupt a partial Kitty APC. Guards: the native
+  renderer suite and `test/image-renderable.test.ts`.
+- `application-focus-ownership`: opt-in navigation follows live tree membership;
+  OverlayManager remains responsible for restoration. Command execution rechecks
+  registrations and captured context and returns errors as explicit results.
+  Guard: `test/application-navigation.test.ts`.

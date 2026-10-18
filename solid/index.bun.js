@@ -9,6 +9,7 @@ import {
   CodeRenderable,
   DiffRenderable,
   InputRenderable,
+  ImageRenderable,
   LineNumberRenderable,
   MarkdownRenderable,
   ScrollBoxRenderable,
@@ -74,6 +75,7 @@ var baseComponents = {
   box: BoxRenderable,
   text: TextRenderable,
   input: InputRenderable,
+  image: ImageRenderable,
   textarea: TextareaRenderable,
   scrollbox: ScrollBoxRenderable,
   code: CodeRenderable,
@@ -1298,6 +1300,94 @@ function KeymapHelp(props) {
   return help;
 }
 
+// solid/source/src/elements/application.ts
+import {
+  getCommandRegistry,
+  getFocusManager,
+  RenderableEvents as RenderableEvents4,
+  showCommandPalette
+} from "ax-tui";
+import { onCleanup as onCleanup5 } from "solid-js";
+function useFocusManager() {
+  const manager = getFocusManager(useRenderer());
+  const scopes = /* @__PURE__ */ new Set();
+  let disposed = false;
+  onCleanup5(() => {
+    disposed = true;
+    for (const remove of [...scopes]) remove();
+  });
+  return {
+    registerScope(root, options) {
+      if (disposed) throw new Error("Focus scope owner is disposed");
+      const unregister = manager.registerScope(root, options);
+      const remove = () => {
+        scopes.delete(remove);
+        root.off(RenderableEvents4.DESTROYED, remove);
+        unregister();
+      };
+      scopes.add(remove);
+      root.once(RenderableEvents4.DESTROYED, remove);
+      return remove;
+    },
+    focusNext: () => !disposed && manager.focusNext(),
+    focusPrevious: () => !disposed && manager.focusPrevious()
+  };
+}
+function useCommands() {
+  const registry = getCommandRegistry(useRenderer());
+  const registrations = /* @__PURE__ */ new Set();
+  let disposed = false;
+  onCleanup5(() => {
+    disposed = true;
+    for (const remove of [...registrations]) remove();
+  });
+  return {
+    register(command, target) {
+      if (disposed) throw new Error("Command owner is disposed");
+      const unregister = registry.register(command, target);
+      const remove = () => {
+        registrations.delete(remove);
+        target?.off(RenderableEvents4.DESTROYED, remove);
+        unregister();
+      };
+      registrations.add(remove);
+      target?.once(RenderableEvents4.DESTROYED, remove);
+      return remove;
+    },
+    execute: registry.execute.bind(registry),
+    search: registry.search.bind(registry)
+  };
+}
+function useCommandPalette() {
+  const renderer = useRenderer();
+  const palettes = /* @__PURE__ */ new Set();
+  let disposed = false;
+  onCleanup5(() => {
+    disposed = true;
+    for (const palette of [...palettes]) palette.close();
+    palettes.clear();
+  });
+  return {
+    show(options) {
+      if (disposed) throw new Error("Command palette owner is disposed");
+      const palette = showCommandPalette(renderer, options);
+      const scoped = {
+        ...palette,
+        get selectedId() {
+          return palette.selectedId;
+        },
+        close() {
+          palettes.delete(scoped);
+          palette.close();
+        }
+      };
+      palettes.add(scoped);
+      void palette.result.then(() => palettes.delete(scoped));
+      return scoped;
+    }
+  };
+}
+
 // solid/source/src/scrollback.ts
 import {
   BoxRenderable as BoxRenderable2,
@@ -1477,7 +1567,7 @@ import { memo as _$memo } from "ax-tui/solid";
 import { createComponent as _$createComponent } from "ax-tui/solid";
 import { mergeProps as _$mergeProps } from "ax-tui/solid";
 import { createSlotRegistry } from "ax-tui";
-import { children, createMemo as createMemo3, createSignal as createSignal3, ErrorBoundary, For, onCleanup as onCleanup5, splitProps as splitProps4 } from "solid-js";
+import { children, createMemo as createMemo3, createSignal as createSignal3, ErrorBoundary, For, onCleanup as onCleanup6, splitProps as splitProps4 } from "solid-js";
 var EMPTY_ENTRY_IDS = [];
 function createSolidSlotRegistry(renderer, context, options = {}) {
   return createSlotRegistry(renderer, "solid:slot-registry", context, options);
@@ -1508,7 +1598,7 @@ function Slot(props) {
       if (disposed) return;
     });
   });
-  onCleanup5(() => {
+  onCleanup6(() => {
     disposed = true;
     unsubscribe();
   });
@@ -1755,6 +1845,9 @@ export {
   testRender,
   textNodeKeys,
   use,
+  useCommandPalette,
+  useCommands,
+  useFocusManager,
   useKeyHandler,
   useKeyboard,
   useKeymap,

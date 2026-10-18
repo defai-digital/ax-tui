@@ -195,6 +195,7 @@ export interface RenderLib extends AudioEngineLib {
     queryPixelResolution: (renderer: RendererHandle) => void;
     queryThemeColors: (renderer: RendererHandle) => void;
     writeOut: (renderer: RendererHandle, data: string | Uint8Array) => void;
+    queueTerminalControl: (renderer: RendererHandle, data: Uint8Array) => boolean;
     yogaConfigCreate: () => Pointer;
     yogaConfigFree: (config: Pointer) => void;
     yogaConfigSetUseWebDefaults: (config: Pointer, enabled: boolean) => void;

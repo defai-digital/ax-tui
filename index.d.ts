@@ -34,3 +34,8 @@ export * from "./lib/overlay.js";
 export * from "./lib/keymap.js";
 export * from "./lib/keymap-help.js";
 export * from "./lib/virtual-list.js";
+export * from "./lib/focus.js";
+export * from "./lib/commands.js";
+export * from "./lib/command-palette.js";
+export * from "./lib/image.js";
+export type { ImageProtocol } from "./lib/kitty-image.js";

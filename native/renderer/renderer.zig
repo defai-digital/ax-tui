@@ -96,6 +96,20 @@ pub const RenderStatsSnapshot = struct {
     outputWriteTime: ?f64,
 };
 
+/// Maximum undrained terminal-control bytes (Kitty APC upload,
+/// virtual-placement, and targeted-delete sequences) one renderer may own.
+/// A write that would exceed this budget is rejected whole.
+pub const TERMINAL_CONTROL_QUEUE_MAX_BYTES: usize = 32 * 1024 * 1024;
+pub const TERMINAL_CONTROL_CLEANUP_RESERVE_BYTES: usize = 64 * 1024;
+
+const TerminalControl = struct {
+    // Owned copy of one accepted control. The caller may reuse or free its
+    // input buffer as soon as the control is queued.
+    data: []u8,
+    // Bytes already durably accepted by the output backend, in order.
+    offset: usize = 0,
+};
+
 const SplitFooterTransition = struct {
     mode: SplitFooterTransitionMode = .none,
     source_top_line: u32 = 0,
@@ -133,6 +147,15 @@ pub const CliRenderer = struct {
 
     /// Output transport. Owned by the renderer; destroyed in `destroy()`.
     backend: OutputBackend,
+
+    // Owned FIFO of accepted terminal controls that have not fully drained
+    // into the backend yet. Entries before `terminalControlHead` are done
+    // and their data already freed. `terminalControlQueuedBytes` counts the
+    // not-yet-accepted remainder (len - offset) of every live entry and is
+    // the 32 MiB budget meter.
+    terminalControls: std.ArrayListUnmanaged(TerminalControl) = .{},
+    terminalControlHead: usize = 0,
+    terminalControlQueuedBytes: usize = 0,
 
     renderStats: struct {
         lastFrameTime: f64,
@@ -355,8 +378,17 @@ pub const CliRenderer = struct {
         // terminate-only signal (no renderRequested) so the thread exits
         // without replaying the stale last-frame buffer on top of the
         // freshly-restored terminal.
+        // performShutdownSequence flushes queued controls ahead of its own
+        // writes when the terminal was set up. Without setup there are no
+        // shutdown writes, so give queued controls one direct flush attempt
+        // before the backend goes away.
+        if (!self.terminalSetup) {
+            _ = self.flushTerminalControls();
+        }
         self.performShutdownSequence();
         self.backend.deinit(self.allocator);
+        // Whatever could not drain is released with the renderer.
+        self.deinitTerminalControls();
         self.terminal.deinit();
 
         self.currentRenderBuffer.deinit();
@@ -390,7 +422,9 @@ pub const CliRenderer = struct {
         self.terminal.queryTerminalSend(stream.writer()) catch {
             logger.warn("Failed to query terminal capabilities", .{});
         };
-        self.backend.writeOut(stream.getWritten());
+        // Via writeOut so controls queued before setup drain ahead of the
+        // capability query instead of being overtaken by it.
+        self.writeOut(stream.getWritten());
 
         self.setupTerminalWithoutDetection(useAlternateScreen, true);
     }
@@ -412,7 +446,8 @@ pub const CliRenderer = struct {
         const useKitty = self.terminal.opts.kitty_keyboard_flags > 0;
         self.terminal.enableDetectedFeatures(writer, useKitty) catch {};
 
-        self.backend.writeOut(stream.getWritten());
+        // Resume also lands here; writeOut flushes queued controls first.
+        self.writeOut(stream.getWritten());
     }
 
     pub fn suspendRenderer(self: *CliRenderer) void {
@@ -463,12 +498,14 @@ pub const CliRenderer = struct {
         writer.writeAll(ansi.ANSI.defaultCursorStyle) catch {};
         writer.writeAll(ansi.ANSI.showCursor) catch {};
 
-        self.backend.writeOut(stream.getWritten());
+        // Via writeOut so queued controls drain ahead of the shutdown
+        // sequence on both suspend and destroy shutdown paths.
+        self.writeOut(stream.getWritten());
 
         // Workaround for Ghostty not showing the cursor after shutdown for some reason.
         // Keep this backend-agnostic: the active output transport owns delivery.
         std.Thread.sleep(10 * std.time.ns_per_ms);
-        self.backend.writeOut(ansi.ANSI.showCursor);
+        self.writeOut(ansi.ANSI.showCursor);
         std.Thread.sleep(10 * std.time.ns_per_ms);
     }
 
@@ -711,7 +748,7 @@ pub const CliRenderer = struct {
             var stream = std.io.fixedBufferStream(&clearBuf);
             const writer = stream.writer();
             self.clearSplitFooterSurface(writer);
-            self.backend.writeOut(stream.getWritten());
+            self.writeOut(stream.getWritten());
         }
 
         self.renderOffset = offset;
@@ -748,7 +785,9 @@ pub const CliRenderer = struct {
     pub fn render(self: *CliRenderer, force: bool) RenderStatus {
         // Backpressure: skipping must NOT update lastRenderTime so the next
         // successful render sees the full accumulated delta (catch-up).
-        if (self.backend.prepareFrame() != .ok) {
+        // Queued terminal controls share this gate: they drain first, and
+        // the frame is skipped while the transport cannot take them.
+        if (!self.prepareFrameWithControls()) {
             return self.finishSkippedFrame();
         }
 
@@ -876,7 +915,7 @@ pub const CliRenderer = struct {
         pinned_render_offset: u32,
         force: bool,
     ) RenderResult {
-        if (self.backend.prepareFrame() != .ok) {
+        if (!self.prepareFrameWithControls()) {
             const status = self.finishSkippedFrame();
             return self.renderResult(status);
         }
@@ -916,7 +955,11 @@ pub const CliRenderer = struct {
         // - final call renders footer diff/cursor and closes frame
         // This avoids repeated syncSet/syncReset and cursor toggles per chunk.
         if (begin_frame) {
-            if (self.backend.prepareFrame() != .ok) {
+            // A new batched frame starts here, so queued terminal controls
+            // drain (or skip this call for a retry) exactly as in render().
+            // Middle/finalize calls continue a frame that already passed
+            // this gate and must not reorder controls into its middle.
+            if (!self.prepareFrameWithControls()) {
                 const status = self.finishSkippedFrame();
                 return self.renderResult(status);
             }
@@ -1603,11 +1646,97 @@ pub const CliRenderer = struct {
         self.writeOut(ansi.ANSI.clearAndHome);
     }
 
+    /// Accept one opaque terminal control (Kitty APC bytes without cursor
+    /// movement) into the owned FIFO. Returns true only when every byte was
+    /// copied; budget overflow and allocation failure reject the whole
+    /// write and leave the queue unchanged. Empty writes always succeed.
+    pub fn queueTerminalControl(self: *CliRenderer, data: []const u8) bool {
+        if (data.len == 0) return true;
+        // Large uploads cannot exhaust the space needed by targeted deletes
+        // and terminal-mode restoration while a slow feed is backpressured.
+        const limit = if (data.len > 1024)
+            TERMINAL_CONTROL_QUEUE_MAX_BYTES - TERMINAL_CONTROL_CLEANUP_RESERVE_BYTES
+        else
+            TERMINAL_CONTROL_QUEUE_MAX_BYTES;
+        if (self.terminalControlQueuedBytes > limit or data.len > limit - self.terminalControlQueuedBytes) {
+            return false;
+        }
+
+        const owned = self.allocator.dupe(u8, data) catch return false;
+        self.terminalControls.append(self.allocator, .{ .data = owned }) catch {
+            self.allocator.free(owned);
+            return false;
+        };
+        self.terminalControlQueuedBytes += data.len;
+        return true;
+    }
+
+    pub fn hasPendingTerminalControls(self: *const CliRenderer) bool {
+        return self.terminalControlHead < self.terminalControls.items.len;
+    }
+
+    /// Drain queued terminal controls into the backend in FIFO order.
+    /// Returns true only when the queue is empty. Progress is retained in
+    /// each entry offset (and in backend feed state for a segment already
+    /// copied into the feed), so a retry resumes exactly where the
+    /// transport stopped accepting bytes. This is a strict no-op when the
+    /// queue is empty; no backend state is touched.
+    pub fn flushTerminalControls(self: *CliRenderer) bool {
+        while (self.terminalControlHead < self.terminalControls.items.len) {
+            const entry = &self.terminalControls.items[self.terminalControlHead];
+            const accepted_before = entry.offset;
+            _ = self.backend.writeTerminalControl(entry.data, &entry.offset);
+            self.terminalControlQueuedBytes -= entry.offset - accepted_before;
+
+            if (entry.offset < entry.data.len) return false;
+
+            self.allocator.free(entry.data);
+            self.terminalControlHead += 1;
+        }
+
+        self.terminalControls.clearRetainingCapacity();
+        self.terminalControlHead = 0;
+        return true;
+    }
+
+    fn deinitTerminalControls(self: *CliRenderer) void {
+        for (self.terminalControls.items[self.terminalControlHead..]) |entry| {
+            self.allocator.free(entry.data);
+        }
+        self.terminalControls.deinit(self.allocator);
+        self.terminalControlHead = 0;
+        self.terminalControlQueuedBytes = 0;
+    }
+
+    /// Frame gate shared by every cell-frame entrypoint. Queued controls
+    /// must be serialized ahead of the frame; while they cannot drain, the
+    /// frame is skipped (and, as with backend backpressure, no frame time
+    /// is consumed) so the caller retries the same frame later.
+    fn prepareFrameWithControls(self: *CliRenderer) bool {
+        if (self.hasPendingTerminalControls() and !self.flushTerminalControls()) {
+            return false;
+        }
+        return self.backend.prepareFrame() == .ok;
+    }
+
     pub fn writeOut(self: *CliRenderer, data: []const u8) void {
+        // External control writes must not overtake queued terminal
+        // controls: flush first (an exact no-op when nothing is queued),
+        // then emit through the backend as before.
+        if (!self.flushTerminalControls()) {
+            // Never splice an external sequence into a partially transmitted
+            // APC. Keep it behind the remaining controls for the next retry.
+            _ = self.queueTerminalControl(data);
+            return;
+        }
         self.backend.writeOut(data);
     }
 
     pub fn writeOutMultiple(self: *CliRenderer, data_slices: []const []const u8) void {
+        if (!self.flushTerminalControls()) {
+            for (data_slices) |data| _ = self.queueTerminalControl(data);
+            return;
+        }
         self.backend.writeOutMultiple(data_slices);
     }
 

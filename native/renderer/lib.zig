@@ -1,7 +1,7 @@
 /// AX TUI owns this native interface independently of its source origin.
 /// Increment when incompatible FFI layouts or calling conventions change.
 pub export fn axTuiAbiVersion() u32 {
-    return 2;
+    return 3;
 }
 
 const std = @import("std");
@@ -1385,6 +1385,16 @@ export fn writeOut(renderer_handle: NativeHandle, dataPtr: ?[*]const u8, dataLen
     const data = sliceFromPtrLen(dataPtr, dataLen);
     if (data.len == 0) return;
     object_ptr.writeOut(data);
+}
+
+/// Queue one Kitty APC terminal control for in-order delivery ahead of the
+/// next native frame. All bytes are copied into renderer-owned storage, or
+/// the write is rejected whole and false is returned. Empty writes succeed.
+export fn queueTerminalControl(renderer_handle: NativeHandle, dataPtr: ?[*]const u8, dataLen: u32) bool {
+    const object_ptr = acquireRenderer(renderer_handle) orelse return false;
+    if (dataLen == 0) return true;
+    const data_ptr = dataPtr orelse return false;
+    return object_ptr.queueTerminalControl(data_ptr[0..@as(usize, dataLen)]);
 }
 
 fn destroyTextBufferViewHandle(view_handle: NativeHandle) void {

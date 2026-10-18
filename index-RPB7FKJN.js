@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-AGQ3MODN.js";
+} from "./index-EKFJR2OF.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -5212,6 +5212,8 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   };
   _console;
   _resolution = null;
+  terminalControlsClosed = false;
+  terminalControlEpoch = 0;
   _keyHandler;
   stdinParser = null;
   oscSubscribers = /* @__PURE__ */ new Set();
@@ -5865,6 +5867,16 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   }
   get resolution() {
     return this._resolution;
+  }
+  get allowKittyImages() {
+    return !this._isDestroyed && this._controlState !== "explicit_suspended" /* EXPLICIT_SUSPENDED */ && this.postProcessFns.length === 0;
+  }
+  /** Copies controls to the native FIFO. Cleanup may enqueue targeted deletes during destruction. */
+  queueTerminalControl(data) {
+    if (this.terminalControlsClosed) return false;
+    const accepted = this.lib.queueTerminalControl(this.rendererPtr, data);
+    if (accepted && data.length && !this._isDestroyed) this.requestRender();
+    return accepted;
   }
   get console() {
     return this._console;
@@ -7714,6 +7726,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     this.stdin.pause();
   }
   resume() {
+    this.terminalControlEpoch++;
     if (this.stdin.setRawMode) {
       this.stdin.setRawMode(true);
     }
@@ -7903,6 +7916,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
       }
     }
     try {
+      this.terminalControlsClosed = true;
       this.lib.destroyRenderer(this.rendererPtr);
     } catch (e) {
       console.error("Error in lib.destroyRenderer during destroy:", e);

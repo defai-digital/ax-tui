@@ -66,6 +66,33 @@ viewport resizing, and Solid cleanup. These APIs deliberately use explicit
 UTF-16 completion ranges and `close()` for permanent overlay removal. Image
 protocols and large-paste folding are outside this integration.
 
+The later focus, command-palette, and image APIs are original AX implementations
+informed by read-only review of these MIT-licensed snapshots:
+
+- Ink `26d2c3f83008142061c22267482489588cc3823c`: focus traversal API and
+  registration/order lifecycle tests.
+- Textual `5e5b7ef58b8c5572c13a3ff9027d756623661495`: visible-tree focus
+  traversal, command providers, and command search lifecycle.
+- OpenTUI `f8f608e2b9a41685d613a1156708ff06c826c3ce`: image protocol fallback,
+  aspect-preserving layout, and source/resource lifetime tests.
+- Pi `482c1381a00d8d00bc81697e4a980c593db6803e`: terminal-cell image sizing,
+  text fallback, and caller-supplied image conversion.
+
+No source, renderer bundle, decoder, or dependency was copied from those
+snapshots. AX retains its Solid reconciler and native cell composition. The
+native terminal-control FIFO, bounded PNG decoder, command registry and palette
+are developed in this repository, with behavioral/native regressions.
+
+Kitty placeholder encoding follows the public
+[graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/#unicode-placeholders).
+`src/lib/kitty-diacritics.ts` records the 297 numeric protocol coordinate constants
+from the specification's Unicode 6.0 row/column mapping. The inspected mapping is
+[`rowcolumn-diacritics.txt`](https://sw.kovidgoyal.net/kitty/_downloads/f0a0de9ec8d9ff4456206db8e0814937/rowcolumn-diacritics.txt),
+SHA-256 `a80368b3272c41d8b50f3f640cf4305b6423e5a1aae6b72a405129bc29425f2c`.
+These are fixed interoperability values, not an imported implementation. PNG
+filtering, chunk ordering and checksums follow the
+[W3C PNG specification](https://www.w3.org/TR/2025/REC-png-3-20250624/).
+
 The scoped keymap and virtual-list APIs are original AX implementations. Reviewed
 design references are OpenTUI's `packages/keymap` at MIT-licensed commit
 `212eb27da4adf5b907031ad153fc6a5b9f713fbf` and Nous Research's MIT-licensed

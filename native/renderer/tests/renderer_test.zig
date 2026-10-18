@@ -2332,3 +2332,184 @@ test "threaded buffered destroy: no stale write after shutdown ANSI" {
     // The protocol invariant we assert: setUseThread toggles do not panic
     // or deadlock, and internal state is clean for destroy() to run.
 }
+
+// ---- Terminal control queue tests ----
+
+test "terminal controls - owned copy drains in order before rendered text" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    _ = link.initGlobalLinkPool(std.testing.allocator);
+    defer link.deinitGlobalLinkPool();
+
+    var test_renderer = try TestRenderer.create(std.testing.allocator, 20, 3, pool);
+    defer test_renderer.deinit();
+    const cli_renderer = test_renderer.renderer;
+
+    try std.testing.expect(cli_renderer.queueTerminalControl(""));
+    try std.testing.expect(!cli_renderer.hasPendingTerminalControls());
+    try std.testing.expect(cli_renderer.flushTerminalControls());
+    try std.testing.expectEqual(@as(usize, 0), test_renderer.memory.bytes.items.len);
+
+    const control = try std.testing.allocator.dupe(u8, "\x1b_Gi=7;ORIGINAL-PAYLOAD\x1b\\");
+    defer std.testing.allocator.free(control);
+    try std.testing.expect(cli_renderer.queueTerminalControl(control));
+    @memset(control, 'X');
+
+    const fg = RGBA{ 1.0, 1.0, 1.0, 1.0 };
+    const bg = RGBA{ 0.0, 0.0, 0.0, 1.0 };
+    try cli_renderer.getNextBuffer().drawText("Hello", 0, 0, fg, bg, 0);
+    try std.testing.expectEqual(renderer.RenderStatus.rendered, cli_renderer.render(false));
+    try std.testing.expect(!cli_renderer.hasPendingTerminalControls());
+
+    const output = test_renderer.memory.bytes.items;
+    const control_index = std.mem.indexOf(u8, output, "ORIGINAL-PAYLOAD").?;
+    const text_index = std.mem.indexOf(u8, output, "Hello").?;
+    try std.testing.expect(control_index < text_index);
+    try std.testing.expect(std.mem.indexOfScalar(u8, output, 'X') == null);
+}
+
+test "terminal controls - 32 MiB budget rejects whole writes only" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    _ = link.initGlobalLinkPool(std.testing.allocator);
+    defer link.deinitGlobalLinkPool();
+
+    var test_renderer = try TestRenderer.create(std.testing.allocator, 10, 2, pool);
+    defer test_renderer.deinit();
+    const cli_renderer = test_renderer.renderer;
+
+    const chunk = try std.testing.allocator.alloc(u8, 1024 * 1024);
+    defer std.testing.allocator.free(chunk);
+    @memset(chunk, 'A');
+
+    for (0..31) |_| {
+        try std.testing.expect(cli_renderer.queueTerminalControl(chunk));
+    }
+    try std.testing.expect(cli_renderer.queueTerminalControl(chunk[0 .. chunk.len - renderer.TERMINAL_CONTROL_CLEANUP_RESERVE_BYTES]));
+    try std.testing.expect(!cli_renderer.queueTerminalControl(chunk));
+    // The reserved tail remains available to small resource cleanup controls.
+    const cleanup = chunk[0..1024];
+    for (0..64) |_| try std.testing.expect(cli_renderer.queueTerminalControl(cleanup));
+    try std.testing.expect(!cli_renderer.queueTerminalControl("B"));
+    try std.testing.expect(cli_renderer.queueTerminalControl(""));
+
+    try std.testing.expect(cli_renderer.flushTerminalControls());
+    const output = test_renderer.memory.bytes.items;
+    try std.testing.expectEqual(renderer.TERMINAL_CONTROL_QUEUE_MAX_BYTES, output.len);
+    try std.testing.expect(std.mem.indexOfScalar(u8, output, 'B') == null);
+}
+
+test "terminal controls - tiny saturated feed resumes without loss or duplication" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    _ = link.initGlobalLinkPool(std.testing.allocator);
+    defer link.deinitGlobalLinkPool();
+
+    var opts = native_span_feed.defaultOptions();
+    opts.chunk_size = 16;
+    opts.initial_chunks = 2;
+    opts.span_queue_capacity = 2;
+    opts.growth_policy = @intFromEnum(native_span_feed.GrowthPolicy.block);
+    opts.auto_commit_on_full = 0;
+    const feed = try native_span_feed.Stream.create(std.testing.allocator, opts);
+    var cli_renderer = try CliRenderer.createWithOptions(std.testing.allocator, 20, 3, pool, .{
+        .remote_mode = .remote,
+        .output = .{ .feed = feed },
+    });
+    defer feed.destroy();
+    defer cli_renderer.destroy();
+
+    const first = "\x1b_Gi=1;abcdefghijklmnopqrstuvwxyz0123456789abcdefghij\x1b\\";
+    const second = "\x1b_Gi=2;ZYXWVUTSRQPONMLKJIHGFEDCBA9876543210zyxwvut\x1b\\";
+    try std.testing.expect(cli_renderer.queueTerminalControl(first));
+    try std.testing.expect(cli_renderer.queueTerminalControl(second));
+    // This write forces a partial flush. It must queue behind the unfinished
+    // APC, rather than splice bytes into the payload on a saturated feed.
+    cli_renderer.writeOut("TAIL-CONTROL");
+
+    var collected: std.ArrayListUnmanaged(u8) = .{};
+    defer collected.deinit(std.testing.allocator);
+    var saw_skipped = false;
+    for (0..64) |_| {
+        if (!cli_renderer.hasPendingTerminalControls()) break;
+        // Skipped frames clear the next buffer, so redraw on every retry.
+        const fg = RGBA{ 1.0, 1.0, 1.0, 1.0 };
+        const bg = RGBA{ 0.0, 0.0, 0.0, 1.0 };
+        try cli_renderer.getNextBuffer().drawText("AFTER", 0, 0, fg, bg, 0);
+        if (cli_renderer.render(true) == .skipped) saw_skipped = true;
+
+        var spans: [4]native_span_feed.SpanInfo = undefined;
+        var count = feed.drainSpans(&spans);
+        while (count > 0) : (count = feed.drainSpans(&spans)) {
+            for (spans[0..count]) |span| {
+                try collected.appendSlice(std.testing.allocator, span.slice());
+                feed.markSpanConsumed(span);
+            }
+        }
+    }
+
+    try std.testing.expect(saw_skipped);
+    try std.testing.expect(!cli_renderer.hasPendingTerminalControls());
+    const expected_controls = first ++ second ++ "TAIL-CONTROL";
+    try std.testing.expect(std.mem.startsWith(u8, collected.items, expected_controls));
+    try std.testing.expect(std.mem.indexOfPos(u8, collected.items, expected_controls.len, first) == null);
+    try std.testing.expect(std.mem.indexOfPos(u8, collected.items, expected_controls.len, second) == null);
+}
+
+test "terminal controls - feed drains before a later frame on normal chunks" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    _ = link.initGlobalLinkPool(std.testing.allocator);
+    defer link.deinitGlobalLinkPool();
+
+    const feed = try native_span_feed.Stream.create(std.testing.allocator, null);
+    var cli_renderer = try CliRenderer.createWithOptions(std.testing.allocator, 20, 3, pool, .{
+        .remote_mode = .remote,
+        .output = .{ .feed = feed },
+    });
+    defer feed.destroy();
+    defer cli_renderer.destroy();
+
+    const control = "\x1b_Gi=9;feed-control-payload\x1b\\";
+    try std.testing.expect(cli_renderer.queueTerminalControl(control));
+
+    const fg = RGBA{ 1.0, 1.0, 1.0, 1.0 };
+    const bg = RGBA{ 0.0, 0.0, 0.0, 1.0 };
+    try cli_renderer.getNextBuffer().drawText("Hello", 0, 0, fg, bg, 0);
+    try std.testing.expectEqual(renderer.RenderStatus.rendered, cli_renderer.render(false));
+
+    var collected: std.ArrayListUnmanaged(u8) = .{};
+    defer collected.deinit(std.testing.allocator);
+    var spans: [8]native_span_feed.SpanInfo = undefined;
+    var count = feed.drainSpans(&spans);
+    while (count > 0) : (count = feed.drainSpans(&spans)) {
+        for (spans[0..count]) |span| {
+            try collected.appendSlice(std.testing.allocator, span.slice());
+            feed.markSpanConsumed(span);
+        }
+    }
+
+    try std.testing.expect(std.mem.startsWith(u8, collected.items, control));
+    try std.testing.expect(std.mem.indexOf(u8, collected.items, "Hello").? >= control.len);
+}
+
+test "terminal controls - queue allocation failure frees the owned copy" {
+    const pool = gp.initGlobalPool(std.testing.allocator);
+    defer gp.deinitGlobalPool();
+    _ = link.initGlobalLinkPool(std.testing.allocator);
+    defer link.deinitGlobalLinkPool();
+
+    var test_renderer = try TestRenderer.create(std.testing.allocator, 10, 2, pool);
+    defer test_renderer.deinit();
+    const cli_renderer = test_renderer.renderer;
+
+    // Fail the queue-append allocation after the payload copy succeeded.
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
+    const saved_allocator = cli_renderer.allocator;
+    cli_renderer.allocator = failing.allocator();
+    try std.testing.expect(!cli_renderer.queueTerminalControl("payload"));
+    try std.testing.expect(failing.has_induced_failure);
+    try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+    try std.testing.expect(!cli_renderer.hasPendingTerminalControls());
+    cli_renderer.allocator = saved_allocator;
+}

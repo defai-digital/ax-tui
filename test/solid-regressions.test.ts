@@ -10,6 +10,57 @@ const root = fileURLToPath(new URL("../", import.meta.url))
 const solidEntry = path.join(root, "solid/source/index.ts")
 const supportsFfi = spawnSync(process.execPath, ["--experimental-ffi", "-e", "require('node:ffi')"]).status === 0
 
+test.skipIf(!supportsFfi)("application hooks and image props stop with their Solid owner", async () => {
+  await runSolidScenario(`
+import assert from "node:assert/strict"
+import { createSignal, onMount, Show } from "solid-js"
+import { testRender, useCommands, useCommandPalette, useFocusManager } from "ax-tui/solid"
+import { getCommandRegistry, getFocusManager } from "ax-tui"
+
+const [visible, setVisible] = createSignal(true)
+const [pixels, setPixels] = createSignal({ width: 1, height: 1, data: Uint8Array.from([255, 0, 0, 255]) })
+let image, input, commands, palettes, focus
+function Controls() {
+  commands = useCommands()
+  palettes = useCommandPalette()
+  focus = useFocusManager()
+  commands.register({ id: "owned", title: "Owned command", run() {} })
+  onMount(() => focus.registerScope(input.parent))
+  return <box width="100%" height="100%">
+    <input ref={node => input = node} value="Field" />
+    <image ref={node => image = node} source={pixels()} width={6} height={3} protocol="blocks" />
+  </box>
+}
+const setup = await testRender(() => <Show when={visible()}><Controls /></Show>, {
+  width: 32, height: 12, useKittyKeyboard: null,
+})
+const { renderer } = setup
+try {
+  await image.loadPromise
+  await setup.flush()
+  input.focus()
+  assert.ok(setup.captureCharFrame().includes("▀"))
+  setPixels({ width: 1, height: 1, data: Uint8Array.from([0, 255, 0, 255]) })
+  await image.loadPromise
+  await setup.flush()
+  assert.ok(setup.captureSpans().lines.flatMap(line => line.spans).some(span => span.text.includes("▀") && span.fg.toInts()[1] === 255))
+  const palette = palettes.show()
+  await setup.flush()
+  assert.equal(palette.selectedId, "owned")
+  setVisible(false)
+  await setup.flush()
+  assert.equal(await palette.result, null)
+  assert.equal(image.isDestroyed, true)
+  assert.equal(getCommandRegistry(renderer).search().length, 0)
+  assert.equal(getFocusManager(renderer).focusNext(), false)
+  assert.throws(() => commands.register({ id: "late", title: "Late", run() {} }), /disposed/)
+  assert.throws(() => palettes.show(), /disposed/)
+  assert.throws(() => focus.registerScope(renderer.root), /disposed/)
+} finally { renderer.destroy() }
+process.stdout.write("AX_SOLID_APPLICATION_COMPLETE")
+`)
+})
+
 async function runSolidScenario(source: string): Promise<void> {
   await mkdir(path.join(root, ".internal"), { recursive: true })
   const fixture = await mkdtemp(path.join(root, ".internal/solid-regressions-"))

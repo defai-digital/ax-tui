@@ -632,6 +632,10 @@ function openRenderLibrary(libPath?: string) {
       args: ["u32", "ptr", "u32"],
       returns: "void",
     },
+    queueTerminalControl: {
+      args: ["u32", "ptr", "u32"],
+      returns: "bool",
+    },
 
     // TextBuffer functions
     createTextBuffer: {
@@ -2126,6 +2130,7 @@ export interface RenderLib extends AudioEngineLib {
   queryPixelResolution: (renderer: RendererHandle) => void
   queryThemeColors: (renderer: RendererHandle) => void
   writeOut: (renderer: RendererHandle, data: string | Uint8Array) => void
+  queueTerminalControl: (renderer: RendererHandle, data: Uint8Array) => boolean
 
   // Yoga layout methods
   yogaConfigCreate: () => Pointer
@@ -3461,6 +3466,10 @@ class FFIRenderLib implements RenderLib {
     const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data
     if (bytes.length === 0) return
     this.native.symbols.writeOut(renderer, ptrOrNull(bytes), bytes.byteLength)
+  }
+
+  public queueTerminalControl(renderer: RendererHandle, data: Uint8Array): boolean {
+    return !!this.native.symbols.queueTerminalControl(renderer, ptrOrNull(data), data.byteLength)
   }
 
   public yogaConfigCreate(): Pointer {
