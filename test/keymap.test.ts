@@ -127,5 +127,9 @@ keymap.register({ priority: -1, bindings: [{ id: "after-broken", keys: "b", hand
 assert.equal(send("b").defaultPrevented, true)
 assert.equal(broken, 0)
 assert.equal(afterBroken, 1)
+let releases = 0
+keymap.register({ bindings: [{ id: "release", keys: "v", handler: () => releases++ }] })
+assert.equal(send("v", { eventType: "release" }).defaultPrevented, false)
+assert.equal(releases, 0)
 `)
 })

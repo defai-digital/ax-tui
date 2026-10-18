@@ -234,7 +234,7 @@ export class Keymap {
   }
 
   private dispatch = (event: KeyEvent): void => {
-    if (this.disposed || event.defaultPrevented || event.propagationStopped) return
+    if (this.disposed || event.defaultPrevented || event.propagationStopped || event.eventType === "release") return
     const pending = this.pending
     if (pending) {
       if (event.name === "escape") {

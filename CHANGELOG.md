@@ -24,7 +24,8 @@ All notable changes to ax-tui are documented here. The format is based on
 - Require the PTY fixture to confirm clean shutdown over its control channel,
   so tmux's client exit status cannot hide a crashing application.
 - Keep keymap dispatch alive when an `enabled` predicate throws, disabling only
-  that layer instead of aborting all key routing.
+  that layer instead of aborting all key routing, and ignore key release events.
+- Decode Kitty F3 functional keys (`CSI 1;modifier:event R`).
 - Restore extmark type and metadata indexes after undo, keep no-op edits from
   consuming a later text undo, follow native cursor deletion when a selection
   exists, and remove the content-change listener on destroy.

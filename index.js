@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-W3EMZKWI.js";
+} from "./index-Y7U6EBUI.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -184,7 +184,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-V4VKOI4M.js";
+} from "./index-6MM5S67P.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -11871,7 +11871,7 @@ var Keymap = class _Keymap {
     this.timer.unref?.();
   }
   dispatch = (event) => {
-    if (this.disposed || event.defaultPrevented || event.propagationStopped) return;
+    if (this.disposed || event.defaultPrevented || event.propagationStopped || event.eventType === "release") return;
     const pending = this.pending;
     if (pending) {
       if (event.name === "escape") {

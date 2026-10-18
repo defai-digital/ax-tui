@@ -6588,6 +6588,7 @@ var functionalKeyMap = {
   E: "clear",
   P: "f1",
   Q: "f2",
+  R: "f3",
   S: "f4"
 };
 var tildeKeyMap = {

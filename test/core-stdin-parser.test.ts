@@ -572,6 +572,7 @@ describe("StdinParser", () => {
       ["home", "\x1b[1;1:1H", [k("home", { raw: "\x1b[1;1:1H" })]],
       ["end release", "\x1b[1;1:3F", [k("end", { raw: "\x1b[1;1:3F", eventType: "release" })]],
       ["f1 press", "\x1b[1;1:1P", [k("f1", { raw: "\x1b[1;1:1P" })]],
+      ["f3 press", "\x1b[1;1:1R", [k("f3", { raw: "\x1b[1;1:1R" })]],
     ])
 
     // CSI number;modifier:event ~ format (kitty tilde keys)
