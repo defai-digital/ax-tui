@@ -173,6 +173,7 @@ function createNodeWorkerConstructor(node: NodeWorkerThreadsModule): PlatformWor
     private readonly messageListeners = new Set<WorkerMessageHandler>()
     private readonly worker: NodeWorkerThread
     private terminationPromise: Promise<number> | undefined
+    private errorReported = false
 
     constructor(specifier: string | URL, options: PlatformWorkerOptions = {}) {
       const resolvedSpecifier = resolveWorkerImportSpecifier(specifier)
@@ -240,6 +241,10 @@ function createNodeWorkerConstructor(node: NodeWorkerThreadsModule): PlatformWor
     }
 
     private readonly handleError = (error: Error): void => {
+      // Node follows an uncaught worker error with an exit notification. Both
+      // describe the same terminal failure; preserve the original error once.
+      if (this.errorReported) return
+      this.errorReported = true
       const event: WorkerErrorEvent = {
         error,
         message: error.message,

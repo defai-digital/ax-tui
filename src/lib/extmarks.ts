@@ -116,7 +116,7 @@ export class ExtmarksController {
 
       const virtualExtmark = this.findVirtualExtmarkContaining(targetOffset)
       if (virtualExtmark && currentOffset >= virtualExtmark.end) {
-        this.editBuffer.setCursorByOffset(virtualExtmark.start - 1)
+        this.editBuffer.setCursorByOffset(Math.max(0, virtualExtmark.start - 1))
         return
       }
 
@@ -138,13 +138,8 @@ export class ExtmarksController {
       }
 
       const targetOffset = currentOffset + 1
-      const textLength = this.editBuffer.getText().length
-
-      if (targetOffset > textLength) {
-        this.originalMoveCursorRight()
-        return
-      }
-
+      // Cursor/extmark offsets use display cells. A UTF-16 string length is
+      // not an end boundary here; native movement already clamps at EOL.
       const virtualExtmark = this.findVirtualExtmarkContaining(targetOffset)
       if (virtualExtmark && currentOffset <= virtualExtmark.start) {
         this.editBuffer.setCursorByOffset(virtualExtmark.end)
@@ -177,7 +172,7 @@ export class ExtmarksController {
         const distanceToEnd = virtualExtmark.end - newOffset
 
         if (distanceToStart < distanceToEnd) {
-          this.editorView.setCursorByOffset(virtualExtmark.start - 1)
+          this.editorView.setCursorByOffset(Math.max(0, virtualExtmark.start - 1))
         } else {
           this.editorView.setCursorByOffset(virtualExtmark.end)
         }
@@ -207,7 +202,7 @@ export class ExtmarksController {
         const distanceToEnd = virtualExtmark.end - newOffset
 
         if (distanceToStart < distanceToEnd) {
-          const adjustedOffset = virtualExtmark.start - 1
+          const adjustedOffset = Math.max(0, virtualExtmark.start - 1)
           const targetOffset = adjustedOffset <= currentOffset ? virtualExtmark.end : adjustedOffset
           this.editorView.setCursorByOffset(targetOffset)
         } else {
@@ -241,7 +236,7 @@ export class ExtmarksController {
       } else {
         for (const extmark of this.extmarks.values()) {
           if (extmark.virtual && currentOffset >= extmark.end && offset < extmark.end && offset >= extmark.start) {
-            this.originalSetCursorByOffset(extmark.start - 1)
+            this.originalSetCursorByOffset(Math.max(0, extmark.start - 1))
             return
           }
         }

@@ -307,6 +307,7 @@ function createNodeWorkerConstructor(node) {
     messageListeners = /* @__PURE__ */ new Set();
     worker;
     terminationPromise;
+    errorReported = false;
     constructor(specifier, options = {}) {
       const resolvedSpecifier = resolveWorkerImportSpecifier(specifier);
       this.worker = new node.Worker(createWorkerBootstrapSource(resolvedSpecifier), {
@@ -360,6 +361,8 @@ function createNodeWorkerConstructor(node) {
       }
     };
     handleError = (error) => {
+      if (this.errorReported) return;
+      this.errorReported = true;
       const event = {
         error,
         message: error.message

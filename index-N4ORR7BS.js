@@ -9499,6 +9499,7 @@ function createNodeWorkerConstructor(node) {
     messageListeners = /* @__PURE__ */ new Set();
     worker;
     terminationPromise;
+    errorReported = false;
     constructor(specifier, options = {}) {
       const resolvedSpecifier = resolveWorkerImportSpecifier(specifier);
       this.worker = new node.Worker(createWorkerBootstrapSource(resolvedSpecifier), {
@@ -9552,6 +9553,8 @@ function createNodeWorkerConstructor(node) {
       }
     };
     handleError = (error) => {
+      if (this.errorReported) return;
+      this.errorReported = true;
       const event = {
         error,
         message: error.message
@@ -11096,7 +11099,7 @@ var ExtmarksController = class {
       }
       const virtualExtmark = this.findVirtualExtmarkContaining(targetOffset);
       if (virtualExtmark && currentOffset >= virtualExtmark.end) {
-        this.editBuffer.setCursorByOffset(virtualExtmark.start - 1);
+        this.editBuffer.setCursorByOffset(Math.max(0, virtualExtmark.start - 1));
         return;
       }
       this.originalMoveCursorLeft();
@@ -11113,11 +11116,6 @@ var ExtmarksController = class {
         return;
       }
       const targetOffset = currentOffset + 1;
-      const textLength = this.editBuffer.getText().length;
-      if (targetOffset > textLength) {
-        this.originalMoveCursorRight();
-        return;
-      }
       const virtualExtmark = this.findVirtualExtmarkContaining(targetOffset);
       if (virtualExtmark && currentOffset <= virtualExtmark.start) {
         this.editBuffer.setCursorByOffset(virtualExtmark.end);
@@ -11143,7 +11141,7 @@ var ExtmarksController = class {
         const distanceToStart = newOffset - virtualExtmark.start;
         const distanceToEnd = virtualExtmark.end - newOffset;
         if (distanceToStart < distanceToEnd) {
-          this.editorView.setCursorByOffset(virtualExtmark.start - 1);
+          this.editorView.setCursorByOffset(Math.max(0, virtualExtmark.start - 1));
         } else {
           this.editorView.setCursorByOffset(virtualExtmark.end);
         }
@@ -11167,7 +11165,7 @@ var ExtmarksController = class {
         const distanceToStart = newOffset - virtualExtmark.start;
         const distanceToEnd = virtualExtmark.end - newOffset;
         if (distanceToStart < distanceToEnd) {
-          const adjustedOffset = virtualExtmark.start - 1;
+          const adjustedOffset = Math.max(0, virtualExtmark.start - 1);
           const targetOffset = adjustedOffset <= currentOffset ? virtualExtmark.end : adjustedOffset;
           this.editorView.setCursorByOffset(targetOffset);
         } else {
@@ -11196,7 +11194,7 @@ var ExtmarksController = class {
       } else {
         for (const extmark of this.extmarks.values()) {
           if (extmark.virtual && currentOffset >= extmark.end && offset < extmark.end && offset >= extmark.start) {
-            this.originalSetCursorByOffset(extmark.start - 1);
+            this.originalSetCursorByOffset(Math.max(0, extmark.start - 1));
             return;
           }
         }
