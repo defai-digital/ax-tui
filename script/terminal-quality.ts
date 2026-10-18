@@ -211,6 +211,13 @@ export async function terminalQuality(tmux?: string) {
       oracle: "xterm.js 6.0.0 Unicode 11", unicode: ["CJK", "combining marks", "Greek", "wide emoji"],
       streamUpdates: 200,
       resizes: 3, wheelEvents: 20, outputBytes: Buffer.byteLength(transcript) }
+  } catch (error) {
+    // ConPTY may serialize screen updates separately from forwarded OSC titles.
+    // Preserve both the barrier snapshot and a later screen when a contract fails.
+    await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise<void>(resolve => terminal.write("", resolve))
+    console.error("AX_TERMINAL_FAILURE", JSON.stringify({ screen: lines(), transcript: transcript.slice(-16000) }))
+    throw error
   } finally {
     if (child && !exit) child.kill()
     if (tmux) spawnSync(tmux, ["-L", tmuxSocket, "kill-server"], { stdio: "ignore", timeout: 5000 })
