@@ -16,6 +16,7 @@
 //! writer without scattering backend-specific switches across the codebase.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const NativeSpanFeed = @import("native-span-feed.zig");
 
@@ -39,8 +40,67 @@ pub const BufferedOutput = struct {
     }
 };
 
+/// Console code pages belong to the shared console, not an individual writer.
+pub const ConsoleCodePageLease = struct {
+    users: usize = 0,
+    previous: u32 = 0,
+
+    pub fn acquire(self: *ConsoleCodePageLease, api: anytype) bool {
+        if (self.users == 0) {
+            const previous = api.get();
+            if (previous == 0 or !api.set(65001)) return false;
+            self.previous = previous;
+        }
+        self.users += 1;
+        return true;
+    }
+
+    pub fn release(self: *ConsoleCodePageLease, api: anytype) void {
+        std.debug.assert(self.users > 0);
+        self.users -= 1;
+        if (self.users != 0) return;
+        // A later external change must win over our saved console state.
+        if (api.get() == 65001) _ = api.set(self.previous);
+        self.previous = 0;
+    }
+};
+
+var console_code_page_mutex: std.Thread.Mutex = .{};
+var console_code_page_lease: ConsoleCodePageLease = .{};
+
+const WindowsCodePageApi = struct {
+    fn get(_: *@This()) u32 {
+        return std.os.windows.kernel32.GetConsoleOutputCP();
+    }
+
+    fn set(_: *@This(), value: u32) bool {
+        return std.os.windows.kernel32.SetConsoleOutputCP(value) != 0;
+    }
+};
+
 pub const StdoutOutput = struct {
     stdoutBuffer: [4096]u8 = undefined,
+    hasConsoleEncoding: bool = false,
+
+    fn acquireConsoleEncoding(self: *StdoutOutput) void {
+        if (builtin.os.tag != .windows) return;
+        var mode: std.os.windows.DWORD = 0;
+        // Redirected stdout, memory output and feeds must not alter the local console.
+        if (std.os.windows.kernel32.GetConsoleMode(std.fs.File.stdout().handle, &mode) == 0) return;
+        console_code_page_mutex.lock();
+        defer console_code_page_mutex.unlock();
+        var api: WindowsCodePageApi = .{};
+        self.hasConsoleEncoding = console_code_page_lease.acquire(&api);
+    }
+
+    fn releaseConsoleEncoding(self: *StdoutOutput) void {
+        if (builtin.os.tag != .windows or !self.hasConsoleEncoding) return;
+        console_code_page_mutex.lock();
+        defer console_code_page_mutex.unlock();
+        var api: WindowsCodePageApi = .{};
+        console_code_page_lease.release(&api);
+        self.hasConsoleEncoding = false;
+    }
 
     pub fn bufferedOutput(self: *StdoutOutput) BufferedOutput {
         return .{
@@ -224,6 +284,8 @@ pub const BufferedBackend = struct {
         const stdoutOutput = try allocator.create(StdoutOutput);
         errdefer allocator.destroy(stdoutOutput);
         stdoutOutput.* = .{};
+        stdoutOutput.acquireConsoleEncoding();
+        errdefer stdoutOutput.releaseConsoleEncoding();
 
         var backend = try BufferedBackend.create(allocator, stdoutOutput.bufferedOutput());
         backend.ownedStdoutOutput = stdoutOutput;
@@ -261,6 +323,7 @@ pub const BufferedBackend = struct {
         allocator.free(self.outputA);
         allocator.free(self.outputB);
         if (self.ownedStdoutOutput) |stdoutOutput| {
+            stdoutOutput.releaseConsoleEncoding();
             allocator.destroy(stdoutOutput);
             self.ownedStdoutOutput = null;
         }

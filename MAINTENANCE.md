@@ -191,6 +191,12 @@ ensure assertions run after terminal output has been parsed. The tmux path
 starts and removes its own server with only `test/fixtures/quality-tmux.conf`;
 it never attaches to existing sessions or reads user configuration.
 
+On Windows the fixture explicitly starts with output code page 437, verifies
+that the native stdout backend selects UTF-8 while rendering, and checks that
+shutdown restores 437. The stdout backend shares its code-page lease across
+overlapping writers and preserves later external changes. Redirected stdout,
+memory outputs, and feed outputs do not acquire a local console lease.
+
 `pnpm test` requires this direct terminal test on all three CI operating systems;
 missing PTY/ConPTY support is a failure. Linux CI also requires the tmux path.
 These are protocol and screen-state checks, not font/pixel checks or a claim

@@ -2513,3 +2513,56 @@ test "terminal controls - queue allocation failure frees the owned copy" {
     try std.testing.expect(!cli_renderer.hasPendingTerminalControls());
     cli_renderer.allocator = saved_allocator;
 }
+
+
+const MockCodePageApi = struct {
+    current: u32 = 437,
+    writable: bool = true,
+    changes: usize = 0,
+
+    pub fn get(self: *@This()) u32 {
+        return self.current;
+    }
+
+    pub fn set(self: *@This(), value: u32) bool {
+        if (!self.writable) return false;
+        self.current = value;
+        self.changes += 1;
+        return true;
+    }
+};
+
+test "stdout encoding lease restores the original code page after the last writer" {
+    var lease: @import("../renderer-output.zig").ConsoleCodePageLease = .{};
+    var api: MockCodePageApi = .{};
+    try std.testing.expect(lease.acquire(&api));
+    try std.testing.expect(lease.acquire(&api));
+    try std.testing.expectEqual(@as(u32, 65001), api.current);
+    try std.testing.expectEqual(@as(usize, 1), api.changes);
+    lease.release(&api);
+    try std.testing.expectEqual(@as(u32, 65001), api.current);
+    lease.release(&api);
+    try std.testing.expectEqual(@as(u32, 437), api.current);
+    try std.testing.expectEqual(@as(usize, 0), lease.users);
+}
+
+test "stdout encoding lease preserves external code page changes" {
+    var lease: @import("../renderer-output.zig").ConsoleCodePageLease = .{};
+    var api: MockCodePageApi = .{};
+    try std.testing.expect(lease.acquire(&api));
+    api.current = 850;
+    lease.release(&api);
+    try std.testing.expectEqual(@as(u32, 850), api.current);
+    try std.testing.expectEqual(@as(usize, 1), api.changes);
+}
+
+test "stdout encoding lease does not claim a failed or missing console" {
+    var lease: @import("../renderer-output.zig").ConsoleCodePageLease = .{};
+    var api: MockCodePageApi = .{ .writable = false };
+    try std.testing.expect(!lease.acquire(&api));
+    try std.testing.expectEqual(@as(usize, 0), lease.users);
+    api.writable = true;
+    api.current = 0;
+    try std.testing.expect(!lease.acquire(&api));
+    try std.testing.expectEqual(@as(usize, 0), api.changes);
+}

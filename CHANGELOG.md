@@ -9,6 +9,10 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ### Fixed
 
+- Select UTF-8 for native Windows console output and restore the original code
+  page when the last stdout backend closes, preserving redirected output and
+  subsequent external code-page changes.
+
 - Preserve requests started by autocomplete abort callbacks, prevent superseded
   work from starting, and honor disposal during cancellation.
 - Apply completion caret positions before input notifications, preserving newer

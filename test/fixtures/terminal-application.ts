@@ -1,9 +1,23 @@
 import assert from "node:assert/strict"
 import { connect } from "node:net"
+import { createRequire } from "node:module"
 import { createInterface } from "node:readline"
 import { createCliRenderer, InputRenderable, TextRenderable, VirtualListRenderable, getFocusManager } from "ax-tui"
 
 assert.ok(process.stdin.isTTY && process.stdout.isTTY)
+// Force a legacy output code page in this private ConPTY to exercise native UTF-8 setup.
+const consoleLibrary = process.platform === "win32"
+  ? createRequire(import.meta.url)("node:ffi").dlopen("kernel32.dll", {
+    GetConsoleOutputCP: { arguments: [], return: "u32" },
+    SetConsoleOutputCP: { arguments: ["u32"], return: "i32" },
+  }) as { lib: { close(): void }, functions: {
+    GetConsoleOutputCP(): number, SetConsoleOutputCP(value: number): number,
+  } }
+  : undefined
+if (consoleLibrary) {
+  assert.notEqual(consoleLibrary.functions.SetConsoleOutputCP(437), 0)
+  assert.equal(consoleLibrary.functions.GetConsoleOutputCP(), 437)
+}
 const control = connect(Number(process.argv[2]), "127.0.0.1")
 await new Promise<void>((resolve, reject) => {
   control.once("connect", resolve)
@@ -13,6 +27,7 @@ const renderer = await createCliRenderer({
   useThread: false, useKittyKeyboard: null, consoleMode: "disabled", enableMouseMovement: false,
   debounceDelay: 0, memorySnapshotInterval: 0,
 })
+if (consoleLibrary) assert.equal(consoleLibrary.functions.GetConsoleOutputCP(), 65001)
 let wheelEvents = 0
 let chunks = 0
 const header = new TextRenderable(renderer, { content: "Unicode: 中文 cafe\u0301 Ω 😀", height: 1,
@@ -84,6 +99,10 @@ try {
   }
 } finally {
   renderer.destroy()
+  if (consoleLibrary) {
+    assert.equal(consoleLibrary.functions.GetConsoleOutputCP(), 437)
+    consoleLibrary.lib.close()
+  }
   // Confirm teardown over the independent control channel; tmux hides the
   // pane process status from the client it spawns.
   control.write(JSON.stringify({ id: "shutdown" }) + "\n")

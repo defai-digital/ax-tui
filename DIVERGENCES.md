@@ -17,6 +17,12 @@ Inherited AX fixes now live in the owned TypeScript sources. Behavior changes mu
 ## Source ownership
 
 These contracts are implemented in `src/`, `solid/source/`, and `native/source/`.
+
+Native Windows stdout output additionally selects UTF-8 only for console handles.
+A shared lease restores the original output code page after the last stdout
+backend closes, while preserving subsequent external code-page changes. Memory,
+feed, and redirected outputs leave the local console unchanged. Guards:
+`native/renderer/tests/renderer_test.zig` and `test/terminal-quality.test.ts`.
 `script/tui-patches.ts` checks them without rewriting generated bundles.
 `test/core-ffi.test.ts` and `test/core-stdin-parser.test.ts` cover the imported
 FFI adapter and terminal parser. `test/source-renderer.test.ts` exercises Solid
