@@ -56,8 +56,7 @@ export function isCapabilityResponse(sequence: string): boolean {
   }
 
   // Kitty desktop notification capability query response.
-  // Payload segments exclude the terminators (BEL/ESC) so matching stays linear.
-  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[^\x07\x1b]*(?:\x07|\x1b\\)/.test(sequence)) {
+  if (isKittyNotificationResponse(sequence)) {
     return true
   }
 
@@ -67,6 +66,34 @@ export function isCapabilityResponse(sequence: string): boolean {
     return true
   }
 
+  return false
+}
+
+// Kitty desktop notification capability query response:
+// ESC]99;...i=ax-tui-notifications...p=?...<BEL or ESC\>. Matching is done
+// with indexOf instead of a payload-spanning regex so repeated marker text in
+// uncontrolled input cannot cause quadratic backtracking.
+function isKittyNotificationResponse(sequence: string): boolean {
+  const prefix = "\x1b]99;"
+  let from = 0
+  while (from < sequence.length) {
+    const start = sequence.indexOf(prefix, from)
+    if (start === -1) return false
+
+    const payloadStart = start + prefix.length
+    const bel = sequence.indexOf("\x07", payloadStart)
+    const st = sequence.indexOf("\x1b\\", payloadStart)
+    let end = sequence.length
+    if (bel !== -1 && bel < end) end = bel
+    if (st !== -1 && st < end) end = st
+
+    const body = sequence.slice(payloadStart, end)
+    const marker = body.indexOf("i=ax-tui-notifications")
+    if (marker !== -1 && body.indexOf("p=?", marker) !== -1) {
+      return true
+    }
+    from = start + 1
+  }
   return false
 }
 

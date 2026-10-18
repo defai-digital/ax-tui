@@ -75,11 +75,13 @@ export function paintText(
 export function cellsToFrame(cells: readonly Cell[], width: number, height: number, fill = " "): string[] {
   const rows: string[][] = Array.from({ length: height }, () => Array<string>(width).fill(fill))
   for (const cell of cells) {
-    // Reject non-integer coordinates: they can never address a real cell, and
-    // string keys would land on object properties instead of array elements.
-    if (!Number.isInteger(cell.x) || !Number.isInteger(cell.y)) continue
-    if (cell.x < 0 || cell.y < 0 || cell.x >= width || cell.y >= height) continue
-    rows[cell.y]![cell.x] = cell.char
+    // Coerce to real numbers: non-numeric input becomes NaN and is skipped, so
+    // string keys can never address object properties instead of array elements.
+    const x = Number(cell.x)
+    const y = Number(cell.y)
+    if (!Number.isInteger(x) || !Number.isInteger(y)) continue
+    if (x < 0 || y < 0 || x >= width || y >= height) continue
+    rows[y]![x] = cell.char
   }
   return rows.map((row) => row.join(""))
 }

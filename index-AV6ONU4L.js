@@ -4611,11 +4611,32 @@ function isCapabilityResponse(sequence) {
   if (/\x1b\[\?[0-9;]*c/.test(sequence)) {
     return true;
   }
-  if (/\x1b\]99;[^\x07\x1b]*i=ax-tui-notifications[^\x07\x1b]*p=\?[^\x07\x1b]*(?:\x07|\x1b\\)/.test(sequence)) {
+  if (isKittyNotificationResponse(sequence)) {
     return true;
   }
   if (/\x1b\]1337;Capabilities=[^\x07\x1b]*(?:\x07|\x1b\\)/.test(sequence)) {
     return true;
+  }
+  return false;
+}
+function isKittyNotificationResponse(sequence) {
+  const prefix = "\x1B]99;";
+  let from = 0;
+  while (from < sequence.length) {
+    const start = sequence.indexOf(prefix, from);
+    if (start === -1) return false;
+    const payloadStart = start + prefix.length;
+    const bel = sequence.indexOf("\x07", payloadStart);
+    const st = sequence.indexOf("\x1B\\", payloadStart);
+    let end = sequence.length;
+    if (bel !== -1 && bel < end) end = bel;
+    if (st !== -1 && st < end) end = st;
+    const body = sequence.slice(payloadStart, end);
+    const marker = body.indexOf("i=ax-tui-notifications");
+    if (marker !== -1 && body.indexOf("p=?", marker) !== -1) {
+      return true;
+    }
+    from = start + 1;
   }
   return false;
 }
