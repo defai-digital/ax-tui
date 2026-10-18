@@ -30,7 +30,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-SF72FDHY.js";
+} from "./index-MTZQWQ74.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -5250,9 +5250,9 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     }
   }
   /** Preserve single-line and length constraints for undoable programmatic edits such as completion. */
-  replaceText(text) {
+  replaceText(text, cursorOffset) {
     const value = truncateInput(text.replace(/[\n\r]/g, ""), this._maxLength);
-    super.replaceText(value);
+    super.replaceText(value, cursorOffset);
     this.emit("input" /* INPUT */, this.plainText);
   }
   focus() {
@@ -11481,13 +11481,11 @@ function applyEditorAutocomplete(editor, result, item) {
   if (editor.isDestroyed || editor.hasSelection()) return false;
   const replacement = applyAutocomplete(getEditorAutocompleteRequest(editor), result, item);
   if (!replacement) return false;
-  const cursor = editor instanceof InputRenderable ? replacement.text.slice(0, replacement.cursor).replace(/[\n\r]/g, "").length : replacement.cursor;
-  editor.replaceText(replacement.text);
-  if (editor.isDestroyed) return true;
+  const prefix = replacement.text.slice(0, replacement.cursor);
   const measurement = TextBuffer.create(editor.ctx.widthMethod);
   try {
-    measurement.setText(editor.plainText.slice(0, cursor));
-    editor.cursorOffset = measurement.length + measurement.getLineCount() - 1;
+    measurement.setText(editor instanceof InputRenderable ? prefix.replace(/[\n\r]/g, "") : prefix);
+    editor.replaceText(replacement.text, measurement.length + measurement.getLineCount() - 1);
   } finally {
     measurement.destroy();
   }

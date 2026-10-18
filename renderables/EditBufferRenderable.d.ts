@@ -227,8 +227,9 @@ export declare abstract class EditBufferRenderable extends Renderable implements
     /**
      * Replace text while preserving undo history (creates an undo point).
      * Use this when you want the setText operation to be undoable.
+     * An optional display-width cursor offset is applied before input notifications.
      */
-    replaceText(text: string): void;
+    replaceText(text: string, cursorOffset?: number): void;
     clear(): void;
     deleteRange(startLine: number, startCol: number, endLine: number, endCol: number): void;
     getTextRange(startOffset: number, endOffset: number): string;

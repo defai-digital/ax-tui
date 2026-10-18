@@ -1088,9 +1088,11 @@ export abstract class EditBufferRenderable extends Renderable implements LineInf
   /**
    * Replace text while preserving undo history (creates an undo point).
    * Use this when you want the setText operation to be undoable.
+   * An optional display-width cursor offset is applied before input notifications.
    */
-  public replaceText(text: string): void {
+  public replaceText(text: string, cursorOffset?: number): void {
     this.editBuffer.replaceText(text)
+    if (cursorOffset !== undefined) this.cursorOffset = cursorOffset
     this.yogaNode.markDirty()
     this.requestRender()
   }

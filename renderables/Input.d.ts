@@ -50,7 +50,7 @@ export declare class InputRenderable extends TextareaRenderable {
     get value(): string;
     set value(value: string);
     /** Preserve single-line and length constraints for undoable programmatic edits such as completion. */
-    replaceText(text: string): void;
+    replaceText(text: string, cursorOffset?: number): void;
     focus(): void;
     blur(): void;
     submit(): boolean;

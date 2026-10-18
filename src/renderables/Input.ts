@@ -149,9 +149,9 @@ export class InputRenderable extends TextareaRenderable {
   }
 
   /** Preserve single-line and length constraints for undoable programmatic edits such as completion. */
-  public override replaceText(text: string): void {
+  public override replaceText(text: string, cursorOffset?: number): void {
     const value = truncateInput(text.replace(/[\n\r]/g, ""), this._maxLength)
-    super.replaceText(value)
+    super.replaceText(value, cursorOffset)
     this.emit(InputRenderableEvents.INPUT, this.plainText)
   }
 

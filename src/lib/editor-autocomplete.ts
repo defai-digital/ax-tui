@@ -22,16 +22,13 @@ export function applyEditorAutocomplete(
   if (editor.isDestroyed || editor.hasSelection()) return false
   const replacement = applyAutocomplete(getEditorAutocompleteRequest(editor), result, item)
   if (!replacement) return false
-  const cursor = editor instanceof InputRenderable
-    ? replacement.text.slice(0, replacement.cursor).replace(/[\n\r]/g, "").length
-    : replacement.cursor
-  editor.replaceText(replacement.text)
-  if (editor.isDestroyed) return true
+  const prefix = replacement.text.slice(0, replacement.cursor)
   const measurement = TextBuffer.create(editor.ctx.widthMethod)
   try {
-    // InputRenderable may sanitize/truncate the replacement. Always measure the resulting text.
-    measurement.setText(editor.plainText.slice(0, cursor))
-    editor.cursorOffset = measurement.length + measurement.getLineCount() - 1
+    // Apply the caret before input callbacks can make a newer edit or destroy the editor.
+    // The native cursor clamps to the resulting buffer if InputRenderable truncates the text.
+    measurement.setText(editor instanceof InputRenderable ? prefix.replace(/[\n\r]/g, "") : prefix)
+    editor.replaceText(replacement.text, measurement.length + measurement.getLineCount() - 1)
   } finally {
     measurement.destroy()
   }

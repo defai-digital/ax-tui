@@ -11,6 +11,8 @@ All notable changes to ax-tui are documented here. The format is based on
 
 - Preserve requests started by autocomplete abort callbacks, prevent superseded
   work from starting, and honor disposal during cancellation.
+- Apply completion caret positions before input notifications, preserving newer
+  edits and cursor movements performed by input callbacks.
 - Bound select, tab-select, slider, and image options, and preserve constructor
   focusability and selection offsets when updating text.
 - Clean up native event subscriptions and empty diff panes, and resolve Solid

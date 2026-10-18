@@ -4443,9 +4443,11 @@ var EditBufferRenderable = class extends Renderable {
   /**
    * Replace text while preserving undo history (creates an undo point).
    * Use this when you want the setText operation to be undoable.
+   * An optional display-width cursor offset is applied before input notifications.
    */
-  replaceText(text) {
+  replaceText(text, cursorOffset) {
     this.editBuffer.replaceText(text);
+    if (cursorOffset !== void 0) this.cursorOffset = cursorOffset;
     this.yogaNode.markDirty();
     this.requestRender();
   }

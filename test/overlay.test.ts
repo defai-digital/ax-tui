@@ -412,3 +412,46 @@ try {
 } finally { renderer.destroy() }
 `)
 })
+
+
+test.skipIf(!supportsFfi)("autocomplete preserves edits and caret movement performed by input callbacks", () => {
+  runScenario(`
+import assert from "node:assert/strict"
+import { InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "ax-tui"
+import { createTestRenderer } from "ax-tui/testing"
+const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
+try {
+  const input = new InputRenderable(renderer, { value: "/h" })
+  renderer.root.add(input)
+  const request = getEditorAutocompleteRequest(input)
+  const item = { label: "/help", insertText: "/help" }
+  input.once("input", () => {
+    input.value = "😀 revised"
+    input.cursorOffset = 2
+  })
+  assert.equal(applyEditorAutocomplete(input, { request, start: 0, end: 2, items: [item] }, item), true)
+  assert.equal(input.value, "😀 revised")
+  assert.equal(input.cursorOffset, 2)
+} finally { renderer.destroy() }
+`)
+})
+
+test.skipIf(!supportsFfi)("autocomplete positions the caret before notifying input observers", () => {
+  runScenario(`
+import assert from "node:assert/strict"
+import { InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "ax-tui"
+import { createTestRenderer } from "ax-tui/testing"
+const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
+try {
+  const input = new InputRenderable(renderer, { value: "/h", maxLength: 4 })
+  renderer.root.add(input)
+  const request = getEditorAutocompleteRequest(input)
+  const item = { label: "Unicode", insertText: "中文😀Z", cursorOffset: 4 }
+  let observed
+  input.once("input", () => { observed = { text: input.value, cursor: input.cursorOffset } })
+  assert.equal(applyEditorAutocomplete(input, { request, start: 0, end: 2, items: [item] }, item), true)
+  assert.deepEqual(observed, { text: "中文😀", cursor: 6 })
+  assert.equal(input.cursorOffset, 6)
+} finally { renderer.destroy() }
+`)
+})
