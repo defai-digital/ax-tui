@@ -127,6 +127,21 @@ Bun; the native renderer does not target web browsers or Cloudflare Workers.
 
 ## Product quality gates
 
+On macOS and Linux, `pnpm test` also requires Python 3 (standard library only)
+for `test/pty-scroll.test.ts`. Run it alone with
+`pnpm exec vitest run test/pty-scroll.test.ts`. It launches the real Node renderer
+in an OS PTY, feeds SGR wheel input, and reconstructs visible ASCII marker rows
+from terminal output rather than native-buffer snapshots. Paired control replies
+and output barriers delimit completed frames. The suite checks parked markers
+through 12 acknowledged tail updates, wheel direction, bounded mounted rows and
+repaints, terminal resize, and clean exit. Virtual row mounting may require a
+second layout pass, so the wheel bound permits two frames per event plus four
+settling frames; this is a regression bound, not a latency or FPS benchmark.
+Unknown screen operations fail rather than silently producing a misleading
+snapshot. This fixture does not cover arbitrary Unicode, terminal emulators,
+continuous network streams, or Windows ConPTY. Windows explicitly skips this
+PTY case and runs the native-buffer and on-demand scheduling regressions.
+
 The Quality workflow runs on branch pushes, pull requests, and release preflight.
 It requires Node FFI support, then checks TypeScript, native/source provenance,
 the FFI struct-layout contract, all generated output, runtime regressions, and

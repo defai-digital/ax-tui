@@ -5,6 +5,17 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve render requests queued by post-frame layout microtasks, preventing
+  blank virtual-list rows after scrolling in on-demand rendering mode, and keep
+  `idle()` waiting until the resulting follow-up repaint completes.
+
+### Added
+
+- Add real POSIX terminal regressions for wheel input, parked-marker stability
+  during tail updates, bounded repaints, resize anchoring, and clean shutdown.
+
 ## [2.0.0] - 2026-10-17
 
 ### Breaking changes

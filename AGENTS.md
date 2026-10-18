@@ -58,7 +58,8 @@ TypeScript 7.0.2 is the development compiler; Solid's JSX transform uses Babel.
 - `pnpm run check`: verify independence, native hashes/source provenance, AX contracts, FFI struct layout, and generated output.
 - `pnpm test`: Vitest over `test/**/*.test.ts` (framework and maintenance
   regressions) and `script/**/*.test.ts` (build/release tooling contracts);
-  run one file with `pnpm exec vitest run <path>`.
+  run one file with `pnpm exec vitest run <path>`. POSIX PTY regressions require
+  Python 3's standard library on macOS/Linux and are explicitly skipped on Windows.
 - `pnpm run build:native`: build the host's library with Zig pinned in `.zig-version`.
 - `pnpm run build:native --all`: build and stage all eight native targets.
 - `pnpm run build:native --target=linux-x64`: build one explicit target.

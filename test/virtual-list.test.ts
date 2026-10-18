@@ -113,3 +113,30 @@ assert.equal(first.isDestroyed, true)
 assert.equal(renderer.currentFocusedRenderable, list)
 `)
 })
+
+test.skipIf(!supportsFfi)("on-demand rendering paints rows mounted after a frame without manual render passes", () => {
+  scenario(`
+const idle = async () => {
+  for (let pass = 0; pass < 3; pass++) {
+    await new Promise(resolve => setImmediate(resolve))
+    await renderer.idle()
+  }
+}
+const list = new VirtualListRenderable(renderer, {
+  width: 40, height: 10, items: Array.from({ length: 500 }, (_, i) => i), getKey: x => x,
+  renderItem: (x, i, ctx) => new TextRenderable(ctx, { content: "Row " + x }),
+})
+renderer.root.add(list)
+await idle()
+assert.ok(setup.captureCharFrame().includes("Row 0"), "initial rows must paint without renderOnce")
+list.scrollToIndex(200)
+await idle()
+assert.ok(setup.captureCharFrame().includes("Row 200"))
+list.scrollBy(-30)
+await idle()
+assert.ok(setup.captureCharFrame().includes("Row 170"), "scroll-mounted rows must paint without renderOnce")
+const frame = renderer.frameId
+await idle()
+assert.equal(renderer.frameId, frame, "settled list must stop scheduling frames")
+`)
+})

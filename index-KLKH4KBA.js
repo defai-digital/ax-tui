@@ -5175,6 +5175,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   minTargetFrameTime = 1e3 / this._maxFps;
   immediateRerenderRequested = false;
   updateScheduled = false;
+  activatingFrame = false;
   liveRequestCounter = 0;
   _controlState = "idle" /* IDLE */;
   frameCallbacks = [];
@@ -5793,10 +5794,12 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
       this.resolveIdleIfNeeded();
       return;
     }
+    this.updateScheduled = false;
+    this.activatingFrame = true;
     try {
       await this.loop();
     } finally {
-      this.updateScheduled = false;
+      this.activatingFrame = false;
       this.resolveIdleIfNeeded();
     }
   }
@@ -5816,7 +5819,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   }
   isIdleNow() {
     if (this._isDestroyed) return true;
-    return !this._isRunning && !this.rendering && !this.renderTimeout && !this.updateScheduled && !this.feedIdleRenderScheduled && !this.immediateRerenderRequested;
+    return !this._isRunning && !this.rendering && !this.activatingFrame && !this.renderTimeout && !this.updateScheduled && !this.feedIdleRenderScheduled && !this.immediateRerenderRequested;
   }
   resolveIdleIfNeeded() {
     if (!this.isIdleNow()) return;

@@ -787,6 +787,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   private minTargetFrameTime: number = 1000 / this._maxFps
   private immediateRerenderRequested: boolean = false
   private updateScheduled: boolean = false
+  private activatingFrame: boolean = false
 
   private liveRequestCounter: number = 0
   private _controlState: RendererControlState = RendererControlState.IDLE
@@ -1570,10 +1571,17 @@ export class CliRenderer extends EventEmitter implements RenderContext {
       return
     }
 
+    // Consume this queued activation before rendering. Layout microtasks can
+    // request another frame after loop() returns but before this await resumes.
+    // Keeping the flag set until finally would silently discard that request.
+    this.updateScheduled = false
+    // Keep idle waiters blocked until those microtasks have had a chance to
+    // enqueue their follow-up frame, independently of the consumed request.
+    this.activatingFrame = true
     try {
       await this.loop()
     } finally {
-      this.updateScheduled = false
+      this.activatingFrame = false
       this.resolveIdleIfNeeded()
     }
   }
@@ -1601,6 +1609,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     return (
       !this._isRunning &&
       !this.rendering &&
+      !this.activatingFrame &&
       !this.renderTimeout &&
       !this.updateScheduled &&
       !this.feedIdleRenderScheduled &&

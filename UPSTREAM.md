@@ -93,6 +93,21 @@ JSR native assets come from AX TUI's matching GitHub release, are verified
 against the manifest, and are immutable. Signed downstream bundles verify
 native inputs before signing changes the bytes. See `MAINTENANCE.md`.
 
+The POSIX terminal regression harness is an original AX implementation informed
+by Grok Build's Apache-2.0-licensed Rust PTY tests at commit
+`2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8`, under
+`crates/codegen/xai-grok-pager-pty-harness/tests/pty_e2e/`:
+`scroll_anchor_holds_parked_marker_during_live_stream.rs` and
+`wheel_burst_scrolls_viewport_without_frame_amplification.rs`. Those reference
+tests are marked ignored; AX does not claim to have run them. The reviewed
+ideas are visible-marker anchoring during below-viewport updates and bounded
+synchronized repaint counts after real wheel input. No Rust source or external
+runtime dependency was copied. AX's tests execute on macOS/Linux with a Python
+standard-library PTY driver and the public Node renderer, including input,
+stream-update, resize, and shutdown assertions. The narrow ASCII screen decoder
+is a fixture utility, not a general terminal emulator. Windows retains native
+buffer regressions; this harness makes no ConPTY compatibility claim.
+
 The maintained native interface is now ABI 2: checked buffer resize reports
 allocation failure and preserves existing storage. All supported binaries are
 rebuilt from the corresponding local source and recorded in the manifest.

@@ -242,6 +242,7 @@ export declare class CliRenderer extends EventEmitter implements RenderContext {
     private minTargetFrameTime;
     private immediateRerenderRequested;
     private updateScheduled;
+    private activatingFrame;
     private liveRequestCounter;
     private _controlState;
     private frameCallbacks;
