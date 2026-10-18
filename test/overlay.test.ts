@@ -285,3 +285,71 @@ try {
 }
 `)
 })
+
+
+test.skipIf(!supportsFfi)("hiding an overlay tolerates closure from the restored focus callback", () => {
+  runScenario(`
+import assert from "node:assert/strict"
+import { InputRenderable, getOverlayManager, Renderable } from "ax-tui"
+import { createTestRenderer } from "ax-tui/testing"
+const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
+try {
+  const base = new InputRenderable(renderer, {})
+  renderer.root.add(base)
+  base.focus()
+  const before = Renderable.renderablesByNumber.size
+  const content = new InputRenderable(renderer, {})
+  const overlay = getOverlayManager(renderer).show(content)
+  base.once("focused", () => overlay.close())
+  assert.doesNotThrow(() => overlay.setHidden(true))
+  assert.equal(content.isDestroyed, true)
+  assert.equal(overlay.isHidden(), true)
+  assert.equal(renderer.currentFocusedRenderable, base)
+  assert.equal(Renderable.renderablesByNumber.size, before)
+} finally { renderer.destroy() }
+`)
+})
+
+test.skipIf(!supportsFfi)("failed overlay focus releases adopted content and restores application focus", () => {
+  runScenario(`
+import assert from "node:assert/strict"
+import { InputRenderable, getOverlayManager, Renderable } from "ax-tui"
+import { createTestRenderer } from "ax-tui/testing"
+const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
+try {
+  const base = new InputRenderable(renderer, {})
+  renderer.root.add(base)
+  base.focus()
+  const before = Renderable.renderablesByNumber.size
+  const content = new InputRenderable(renderer, {})
+  const expected = new Error("application focus failure")
+  content.once("focused", () => { throw expected })
+  assert.throws(() => getOverlayManager(renderer).show(content), error => error === expected)
+  assert.equal(content.isDestroyed, true)
+  assert.equal(renderer.currentFocusedRenderable, base)
+  assert.equal(Renderable.renderablesByNumber.size, before)
+} finally { renderer.destroy() }
+`)
+})
+
+test.skipIf(!supportsFfi)("overlay closure respects application focus chosen by a blur callback", () => {
+  runScenario(`
+import assert from "node:assert/strict"
+import { InputRenderable, getOverlayManager } from "ax-tui"
+import { createTestRenderer } from "ax-tui/testing"
+const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
+try {
+  const base = new InputRenderable(renderer, {})
+  const next = new InputRenderable(renderer, {})
+  renderer.root.add(base)
+  renderer.root.add(next)
+  base.focus()
+  const content = new InputRenderable(renderer, {})
+  const overlay = getOverlayManager(renderer).show(content)
+  content.once("blurred", () => next.focus())
+  overlay.close()
+  assert.equal(renderer.currentFocusedRenderable?.id, next.id)
+  assert.equal(content.isDestroyed, true)
+} finally { renderer.destroy() }
+`)
+})

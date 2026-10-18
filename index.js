@@ -11516,9 +11516,18 @@ var OverlayManager = class _OverlayManager {
     content.once("destroyed" /* DESTROYED */, entry.onDestroyed);
     container.once("destroyed" /* DESTROYED */, entry.onDestroyed);
     if (target && target !== content) target.once("destroyed" /* DESTROYED */, entry.onDestroyed);
-    this.layout(entry, visible);
-    this.order();
-    if (!options.nonCapturing && visible) this.focus(entry);
+    try {
+      this.layout(entry, visible);
+      this.order();
+      if (!options.nonCapturing && visible) this.focus(entry);
+    } catch (error) {
+      try {
+        this.remove(entry);
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "Overlay creation failed");
+      }
+      throw error;
+    }
     return {
       close: () => this.remove(entry),
       setHidden: (hidden) => {
@@ -11559,6 +11568,8 @@ var OverlayManager = class _OverlayManager {
     const destroyedFocus = !current && entry.lastBlurred?.isDestroyed;
     if (!contains2(entry.container, current) && !destroyedFocus) return;
     current?.blur();
+    const redirected = this.renderer.currentFocusedRenderable;
+    if (this.renderer.isDestroyed || redirected && !contains2(entry.container, redirected)) return;
     let previous = entry.previous;
     const visited = /* @__PURE__ */ new Set();
     while (previous && !this.eligible(previous) && !visited.has(previous)) {
@@ -11580,7 +11591,9 @@ var OverlayManager = class _OverlayManager {
     const { width, height } = this.renderer;
     const options = entry.options;
     const show = !entry.hidden && (visible ?? options.visible?.(width, height) ?? true);
+    if (entry.removed) return;
     if (!show) this.restore(entry);
+    if (entry.removed) return;
     entry.container.visible = show;
     const marginX = Math.min(options.margin ?? 0, Math.floor(width / 2));
     const marginY = Math.min(options.margin ?? 0, Math.floor(height / 2));

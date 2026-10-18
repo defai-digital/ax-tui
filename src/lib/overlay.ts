@@ -129,9 +129,19 @@ export class OverlayManager {
     content.once(RenderableEvents.DESTROYED, entry.onDestroyed)
     container.once(RenderableEvents.DESTROYED, entry.onDestroyed)
     if (target && target !== content) target.once(RenderableEvents.DESTROYED, entry.onDestroyed)
-    this.layout(entry, visible)
-    this.order()
-    if (!options.nonCapturing && visible) this.focus(entry)
+    try {
+      this.layout(entry, visible)
+      this.order()
+      if (!options.nonCapturing && visible) this.focus(entry)
+    } catch (error) {
+      // No handle escapes when creation fails, so release all adopted content here.
+      try {
+        this.remove(entry)
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "Overlay creation failed")
+      }
+      throw error
+    }
     return {
       close: () => this.remove(entry),
       setHidden: (hidden) => {
@@ -180,6 +190,9 @@ export class OverlayManager {
     const destroyedFocus = !current && entry.lastBlurred?.isDestroyed
     if (!contains(entry.container, current) && !destroyedFocus) return
     current?.blur()
+    // Blur listeners may choose another application target or destroy the renderer.
+    const redirected = this.renderer.currentFocusedRenderable
+    if (this.renderer.isDestroyed || (redirected && !contains(entry.container, redirected))) return
     let previous = entry.previous
     const visited = new Set<Renderable>()
     while (previous && !this.eligible(previous) && !visited.has(previous)) {
@@ -202,7 +215,9 @@ export class OverlayManager {
     const { width, height } = this.renderer
     const options = entry.options
     const show = !entry.hidden && (visible ?? options.visible?.(width, height) ?? true)
+    if (entry.removed) return
     if (!show) this.restore(entry)
+    if (entry.removed) return
     entry.container.visible = show
     const marginX = Math.min(options.margin ?? 0, Math.floor(width / 2))
     const marginY = Math.min(options.margin ?? 0, Math.floor(height / 2))
