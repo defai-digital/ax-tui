@@ -5,6 +5,8 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-10-19
+
 ### Fixed
 
 - Harden split-footer mode for inline transcripts: resize no longer scrubs
