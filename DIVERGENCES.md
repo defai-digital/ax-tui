@@ -94,3 +94,14 @@ renderer frame rates throw `RangeError` before native allocation or scheduling.
   OverlayManager remains responsible for restoration. Command execution rechecks
   registrations and captured context and returns errors as explicit results.
   Guard: `test/application-navigation.test.ts`.
+
+- `split-footer-qualification`: captured stdout snapshots preserve display-cell
+  widths, grapheme boundaries, tab stops, and CRLF content; failure releases
+  provisional snapshots/nodes. Scrollback commits reject non-finite row columns
+  and normalize flags. Failed surface paints invalidate the previous buffer,
+  destruction cancels settlement waits, and destroyed renderers cannot recapture
+  stdout. Capture-mode resize appends pending snapshots using the new geometry
+  and does not scrub transcript rows above the footer. Guards:
+  `test/renderer-scrollback-surface.test.ts`, `test/renderer-split-footer.test.ts`,
+  and `test/pty-split-footer.test.ts`. See `UPSTREAM.md` for the exact test port,
+  inline configuration, dropped newer APIs, and qualification limits.

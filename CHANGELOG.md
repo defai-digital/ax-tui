@@ -5,6 +5,20 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- Harden split-footer mode for inline transcripts: resize no longer scrubs
+  transcript rows above the footer, failed surface paints cannot commit stale
+  buffers, destroyed renderers cannot recapture stdout or leave settlement
+  waits pending, and scrollback commits reject invalid columns while keeping
+  CJK, grapheme, tab, and CRLF content intact.
+
+### Tests
+
+- Qualify split-footer and scrollback surfaces with tests adapted from
+  upstream OpenTUI plus POSIX PTY regressions (1,000 appended rows, resize
+  storms, teardown, SIGTERM); tmux variants run where tmux is installed.
+
 ## [2.1.2] - 2026-10-18
 
 ### Fixed
