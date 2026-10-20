@@ -2,7 +2,7 @@
  * Built-in spinner animation presets.
  *
  * Inlined from the `cli-spinners` package (MIT, Sindre Sorhus) so that
- * `ax-tui/spinner` has zero runtime dependency on third-party
+ * `@defai-digital/ax-tui/spinner` has zero runtime dependency on third-party
  * spinner data. Add new presets here as needed.
  */
 const presets = {

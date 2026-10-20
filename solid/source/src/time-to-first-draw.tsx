@@ -1,4 +1,4 @@
-import { TimeToFirstDrawRenderable } from "ax-tui"
+import { TimeToFirstDrawRenderable } from "@defai-digital/ax-tui"
 import { extend } from "./elements/index.js"
 import type { ExtendedComponentProps } from "./types/elements.js"
 

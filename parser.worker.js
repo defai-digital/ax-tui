@@ -1,4 +1,3 @@
-// @ts-self-types="./lib/tree-sitter/parser.worker.d.ts"
 // src/lib/tree-sitter/parser.worker.ts
 import { Parser, Query, Language } from "web-tree-sitter";
 import { mkdir as mkdir3 } from "fs/promises";

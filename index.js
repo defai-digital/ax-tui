@@ -1,4 +1,3 @@
-// @ts-self-types="./index.d.ts"
 import {
   BoxRenderable,
   CliRenderEvents,

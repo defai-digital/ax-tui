@@ -67,7 +67,7 @@ export async function transformSolidSource(code: string, options: TransformSolid
     presets.push([
       solid,
       {
-        moduleName: options.moduleName ?? "ax-tui/solid",
+        moduleName: options.moduleName ?? "@defai-digital/ax-tui/solid",
         generate: "universal",
       },
     ])

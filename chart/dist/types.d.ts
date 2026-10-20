@@ -1,11 +1,11 @@
 /**
  * Shared chart types.
  *
- * Pure modules must not import the `ax-tui` runtime; type-only imports are
+ * Pure modules must not import the `@defai-digital/ax-tui` runtime; type-only imports are
  * erased at build time and keep the layout functions unit-testable without
  * native libraries.
  */
-export type { ColorInput } from "ax-tui";
+export type { ColorInput } from "@defai-digital/ax-tui";
 /**
  * Marker resolution strategy for Chart datasets.
  * Ported subset of ratatui `symbols::Marker`: Dot (1x1 "•"), Block (1x1 "█"

@@ -121,8 +121,8 @@ dependency, native ABI change, or routing behavior is imported. Tests cover
 metadata isolation, Unicode/search, control characters, native wrapping, input
 nonconsumption, and reactive cleanup after external destruction.
 
-JSR native assets come from AX TUI's matching GitHub release, are verified
-against the manifest, and are immutable. Signed downstream bundles verify
+Public GitHub Packages distributions bundle AX TUI's manifest-verified native assets.
+The matching GitHub release also preserves these assets immutably. Signed downstream bundles verify
 native inputs before signing changes the bytes. See `MAINTENANCE.md`.
 
 The POSIX terminal regression harness is an original AX implementation informed

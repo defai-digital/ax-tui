@@ -6,8 +6,8 @@ const supportsFfi = spawnSync(process.execPath, ["--experimental-ffi", "-e", "re
 test.skipIf(!supportsFfi)("idle includes coalesced post-frame microtask updates without overlapping frames", () => {
   const result = spawnSync(process.execPath, ["--experimental-ffi", "--input-type=module", "-e", `
 import assert from "node:assert/strict"
-import { CliRenderEvents, TextRenderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { CliRenderEvents, TextRenderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 for (const maxFps of [30, 1000000]) {
   const setup = await createTestRenderer({ width: 30, height: 4, maxFps, useKittyKeyboard: null })
   const { renderer } = setup

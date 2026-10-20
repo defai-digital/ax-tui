@@ -1,4 +1,4 @@
-import { RenderableEvents, VirtualListRenderable, type VirtualListOptions } from "ax-tui"
+import { RenderableEvents, VirtualListRenderable, type VirtualListOptions } from "@defai-digital/ax-tui"
 import { createRoot, onCleanup, splitProps } from "solid-js"
 import type { JSX } from "../../jsx-runtime.js"
 import { spread } from "../reconciler.js"

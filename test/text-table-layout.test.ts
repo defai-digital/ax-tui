@@ -18,8 +18,8 @@ function runDriver(source: string): string {
 
 const PREAMBLE = `
 import assert from "node:assert/strict"
-import { createTestRenderer } from "ax-tui/testing"
-import { TextTableRenderable } from "ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
+import { TextTableRenderable } from "@defai-digital/ax-tui"
 
 const NL = String.fromCharCode(10)
 const cell = (text) => [{ __isChunk: true, text, attributes: 0 }]
@@ -112,8 +112,8 @@ console.log("text-table nowrap ok")
 test.skipIf(!supportsFfi)("fitting cells skip the wrap-measure pass while overflowing cells are still measured", () => {
   runDriver(`
 import assert from "node:assert/strict"
-import { createTestRenderer } from "ax-tui/testing"
-import { TextTableRenderable, TextBufferView } from "ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
+import { TextTableRenderable, TextBufferView } from "@defai-digital/ax-tui"
 
 const cell = (text) => [{ __isChunk: true, text, attributes: 0 }]
 

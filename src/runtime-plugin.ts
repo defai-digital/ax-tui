@@ -5,7 +5,7 @@
  */
 export {}
 /*
- * Exposes runtime-only modules (for example `ax-tui`, `ax-tui/solid`,
+ * Exposes runtime-only modules (for example `@defai-digital/ax-tui`, `@defai-digital/ax-tui/solid`,
  * `solid-js`) to externally loaded plugins by rewriting matching imports to
  * virtual `ax-code-tui:runtime-module:*` ids.
  *
@@ -43,7 +43,7 @@ export {}
 import { existsSync, readFileSync, realpathSync } from "node:fs"
 import { basename, dirname, isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { type BunPlugin } from "bun"
+import type { BunPlugin } from "bun"
 import * as coreRuntime from "./index.js"
 
 export type RuntimeModuleExports = Record<string, unknown>
@@ -66,8 +66,8 @@ export interface CreateRuntimePluginOptions {
   rewrite?: RuntimePluginRewriteOptions
 }
 
-const CORE_RUNTIME_SPECIFIER = "ax-tui"
-const CORE_TESTING_RUNTIME_SPECIFIER = "ax-tui/testing"
+const CORE_RUNTIME_SPECIFIER = "@defai-digital/ax-tui"
+const CORE_TESTING_RUNTIME_SPECIFIER = "@defai-digital/ax-tui/testing"
 const RUNTIME_MODULE_PREFIX = "ax-code-tui:runtime-module:"
 const MAX_RUNTIME_RESOLVE_PARENTS = 64
 const DEFAULT_RUNTIME_PLUGIN_REWRITE_OPTIONS: Required<RuntimePluginRewriteOptions> = {
@@ -75,7 +75,9 @@ const DEFAULT_RUNTIME_PLUGIN_REWRITE_OPTIONS: Required<RuntimePluginRewriteOptio
   nodeModulesBareSpecifiers: false,
 }
 
-const DEFAULT_CORE_RUNTIME_MODULE_SPECIFIERS = [CORE_RUNTIME_SPECIFIER, CORE_TESTING_RUNTIME_SPECIFIER] as const
+const DEFAULT_CORE_RUNTIME_MODULE_SPECIFIERS = [
+  CORE_RUNTIME_SPECIFIER, CORE_TESTING_RUNTIME_SPECIFIER, "ax-tui", "ax-tui/testing",
+] as const
 
 const DEFAULT_CORE_RUNTIME_MODULE_SPECIFIER_SET = new Set<string>(DEFAULT_CORE_RUNTIME_MODULE_SPECIFIERS)
 
@@ -101,7 +103,8 @@ const exactPathFilter = (paths: string[]): RegExp => {
 }
 
 export const runtimeModuleIdForSpecifier = (specifier: string): string => {
-  return `${RUNTIME_MODULE_PREFIX}${encodeURIComponent(specifier)}`
+  const identity = specifier.replace(/^@defai-digital\/ax-tui(?=\/|$)/, "ax-tui")
+  return `${RUNTIME_MODULE_PREFIX}${encodeURIComponent(identity)}`
 }
 
 const resolveRuntimeModuleExports = async (moduleEntry: RuntimeModuleEntry): Promise<RuntimeModuleExports> => {
@@ -424,10 +427,16 @@ export function createRuntimePlugin(input: CreateRuntimePluginOptions = {}): Bun
   const runtimeModules = new Map<string, RuntimeModuleEntry>()
   runtimeModules.set(CORE_RUNTIME_SPECIFIER, input.core ?? (coreRuntime as RuntimeModuleExports))
   runtimeModules.set(CORE_TESTING_RUNTIME_SPECIFIER, loadCoreTestingRuntimeModule)
+  runtimeModules.set("ax-tui", input.core ?? (coreRuntime as RuntimeModuleExports))
+  runtimeModules.set("ax-tui/testing", loadCoreTestingRuntimeModule)
   const rewriteOptions = resolveRuntimePluginRewriteOptions(input.rewrite)
 
   for (const [specifier, moduleEntry] of Object.entries(input.additional ?? {})) {
     runtimeModules.set(specifier, moduleEntry)
+    const alias = specifier.startsWith("@defai-digital/ax-tui")
+      ? specifier.replace(/^@defai-digital\/ax-tui(?=\/|$)/, "ax-tui")
+      : specifier.replace(/^ax-tui(?=\/|$)/, "@defai-digital/ax-tui")
+    if (runtimeModules.has(alias)) runtimeModules.set(alias, moduleEntry)
   }
 
   const runtimeModuleIdsBySpecifier = new Map<string, string>()
@@ -566,6 +575,7 @@ export function createRuntimePlugin(input: CreateRuntimePluginOptions = {}): Bun
         return resolvedRewritePaths
       }
 
+      const registeredModuleIds = new Set<string>()
       for (const [specifier, moduleEntry] of runtimeModules.entries()) {
         const moduleId = runtimeModuleIdsBySpecifier.get(specifier)
 
@@ -573,10 +583,13 @@ export function createRuntimePlugin(input: CreateRuntimePluginOptions = {}): Bun
           continue
         }
 
-        build.module(moduleId, async () => ({
-          exports: await resolveRuntimeModuleExports(moduleEntry),
-          loader: "object",
-        }))
+        if (!registeredModuleIds.has(moduleId)) {
+          registeredModuleIds.add(moduleId)
+          build.module(moduleId, async () => ({
+            exports: await resolveRuntimeModuleExports(moduleEntry),
+            loader: "object",
+          }))
+        }
 
         build.onResolve({ filter: exactSpecifierFilter(specifier) }, () => ({ path: moduleId }))
       }

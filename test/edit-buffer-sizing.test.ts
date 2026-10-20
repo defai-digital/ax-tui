@@ -16,7 +16,7 @@ test.skipIf(!supportsFfi)("edit buffer getters return text beyond the old 1MB ca
       "-e",
       `
 import assert from "node:assert/strict"
-import { EditBuffer, EditorView } from "ax-tui"
+import { EditBuffer, EditorView } from "@defai-digital/ax-tui"
 
 // 2MB total (twice the old cap) as many lines so no single line approaches
 // the native per-line display-width (u16) limit.

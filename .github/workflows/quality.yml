@@ -56,4 +56,4 @@ jobs:
         run: pnpm run test:native
       - name: Verify publication payload
         if: runner.os == 'Linux'
-        run: pnpm run check:jsr
+        run: pnpm run check:package

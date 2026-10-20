@@ -15,7 +15,7 @@ test.skipIf(!supportsFfi)(
         "-e",
         `
 import assert from "node:assert/strict"
-import { OptimizedBuffer, RGBA, resolveRenderLib } from "ax-tui"
+import { OptimizedBuffer, RGBA, resolveRenderLib } from "@defai-digital/ax-tui"
 const fg = RGBA.fromIndex(1)
 const bg = RGBA.defaultBackground()
 for (const method of ["unicode", "wcwidth"]) {
@@ -84,7 +84,7 @@ test.skipIf(!supportsFfi)("drawText selection offsets are display columns, not U
       "-e",
       `
 import assert from "node:assert/strict"
-import { OptimizedBuffer, RGBA } from "ax-tui"
+import { OptimizedBuffer, RGBA } from "@defai-digital/ax-tui"
 const fg = RGBA.fromIndex(1)
 const bg = RGBA.defaultBackground()
 const selection = { start: 0, end: 1, bgColor: RGBA.fromIndex(2) }

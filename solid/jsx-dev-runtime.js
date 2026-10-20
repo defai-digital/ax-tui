@@ -1,6 +1,5 @@
-// @ts-self-types="./jsx-dev-runtime.d.ts"
 // solid/source/jsx-runtime.ts
-import { createComponent, createElement, spread } from "ax-tui/solid";
+import { createComponent, createElement, spread } from "@defai-digital/ax-tui/solid";
 function normalizeProps(props) {
   if (!props) {
     return {};

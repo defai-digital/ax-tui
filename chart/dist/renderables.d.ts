@@ -1,5 +1,5 @@
-import { Renderable } from "ax-tui";
-import type { OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui";
+import { Renderable } from "@defai-digital/ax-tui";
+import type { OptimizedBuffer, RenderContext, RenderableOptions } from "@defai-digital/ax-tui";
 import { type SparklineLayoutOptions } from "./sparkline.js";
 import { type GaugeLayoutOptions } from "./gauge.js";
 import { type BarChartLayoutOptions } from "./barchart.js";

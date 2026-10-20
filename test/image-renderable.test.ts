@@ -9,8 +9,8 @@ function scenario(source: string, config = "{}"): void {
 import assert from "node:assert/strict"
 import { Writable } from "node:stream"
 import { crc32, deflateSync } from "node:zlib"
-import { BoxRenderable, ImageRenderable, Renderable, ScrollBoxRenderable, RGBA } from "ax-tui"
-import { createTestRenderer, setRendererCapabilities } from "ax-tui/testing"
+import { BoxRenderable, ImageRenderable, Renderable, ScrollBoxRenderable, RGBA } from "@defai-digital/ax-tui"
+import { createTestRenderer, setRendererCapabilities } from "@defai-digital/ax-tui/testing"
 const output = []
 const stdout = new Writable({ write(chunk, _encoding, callback) { output.push(Buffer.from(chunk)); callback() } })
 stdout.columns = 20; stdout.rows = 10; stdout.isTTY = true

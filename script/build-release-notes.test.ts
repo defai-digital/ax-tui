@@ -15,7 +15,7 @@ const changelog = `# Changelog
 
 ### Documentation
 
-- Real JSR overview.
+- Package overview.
 `
 
 test("extractVersionSection returns the section body without the heading", () => {
@@ -28,7 +28,7 @@ test("extractVersionSection returns the section body without the heading", () =>
 
 test("extractVersionSection stops at the next version heading", () => {
   const section = extractVersionSection(changelog, "0.1.2")
-  expect(section).toContain("- Real JSR overview.")
+  expect(section).toContain("- Package overview.")
   expect(section).not.toContain("0.1.3")
 })
 
@@ -36,14 +36,16 @@ test("extractVersionSection returns null for a missing version", () => {
   expect(extractVersionSection(changelog, "9.9.9")).toBeNull()
 })
 
-test("buildBody links the JSR package, embeds the section, and adds usage", () => {
+test("buildBody links the public GitHub Packages package, embeds the section, and adds usage", () => {
   const body = buildBody("0.1.3", "### Performance\n\n- Memoize chart layouts.")
   expect(body).toContain("# ax-tui v0.1.3")
-  expect(body).toContain("[`@defai-digital/ax-tui@0.1.3`](https://jsr.io/@defai-digital/ax-tui)")
+  expect(body).toContain("[`@defai-digital/ax-tui@0.1.3`](https://github.com/orgs/defai-digital/packages/npm/package/ax-tui)")
+  expect(body).toContain("Public GitHub Packages release")
+  expect(body).not.toContain("Private GitHub Packages release")
   expect(body).toContain("## What's changed")
   expect(body).toContain("- Memoize chart layouts.")
   expect(body).toContain("## Install")
-  expect(body).toContain("deno add jsr:@defai-digital/ax-tui")
+  expect(body).toContain("pnpm add @defai-digital/ax-tui@0.1.3")
   expect(body).toContain("MAINTENANCE.md")
 })
 

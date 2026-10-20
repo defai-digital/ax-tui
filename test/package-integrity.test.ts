@@ -125,7 +125,7 @@ describe("ax-tui package integrity", () => {
       'const { createRequire } = require("node:module")',
       'const { resolve } = require("node:path")',
       'const requireFromCore = createRequire(resolve("package.json"))',
-      'requireFromCore("ax-tui/parser.worker")',
+      'requireFromCore("@defai-digital/ax-tui/parser.worker")',
     ].join(";")
     const result = spawnSync(process.execPath, ["-e", source], {
       cwd: repoRoot,

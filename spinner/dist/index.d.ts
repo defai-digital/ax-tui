@@ -3,8 +3,8 @@
  *
  * @module
  */
-import { Renderable } from "ax-tui";
-import type { ColorInput, LayoutOptions, OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui";
+import { Renderable } from "@defai-digital/ax-tui";
+import type { ColorInput, LayoutOptions, OptimizedBuffer, RenderContext, RenderableOptions } from "@defai-digital/ax-tui";
 import presets, { type SpinnerName } from "./presets.js";
 import { type ColorGenerator } from "./utils.js";
 export type { ColorGenerator } from "./utils.js";

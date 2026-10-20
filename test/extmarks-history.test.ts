@@ -14,7 +14,7 @@ test.skipIf(!supportsFfi)("extmark history stays aligned with text undo and rest
 
 const script = `
 import assert from "node:assert/strict"
-import { EditBuffer, EditorView } from "ax-tui"
+import { EditBuffer, EditorView } from "@defai-digital/ax-tui"
 
 // A no-op backspace must not leave an extmark-only undo entry that consumes a
 // later text undo while restoring stale offsets.

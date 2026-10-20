@@ -4,7 +4,7 @@ import { expect, test } from "vitest"
 test("overlapping editor lifetimes release storage instead of growing the process arena", () => {
   const result = spawnSync(process.execPath, ["--experimental-ffi", "--input-type=module", "-e", `
 import assert from "node:assert/strict"
-import { EditBuffer, EditorView, resolveRenderLib } from "ax-tui"
+import { EditBuffer, EditorView, resolveRenderLib } from "@defai-digital/ax-tui"
 const lib = resolveRenderLib()
 function cycle() {
   const first = EditBuffer.create("unicode"), second = EditBuffer.create("unicode")

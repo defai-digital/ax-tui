@@ -1,6 +1,6 @@
 import { getCommandRegistry, getFocusManager, RenderableEvents, showCommandPalette,
   type CommandDefinition, type CommandPaletteHandle, type CommandPaletteOptions, type FocusScopeOptions,
-  type Renderable } from "ax-tui"
+  type Renderable } from "@defai-digital/ax-tui"
 import { onCleanup } from "solid-js"
 import { useRenderer } from "./hooks.js"
 

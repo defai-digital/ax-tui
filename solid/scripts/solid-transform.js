@@ -1,4 +1,3 @@
-// @ts-self-types="./solid-transform.d.ts"
 import { transformAsync } from "@babel/core";
 import ts from "@babel/preset-typescript";
 import moduleResolver from "babel-plugin-module-resolver";
@@ -42,7 +41,7 @@ async function transformSolidSource(code, options) {
     presets.push([
       solid,
       {
-        moduleName: options.moduleName ?? "ax-tui/solid",
+        moduleName: options.moduleName ?? "@defai-digital/ax-tui/solid",
         generate: "universal"
       }
     ]);

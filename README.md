@@ -1,4 +1,4 @@
-# ax-tui
+# AX TUI
 
 SolidJS terminal UI framework with a native renderer, extracted from the
 [AX Code](https://github.com/defai-digital/ax-code) monorepo as a standalone,
@@ -7,11 +7,11 @@ general-purpose package. It combines:
 - a native terminal renderer (Zig shared libraries, vendored per platform) with
   a Yoga-layout-based renderable tree;
 - a SolidJS reconciler and JSX runtime for declarative terminal UIs
-  (`ax-tui/solid`);
+  (`@defai-digital/ax-tui/solid`);
 - headless test utilities for rendering and asserting on frames without a real
-  terminal (`ax-tui/testing`, plus `testRender` from `ax-tui/solid`);
-- a spinner component (`ax-tui/spinner`, `ax-tui/spinner/solid`);
-- ratatui-style chart widgets (`ax-tui/chart`, `ax-tui/chart/solid`).
+  terminal (`@defai-digital/ax-tui/testing`, plus `testRender` from `@defai-digital/ax-tui/solid`);
+- a spinner component (`@defai-digital/ax-tui/spinner`, `@defai-digital/ax-tui/spinner/solid`);
+- ratatui-style chart widgets (`@defai-digital/ax-tui/chart`, `@defai-digital/ax-tui/chart/solid`).
 
 AX TUI owns its TypeScript renderer, SolidJS reconciler, and Zig/C native source.
 It began as a source fork of [OpenTUI](https://github.com/anomalyco/opentui) 0.4.1
@@ -21,27 +21,42 @@ and is maintained and built independently, with MIT attribution preserved. See
 
 ## Install
 
-```sh
-pnpm add ax-tui@jsr:@defai-digital/ax-tui solid-js@1.9.17
+AX TUI is distributed as the public `@defai-digital/ax-tui` package on GitHub Packages.
+Add the following to your user-level `~/.npmrc` (the token stays in the environment):
+
+```ini
+@defai-digital:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
 
-The command keeps `ax-tui` as the import alias for the JSR package. Node.js 26+
-is required for development and Node consumers; native rendering additionally
-requires `--experimental-ffi`. Use `nvm use` in a source checkout to select Node 26.
-Corepack must be installed separately if it is not available with that Node installation.
+Use a GitHub personal access token (classic) with `read:packages` and access to the package.
+For the local token stored in `~/.gh-packages`:
+
+```sh
+export NODE_AUTH_TOKEN="$(cat ~/.gh-packages)"
+pnpm add @defai-digital/ax-tui@2.1.2 solid-js@1.9.17 web-tree-sitter@0.25.10
+```
+
+Existing projects can retain their `ax-tui` imports with the npm alias
+`ax-tui@npm:@defai-digital/ax-tui@2.1.2`. When using the Solid transform with this alias,
+set its `moduleName` option to `"ax-tui/solid"` (and keep `jsxImportSource` as `"ax-tui/solid"`).
+New projects should use the scoped imports below.
+Node.js 26+ is required; native rendering additionally requires `--experimental-ffi`.
+Use `nvm use` in a source checkout to select Node 26. Corepack must be installed
+separately if it is not available with that Node installation.
 Headless rendering uses the same native backend and does not require a TTY.
 
-On first use, registry installations download the current platform's native library and license from the matching
-GitHub release and verify them against the package manifest. Use `AX_CODE_TUI_NATIVE_CACHE_DIR` to choose a cache
-location and `AX_CODE_TUI_NATIVE_OFFLINE=1` to require already prepared assets. 0.1.0 has no matching native-asset
-release and is not installable without workarounds; use 0.1.1 or later.
+The package includes manifest-verified native libraries and licenses for every supported platform.
+Normal installations load the bundled library without a network download, including with
+`AX_CODE_TUI_NATIVE_OFFLINE=1`. Custom distributions that omit the bundled libraries can
+still prepare the version-matched verified cache through `@defai-digital/ax-tui/native`.
 
 ## Quick start
 
 Render a SolidJS component tree to the terminal:
 
 ```tsx
-import { render, useKeyboard } from "ax-tui/solid"
+import { render, useKeyboard } from "@defai-digital/ax-tui/solid"
 
 function App() {
   useKeyboard((key) => {
@@ -60,7 +75,7 @@ await render(() => <App />)
 Headless-test the same component without a terminal:
 
 ```tsx
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 const { captureCharFrame, waitForVisualIdle } = await testRender(() => <App />)
 await waitForVisualIdle()
@@ -73,12 +88,12 @@ Application code should use only the documented package exports. Do not import
 files from the package directory directly.
 
 ```ts
-import { RGBA, TextRenderable } from "ax-tui"
-import { render, useKeyboard } from "ax-tui/solid"
-import { SpinnerRenderable } from "ax-tui/spinner"
-import "ax-tui/spinner/solid"
-import { ChartRenderable, SparklineRenderable } from "ax-tui/chart"
-import "ax-tui/chart/solid"
+import { RGBA, TextRenderable } from "@defai-digital/ax-tui"
+import { render, useKeyboard } from "@defai-digital/ax-tui/solid"
+import { SpinnerRenderable } from "@defai-digital/ax-tui/spinner"
+import "@defai-digital/ax-tui/spinner/solid"
+import { ChartRenderable, SparklineRenderable } from "@defai-digital/ax-tui/chart"
+import "@defai-digital/ax-tui/chart/solid"
 ```
 
 ### Autocomplete
@@ -93,7 +108,7 @@ import {
   createFilePathProvider,
   getEditorAutocompleteRequest,
   applyEditorAutocomplete,
-} from "ax-tui"
+} from "@defai-digital/ax-tui"
 
 const completions = new AutocompleteController(combineAutocompleteProviders(
   createSlashCommandProvider([{ name: "help", description: "Show available commands" }]),
@@ -134,7 +149,7 @@ are checked for directory targets without recursively traversing them.
 ### Overlays
 
 ```ts
-import { InputRenderable, getOverlayManager } from "ax-tui"
+import { InputRenderable, getOverlayManager } from "@defai-digital/ax-tui"
 
 const input = new InputRenderable(renderer, { id: "dialog-input", width: "100%" })
 const dialog = getOverlayManager(renderer).show(input, {
@@ -168,7 +183,7 @@ Closing or hiding restores previous eligible focus only when focus remains insid
 the overlay. Nested overlays support out-of-order closure and skip hidden or
 destroyed restoration targets. Renderer destruction cleans up all overlays.
 
-In Solid components, `useOverlay()` from `ax-tui/solid` returns a scoped `show`
+In Solid components, `useOverlay()` from `@defai-digital/ax-tui/solid` returns a scoped `show`
 method with the same arguments. Its handles close automatically when that owner
 is disposed, without closing sibling owners' overlays. Use imperative renderables
 as content; already mounted JSX/Portal nodes must not be reparented into overlays.
@@ -180,7 +195,7 @@ can target a focused renderable, its focused descendants (the default), or the
 whole renderer when `target` is omitted:
 
 ```ts
-import { getKeymap } from "ax-tui"
+import { getKeymap } from "@defai-digital/ax-tui"
 
 const keys = getKeymap(renderer)
 const unregister = keys.register({
@@ -223,7 +238,7 @@ Keep `enabled` predicates pure. The shared dispatcher is disposed with the rende
 case-insensitive substring search over IDs, descriptions, and raw/formatted keys:
 
 ```ts
-import { getKeymap, KeymapHelpRenderable } from "ax-tui"
+import { getKeymap, KeymapHelpRenderable } from "@defai-digital/ax-tui"
 
 const keys = getKeymap(renderer)
 const help = new KeymapHelpRenderable(renderer, {
@@ -260,7 +275,7 @@ flattened to spaces; Unicode text is preserved and native Text handles wrapping.
 Blank descriptions fall back to the binding ID. A whitespace-only query shows
 all entries. These helpers can be imported without constructing a renderer.
 
-Solid's `KeymapHelp` component from `ax-tui/solid` accepts the same options:
+Solid's `KeymapHelp` component from `@defai-digital/ax-tui/solid` accepts the same options:
 
 ```tsx
 <KeymapHelp bindings={bindingSnapshot()} query={search()} width="100%" />
@@ -280,7 +295,7 @@ Focus navigation is opt-in and follows the current render tree, including
 reordered children. Register a scope to enable Tab and Shift+Tab:
 
 ```ts
-import { getFocusManager } from "ax-tui"
+import { getFocusManager } from "@defai-digital/ax-tui"
 
 const focus = getFocusManager(renderer)
 const removeScope = focus.registerScope(renderer.root)
@@ -308,7 +323,7 @@ exist, for example in `onMount`.
 Commands have their own registry, independent of eligible shortcut-help entries:
 
 ```ts
-import { getCommandRegistry, getKeymap, showCommandPalette } from "ax-tui"
+import { getCommandRegistry, getKeymap, showCommandPalette } from "@defai-digital/ax-tui"
 
 const commands = getCommandRegistry(renderer)
 const remove = commands.register({
@@ -356,7 +371,7 @@ Solid's `useCommands()` removes its registrations on owner cleanup;
 
 ```ts
 import { readFile } from "node:fs/promises"
-import { ImageRenderable } from "ax-tui"
+import { ImageRenderable } from "@defai-digital/ax-tui"
 
 const preview = new ImageRenderable(renderer, {
   width: 60, height: 20, alt: "Document preview", protocol: "auto",
@@ -412,7 +427,7 @@ See [the application example](./examples/application.mjs); run
 variable row heights, and viewport-sized mounting:
 
 ```ts
-import { TextRenderable, VirtualListRenderable } from "ax-tui"
+import { TextRenderable, VirtualListRenderable } from "@defai-digital/ax-tui"
 
 const list = new VirtualListRenderable(renderer, {
   width: "100%",
@@ -447,7 +462,7 @@ it moves focus to the list. `mountedCount` includes this possible extra row.
 Empty lists release all rows. The virtual content container is managed internally;
 use `items` rather than inherited child insertion or content-layout mutation.
 
-Solid's `VirtualList` component from `ax-tui/solid` accepts the same options and
+Solid's `VirtualList` component from `@defai-digital/ax-tui/solid` accepts the same options and
 a `ref` callback. `items` and layout props are reactive; `getKey`, `renderItem`,
 `estimateHeight`, and `overscan` are constructor options. Its owner destroys the
 list on cleanup. Row factories return imperative renderables, not mounted JSX:
@@ -466,17 +481,17 @@ Add `--smoke` for a headless frame and mount-count report.
 
 | Export                     | Contents                                                                                                              |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `ax-tui`                   | Native renderer, renderables, RGBA, Yoga helpers                                                                      |
-| `ax-tui/solid`             | SolidJS reconciler, `render`, `testRender`, JSX runtime                                                               |
-| `ax-tui/solid/jsx-runtime` | JSX runtime for `"jsxImportSource": "ax-tui/solid"`                                                                   |
-| `ax-tui/solid/transform`   | Build-time JSX/Solid transform (Babel)                                                                                |
-| `ax-tui/spinner`           | `SpinnerRenderable` and presets                                                                                       |
-| `ax-tui/spinner/solid`     | Solid `<spinner>` intrinsic registration                                                                              |
-| `ax-tui/chart`             | Ratatui-style charts: `ChartRenderable`, `SparklineRenderable`, `BarChartRenderable`, `GaugeRenderable`, braille grid |
-| `ax-tui/chart/solid`       | Solid `<chart>`, `<sparkline>`, `<barchart>`, `<gauge>` intrinsic registration                                        |
-| `ax-tui/testing`           | Headless test renderer, mock input, frame capture                                                                     |
-| `ax-tui/yoga`              | Direct Yoga layout bindings                                                                                           |
-| `ax-tui/runtime-plugin`    | Runtime plugin glue (Bun/Node)                                                                                        |
+| `@defai-digital/ax-tui`                   | Native renderer, renderables, RGBA, Yoga helpers                                                                      |
+| `@defai-digital/ax-tui/solid`             | SolidJS reconciler, `render`, `testRender`, JSX runtime                                                               |
+| `@defai-digital/ax-tui/solid/jsx-runtime` | JSX runtime for `"jsxImportSource": "@defai-digital/ax-tui/solid"`                                                                   |
+| `@defai-digital/ax-tui/solid/transform`   | Build-time JSX/Solid transform (Babel)                                                                                |
+| `@defai-digital/ax-tui/spinner`           | `SpinnerRenderable` and presets                                                                                       |
+| `@defai-digital/ax-tui/spinner/solid`     | Solid `<spinner>` intrinsic registration                                                                              |
+| `@defai-digital/ax-tui/chart`             | Ratatui-style charts: `ChartRenderable`, `SparklineRenderable`, `BarChartRenderable`, `GaugeRenderable`, braille grid |
+| `@defai-digital/ax-tui/chart/solid`       | Solid `<chart>`, `<sparkline>`, `<barchart>`, `<gauge>` intrinsic registration                                        |
+| `@defai-digital/ax-tui/testing`           | Headless test renderer, mock input, frame capture                                                                     |
+| `@defai-digital/ax-tui/yoga`              | Direct Yoga layout bindings                                                                                           |
+| `@defai-digital/ax-tui/runtime-plugin`    | Runtime plugin glue (Bun/Node)                                                                                        |
 
 ## Provenance and maintenance
 

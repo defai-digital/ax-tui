@@ -29,7 +29,7 @@ export function comparePerformance(reference: string, output: string) {
   const manifest = JSON.parse(readFileSync(resolve(reference, "package.json"), "utf8"))
   assert.equal(manifest.dependencies?.["@opentui/core"], installed.version, "Reference version must be pinned exactly")
   const runs: { pair: number, order: string[], samples: Sample[] }[] = []
-  const candidates = [{ directory: root, name: "ax-tui" }, { directory: reference, name: "@opentui/core" }]
+  const candidates = [{ directory: root, name: "@defai-digital/ax-tui" }, { directory: reference, name: "@opentui/core" }]
   const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => value !== undefined &&
     !/^(AX_CODE_TUI_|OPENTUI_|OTUI_|TERM|COLORTERM|SSH_|TMUX|STY|NO_COLOR|FORCE_COLOR|NODE_OPTIONS)/.test(key)))
   Object.assign(env, { TERM: "xterm-256color", COLORTERM: "truecolor", AX_CODE_TUI_NATIVE_OFFLINE: "1" })

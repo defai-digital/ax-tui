@@ -1,5 +1,5 @@
-import { Renderable, parseColor } from "ax-tui"
-import type { OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui"
+import { Renderable, parseColor } from "@defai-digital/ax-tui"
+import type { OptimizedBuffer, RenderContext, RenderableOptions } from "@defai-digital/ax-tui"
 import type { Cell } from "./cells.js"
 import { layoutSparkline, type SparklineLayoutOptions } from "./sparkline.js"
 import { layoutGauge, type GaugeLayoutOptions } from "./gauge.js"

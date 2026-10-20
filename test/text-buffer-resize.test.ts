@@ -7,8 +7,8 @@ test.skipIf(!supportsFfi)("text buffer resize refreshes wrapping and clamps scro
   const result = spawnSync(process.execPath, [
     "--experimental-ffi", "--disable-warning=ExperimentalWarning", "--input-type=module", "-e", `
 import assert from "node:assert/strict"
-import { TextRenderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { TextRenderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 40, height: 20, useKittyKeyboard: null })
 const { renderer } = setup
 const settle = async () => {

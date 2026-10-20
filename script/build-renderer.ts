@@ -78,9 +78,9 @@ try {
     compilerOptions: {
       typeRoots: [path.join(root, "node_modules/@types")],
       paths: {
-        "ax-tui": [path.join(output, "index.d.ts")],
-        "ax-tui/testing": [path.join(output, "testing.d.ts")],
-        "ax-tui/runtime-plugin": [path.join(output, "runtime-plugin.d.ts")],
+        "@defai-digital/ax-tui": [path.join(output, "index.d.ts")],
+        "@defai-digital/ax-tui/testing": [path.join(output, "testing.d.ts")],
+        "@defai-digital/ax-tui/runtime-plugin": [path.join(output, "runtime-plugin.d.ts")],
       },
     },
   }))
@@ -134,20 +134,6 @@ for (const [sourceDir, targetDir] of [
       outfile: path.join(output, targetDir!, file.replace(/\.ts$/, ".js")),
     })
   }
-}
-
-// JSR follows these annotations to the declarations emitted by TypeScript 7.
-const jsr = JSON.parse(await readFile(path.join(root, "jsr.json"), "utf8"))
-const entries = new Set<string>([...Object.values(jsr.exports as Record<string, string>), "./solid/index.bun.js"])
-for (const target of entries) {
-  if (!target.endsWith(".js")) continue
-  const file = path.join(output, target)
-  const types = target.endsWith("parser.worker.js")
-    ? "./lib/tree-sitter/parser.worker.d.ts"
-    : `./${path.basename(target).replace(/(?:\.node|\.bun)?\.js$/, ".d.ts")}`
-  const source = await readFile(file, "utf8")
-  const shebang = source.startsWith("#!") ? source.slice(0, source.indexOf("\n") + 1) : ""
-  await writeFile(file, `${shebang}// @ts-self-types="${types}"\n${source.slice(shebang.length)}`)
 }
 
 async function files(directory: string, prefix = ""): Promise<string[]> {

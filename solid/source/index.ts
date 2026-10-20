@@ -4,8 +4,8 @@
  * @module
  */
 export {}
-import { CliRenderer, createCliRenderer, engine, type CliRendererConfig } from "ax-tui"
-import { createTestRenderer, type TestRendererOptions } from "ax-tui/testing"
+import { CliRenderer, createCliRenderer, engine, type CliRendererConfig } from "@defai-digital/ax-tui"
+import { createTestRenderer, type TestRendererOptions } from "@defai-digital/ax-tui/testing"
 import type { JSX } from "./jsx-runtime.js"
 import { RendererContext } from "./src/elements/index.js"
 import { _render as renderInternal, createComponent } from "./src/reconciler.js"

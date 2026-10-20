@@ -16,7 +16,7 @@ test.skipIf(!supportsFfi)("deleteLine adjusts extmarks in display-offset space",
 
 const script = `
 import assert from "node:assert/strict"
-import { EditBuffer, EditorView } from "ax-tui"
+import { EditBuffer, EditorView } from "@defai-digital/ax-tui"
 
 // Wide characters before the cursor line: the deleted range must be derived
 // from native display offsets, not UTF-16 string indices. Line 0 ("中文字") is

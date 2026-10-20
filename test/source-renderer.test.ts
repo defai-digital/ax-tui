@@ -18,9 +18,9 @@ test.skipIf(!supportsFfi)(
 import assert from "node:assert/strict"
 import { once } from "node:events"
 import { createSignal, onCleanup } from "solid-js"
-import { testRender, insertNode } from "ax-tui/solid"
-import { TreeSitterClient, resolveRenderLib, TextNodeRenderable, TextAttributes } from "ax-tui"
-import { Node as YogaNode } from "ax-tui/yoga"
+import { testRender, insertNode } from "@defai-digital/ax-tui/solid"
+import { TreeSitterClient, resolveRenderLib, TextNodeRenderable, TextAttributes } from "@defai-digital/ax-tui"
+import { Node as YogaNode } from "@defai-digital/ax-tui/yoga"
 
 const ownNode = YogaNode.createForAxTui()
 const compatibilityNode = YogaNode.createForOpenTUI()

@@ -12,7 +12,7 @@ export interface GridResolution {
  * `Grid` trait). Paint uses pixel coordinates with the origin at the
  * top-left; `save()` flushes painted pixels to terminal cells.
  *
- * Exported as a documented utility of `ax-tui/chart` so a future Canvas
+ * Exported as a documented utility of `@defai-digital/ax-tui/chart` so a future Canvas
  * widget can reuse it without a new public surface commitment.
  */
 export interface Grid {

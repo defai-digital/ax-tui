@@ -1,4 +1,4 @@
-import { BaseRenderable } from "ax-tui";
+import { BaseRenderable } from "@defai-digital/ax-tui";
 import { SlotRenderable } from "./elements/index.js";
 export type DomNode = BaseRenderable;
 export declare function createSlotNode(): SlotRenderable;

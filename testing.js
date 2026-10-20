@@ -1,4 +1,3 @@
-// @ts-self-types="./testing.d.ts"
 import {
   ANSI,
   CliRenderer

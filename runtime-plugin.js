@@ -1,17 +1,21 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {} from "bun";
 import * as coreRuntime from "./index.js";
-const CORE_RUNTIME_SPECIFIER = "ax-tui";
-const CORE_TESTING_RUNTIME_SPECIFIER = "ax-tui/testing";
+const CORE_RUNTIME_SPECIFIER = "@defai-digital/ax-tui";
+const CORE_TESTING_RUNTIME_SPECIFIER = "@defai-digital/ax-tui/testing";
 const RUNTIME_MODULE_PREFIX = "ax-code-tui:runtime-module:";
 const MAX_RUNTIME_RESOLVE_PARENTS = 64;
 const DEFAULT_RUNTIME_PLUGIN_REWRITE_OPTIONS = {
   nodeModulesRuntimeSpecifiers: true,
   nodeModulesBareSpecifiers: false
 };
-const DEFAULT_CORE_RUNTIME_MODULE_SPECIFIERS = [CORE_RUNTIME_SPECIFIER, CORE_TESTING_RUNTIME_SPECIFIER];
+const DEFAULT_CORE_RUNTIME_MODULE_SPECIFIERS = [
+  CORE_RUNTIME_SPECIFIER,
+  CORE_TESTING_RUNTIME_SPECIFIER,
+  "ax-tui",
+  "ax-tui/testing"
+];
 const DEFAULT_CORE_RUNTIME_MODULE_SPECIFIER_SET = new Set(DEFAULT_CORE_RUNTIME_MODULE_SPECIFIERS);
 const isCoreRuntimeModuleSpecifier = (specifier) => {
   return DEFAULT_CORE_RUNTIME_MODULE_SPECIFIER_SET.has(specifier);
@@ -30,7 +34,8 @@ const exactPathFilter = (paths) => {
   return new RegExp(`^(?:${candidates.map(escapeRegExp).join("|")})(?:[?#].*)?$`);
 };
 const runtimeModuleIdForSpecifier = (specifier) => {
-  return `${RUNTIME_MODULE_PREFIX}${encodeURIComponent(specifier)}`;
+  const identity = specifier.replace(/^@defai-digital\/ax-tui(?=\/|$)/, "ax-tui");
+  return `${RUNTIME_MODULE_PREFIX}${encodeURIComponent(identity)}`;
 };
 const resolveRuntimeModuleExports = async (moduleEntry) => {
   if (typeof moduleEntry === "function") {
@@ -255,9 +260,13 @@ function createRuntimePlugin(input = {}) {
   const runtimeModules = /* @__PURE__ */ new Map();
   runtimeModules.set(CORE_RUNTIME_SPECIFIER, input.core ?? coreRuntime);
   runtimeModules.set(CORE_TESTING_RUNTIME_SPECIFIER, loadCoreTestingRuntimeModule);
+  runtimeModules.set("ax-tui", input.core ?? coreRuntime);
+  runtimeModules.set("ax-tui/testing", loadCoreTestingRuntimeModule);
   const rewriteOptions = resolveRuntimePluginRewriteOptions(input.rewrite);
   for (const [specifier, moduleEntry] of Object.entries(input.additional ?? {})) {
     runtimeModules.set(specifier, moduleEntry);
+    const alias = specifier.startsWith("@defai-digital/ax-tui") ? specifier.replace(/^@defai-digital\/ax-tui(?=\/|$)/, "ax-tui") : specifier.replace(/^ax-tui(?=\/|$)/, "@defai-digital/ax-tui");
+    if (runtimeModules.has(alias)) runtimeModules.set(alias, moduleEntry);
   }
   const runtimeModuleIdsBySpecifier = /* @__PURE__ */ new Map();
   for (const specifier of runtimeModules.keys()) {
@@ -362,15 +371,19 @@ function createRuntimePlugin(input = {}) {
         nodeModulesRuntimeRewritePathsByPath.set(normalizedPath, resolvedRewritePaths);
         return resolvedRewritePaths;
       };
+      const registeredModuleIds = /* @__PURE__ */ new Set();
       for (const [specifier, moduleEntry] of runtimeModules.entries()) {
         const moduleId = runtimeModuleIdsBySpecifier.get(specifier);
         if (!moduleId) {
           continue;
         }
-        build.module(moduleId, async () => ({
-          exports: await resolveRuntimeModuleExports(moduleEntry),
-          loader: "object"
-        }));
+        if (!registeredModuleIds.has(moduleId)) {
+          registeredModuleIds.add(moduleId);
+          build.module(moduleId, async () => ({
+            exports: await resolveRuntimeModuleExports(moduleEntry),
+            loader: "object"
+          }));
+        }
         build.onResolve({ filter: exactSpecifierFilter(specifier) }, () => ({ path: moduleId }));
       }
       build.onResolve({ filter: /.*/ }, (args) => {

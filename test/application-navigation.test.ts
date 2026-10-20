@@ -8,8 +8,8 @@ function scenario(source: string): void {
     "--input-type=module", "-e", `
 import assert from "node:assert/strict"
 import { BoxRenderable, InputRenderable, Renderable, RenderableEvents, getFocusManager, getKeymap,
-  getCommandRegistry, captureCommandContext, showCommandPalette, getOverlayManager } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+  getCommandRegistry, captureCommandContext, showCommandPalette, getOverlayManager } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 60, height: 16, useKittyKeyboard: null })
 const { renderer, mockInput } = setup
 try { ${source} } finally { renderer.destroy() }

@@ -15,7 +15,7 @@ import {
   TextNodeRenderable,
   TextRenderable,
   type TextNodeOptions,
-} from "ax-tui"
+} from "@defai-digital/ax-tui"
 import { decodeHTML } from "entities"
 import { useContext } from "solid-js"
 import { createRenderer } from "./renderer/index.js"

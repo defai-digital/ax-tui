@@ -1,4 +1,4 @@
-import type { ColorInput } from "ax-tui"
+import type { ColorInput } from "@defai-digital/ax-tui"
 
 /**
  * Function that generates a color for a specific character at a specific frame.

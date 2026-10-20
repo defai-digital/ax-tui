@@ -3,8 +3,8 @@
  *
  * @module
  */
-import { Renderable, parseColor, resolveRenderLib } from "ax-tui"
-import type { ColorInput, LayoutOptions, OptimizedBuffer, RenderContext, RenderableOptions } from "ax-tui"
+import { Renderable, parseColor, resolveRenderLib } from "@defai-digital/ax-tui"
+import type { ColorInput, LayoutOptions, OptimizedBuffer, RenderContext, RenderableOptions } from "@defai-digital/ax-tui"
 import presets, { type SpinnerName, getSpinnerPreset } from "./presets.js"
 import { maxFrameDisplayWidth, type ColorGenerator } from "./utils.js"
 

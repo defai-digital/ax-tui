@@ -1,7 +1,6 @@
-// @ts-self-types="./index.d.ts"
 // solid/source/index.ts
-import { CliRenderer, createCliRenderer, engine as engine2 } from "ax-tui";
-import { createTestRenderer } from "ax-tui/testing";
+import { CliRenderer, createCliRenderer, engine as engine2 } from "@defai-digital/ax-tui";
+import { createTestRenderer } from "@defai-digital/ax-tui/testing";
 
 // solid/source/src/elements/catalogue.ts
 import {
@@ -17,7 +16,7 @@ import {
   TextAttributes,
   TextNodeRenderable,
   TextRenderable
-} from "ax-tui";
+} from "@defai-digital/ax-tui";
 var SpanRenderable = class extends TextNodeRenderable {
   constructor(_ctx, options) {
     super(options);
@@ -100,10 +99,10 @@ function getComponentCatalogue() {
 }
 
 // solid/source/src/elements/hooks.ts
-import { engine, Timeline } from "ax-tui";
+import { engine, Timeline } from "@defai-digital/ax-tui";
 import { createContext, createSignal, onCleanup, onMount, useContext } from "solid-js";
-import { getOverlayManager, RenderableEvents } from "ax-tui";
-import { getKeymap } from "ax-tui";
+import { getOverlayManager, RenderableEvents } from "@defai-digital/ax-tui";
+import { getKeymap } from "@defai-digital/ax-tui";
 var RendererContext = createContext();
 var useRenderer = () => {
   const renderer = useContext(RendererContext);
@@ -281,7 +280,7 @@ import {
   TabSelectRenderableEvents,
   TextNodeRenderable as TextNodeRenderable2,
   TextRenderable as TextRenderable2
-} from "ax-tui";
+} from "@defai-digital/ax-tui";
 import { decodeHTML } from "entities";
 import { useContext as useContext2 } from "solid-js";
 
@@ -952,7 +951,7 @@ function Dynamic(props) {
 }
 
 // solid/source/src/elements/slot.ts
-import { BaseRenderable as BaseRenderable2, isTextNodeRenderable as isTextNodeRenderable2, TextNodeRenderable as TextNodeRenderable3, TextRenderable as TextRenderable3, Yoga } from "ax-tui";
+import { BaseRenderable as BaseRenderable2, isTextNodeRenderable as isTextNodeRenderable2, TextNodeRenderable as TextNodeRenderable3, TextRenderable as TextRenderable3, Yoga } from "@defai-digital/ax-tui";
 function getLayoutNodeConstructor(parent) {
   const parentLayoutNode = parent?.getLayoutNode?.();
   return parentLayoutNode?.constructor;
@@ -1259,7 +1258,7 @@ var SlotRenderable = class extends SlotBaseRenderable {
 };
 
 // solid/source/src/elements/virtual-list.ts
-import { RenderableEvents as RenderableEvents2, VirtualListRenderable } from "ax-tui";
+import { RenderableEvents as RenderableEvents2, VirtualListRenderable } from "@defai-digital/ax-tui";
 import { createRoot as createRoot3, onCleanup as onCleanup3, splitProps as splitProps2 } from "solid-js";
 function VirtualList(props) {
   const [fixed, reactive] = splitProps2(props, ["getKey", "renderItem", "estimateHeight", "overscan", "ref"]);
@@ -1285,7 +1284,7 @@ function VirtualList(props) {
 }
 
 // solid/source/src/elements/keymap-help.ts
-import { KeymapHelpRenderable, RenderableEvents as RenderableEvents3 } from "ax-tui";
+import { KeymapHelpRenderable, RenderableEvents as RenderableEvents3 } from "@defai-digital/ax-tui";
 import { createRoot as createRoot4, onCleanup as onCleanup4, splitProps as splitProps3 } from "solid-js";
 function KeymapHelp(props) {
   const [fixed, reactive] = splitProps3(props, ["ref"]);
@@ -1310,7 +1309,7 @@ import {
   getFocusManager,
   RenderableEvents as RenderableEvents4,
   showCommandPalette
-} from "ax-tui";
+} from "@defai-digital/ax-tui";
 import { onCleanup as onCleanup5 } from "solid-js";
 function useFocusManager() {
   const manager = getFocusManager(useRenderer());
@@ -1396,7 +1395,7 @@ function useCommandPalette() {
 import {
   BoxRenderable as BoxRenderable2,
   RootRenderable
-} from "ax-tui";
+} from "@defai-digital/ax-tui";
 import { createSignal as createSignal2 } from "solid-js";
 var solidScrollbackRootCounter = 0;
 var MAX_AUTO_HEIGHT_PASSES = 4;
@@ -1552,9 +1551,9 @@ function writeSolidToScrollback(renderer, node, options = {}) {
 }
 
 // solid/source/src/time-to-first-draw.tsx
-import { spread as _$spread } from "ax-tui/solid";
-import { createElement as _$createElement } from "ax-tui/solid";
-import { TimeToFirstDrawRenderable } from "ax-tui";
+import { spread as _$spread } from "@defai-digital/ax-tui/solid";
+import { createElement as _$createElement } from "@defai-digital/ax-tui/solid";
+import { TimeToFirstDrawRenderable } from "@defai-digital/ax-tui";
 extend({
   time_to_first_draw: TimeToFirstDrawRenderable
 });
@@ -1567,10 +1566,10 @@ var TimeToFirstDraw = (props) => {
 };
 
 // solid/source/src/plugins/slot.tsx
-import { memo as _$memo } from "ax-tui/solid";
-import { createComponent as _$createComponent } from "ax-tui/solid";
-import { mergeProps as _$mergeProps } from "ax-tui/solid";
-import { createSlotRegistry } from "ax-tui";
+import { memo as _$memo } from "@defai-digital/ax-tui/solid";
+import { createComponent as _$createComponent } from "@defai-digital/ax-tui/solid";
+import { mergeProps as _$mergeProps } from "@defai-digital/ax-tui/solid";
+import { createSlotRegistry } from "@defai-digital/ax-tui";
 import { children, createMemo as createMemo3, createSignal as createSignal3, ErrorBoundary, For, onCleanup as onCleanup6, splitProps as splitProps4 } from "solid-js";
 var EMPTY_ENTRY_IDS = [];
 function createSolidSlotRegistry(renderer, context, options = {}) {

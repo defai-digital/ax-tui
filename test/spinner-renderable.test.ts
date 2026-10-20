@@ -8,7 +8,7 @@ const native = vi.hoisted(() => ({
   freeUnicode: vi.fn(),
 }))
 
-vi.mock("ax-tui", () => {
+vi.mock("@defai-digital/ax-tui", () => {
   class Renderable {
     ctx: { widthMethod: "unicode" | "wcwidth" }
     width = 0

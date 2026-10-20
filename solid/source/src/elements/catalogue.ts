@@ -13,7 +13,7 @@ import {
   TextRenderable,
   type RenderContext,
   type TextNodeOptions,
-} from "ax-tui"
+} from "@defai-digital/ax-tui"
 import type { RenderableConstructor } from "../types/elements.js"
 
 class SpanRenderable extends TextNodeRenderable {

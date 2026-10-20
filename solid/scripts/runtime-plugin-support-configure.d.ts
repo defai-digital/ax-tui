@@ -4,7 +4,7 @@
  * @module
  */
 export {};
-import { type RuntimeModuleEntry, type RuntimePluginRewriteOptions } from "ax-tui/runtime-plugin";
+import { type RuntimeModuleEntry, type RuntimePluginRewriteOptions } from "@defai-digital/ax-tui/runtime-plugin";
 export interface SolidRuntimePluginSupportOptions {
     additional?: Record<string, RuntimeModuleEntry>;
     core?: RuntimeModuleEntry;

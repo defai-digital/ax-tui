@@ -1,7 +1,7 @@
 # native-asset-delivery
 
-The JSR artifact cannot contain oversized native binaries. Keep the existing
-platform/architecture/libc mapping, but delegate library preparation to
+The public GitHub Packages payload bundles all verified native binaries and licenses.
+Keep the existing platform/architecture/libc mapping and delegate library preparation to
 `native/index.js` through its public `prepareNativeLibrary` API.
 
 `src/core/zig.ts` imports the package-owned resolver implemented in

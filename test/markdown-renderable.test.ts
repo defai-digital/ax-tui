@@ -22,8 +22,8 @@ function runDriver(source: string): string {
 
 const PREAMBLE = `
 import assert from "node:assert/strict"
-import { createTestRenderer, MockTreeSitterClient } from "ax-tui/testing"
-import { MarkdownRenderable, SyntaxStyle } from "ax-tui"
+import { createTestRenderer, MockTreeSitterClient } from "@defai-digital/ax-tui/testing"
+import { MarkdownRenderable, SyntaxStyle } from "@defai-digital/ax-tui"
 
 const NL = String.fromCharCode(10)
 const collectHighlighting = (node, pending) => {
@@ -162,7 +162,7 @@ console.log("markdown-top-level ok")
 test.skipIf(!supportsFfi)("markdown refreshStyles preserves custom renderNode blocks", () => {
   runDriver(`
 ${PREAMBLE}
-import { TextRenderable } from "ax-tui"
+import { TextRenderable } from "@defai-digital/ax-tui"
 
 const treeSitterClient = new MockTreeSitterClient({ autoResolveTimeout: 1 })
 const setup = await createTestRenderer({ width: 40, height: 12 })
@@ -235,7 +235,7 @@ console.log("markdown-nested-link ok")
 test.skipIf(!supportsFfi)("markdown table options reach tables nested in list items", () => {
   runDriver(`
 ${PREAMBLE}
-import { TextTableRenderable } from "ax-tui"
+import { TextTableRenderable } from "@defai-digital/ax-tui"
 
 const treeSitterClient = new MockTreeSitterClient({ autoResolveTimeout: 1 })
 const setup = await createTestRenderer({ width: 50, height: 20 })

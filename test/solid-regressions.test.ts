@@ -14,8 +14,8 @@ test.skipIf(!supportsFfi)("application hooks and image props stop with their Sol
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, onMount, Show } from "solid-js"
-import { testRender, useCommands, useCommandPalette, useFocusManager } from "ax-tui/solid"
-import { getCommandRegistry, getFocusManager } from "ax-tui"
+import { testRender, useCommands, useCommandPalette, useFocusManager } from "@defai-digital/ax-tui/solid"
+import { getCommandRegistry, getFocusManager } from "@defai-digital/ax-tui"
 
 const [visible, setVisible] = createSignal(true)
 const [pixels, setPixels] = createSignal({ width: 1, height: 1, data: Uint8Array.from([255, 0, 0, 255]) })
@@ -72,7 +72,7 @@ async function runSolidScenario(source: string): Promise<void> {
           filename: "solid-regressions.tsx",
           moduleName: solidEntry,
           resolvePath: (specifier) =>
-            specifier === "ax-tui/solid" ? solidEntry : resolveNodeSolidRuntimeImport(specifier),
+            specifier === "@defai-digital/ax-tui/solid" ? solidEntry : resolveNodeSolidRuntimeImport(specifier),
         }),
         resolveDir: root,
         sourcefile: "solid-regressions.tsx",
@@ -121,7 +121,7 @@ test.skipIf(!supportsFfi)(
   async () => {
     await runSolidScenario(`
 import assert from "node:assert/strict"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 const setup = await testRender(() => <text content={undefined} />, { width: 12, height: 1, useKittyKeyboard: null })
 try {
@@ -149,7 +149,7 @@ test.skipIf(!supportsFfi)(
     await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal } from "solid-js"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 let boxRef
 const [style, setStyle] = createSignal({ width: 6, zIndex: 2 })
@@ -185,7 +185,7 @@ test.skipIf(!supportsFfi)("spread props that disappear are unset instead of stic
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal } from "solid-js"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 let boxRef
 const [props, setProps] = createSignal({ zIndex: 3, title: "hello" })
@@ -218,7 +218,7 @@ test.skipIf(!supportsFfi)(
     await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, Show } from "solid-js"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 let parentRef
 const [id, setId] = createSignal("a")
@@ -258,7 +258,7 @@ test.skipIf(!supportsFfi)("unmounting a Portal destroys its container subtree", 
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, Show } from "solid-js"
-import { testRender, Portal } from "ax-tui/solid"
+import { testRender, Portal } from "@defai-digital/ax-tui/solid"
 
 let portalRef
 const [show, setShow] = createSignal(true)
@@ -293,7 +293,7 @@ test.skipIf(!supportsFfi)("moving a Portal to a new mount keeps its content aliv
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal } from "solid-js"
-import { testRender, Portal } from "ax-tui/solid"
+import { testRender, Portal } from "@defai-digital/ax-tui/solid"
 
 let hostA
 let hostB
@@ -331,7 +331,7 @@ test.skipIf(!supportsFfi)("falsy JSX children do not wipe a diff's internal pane
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal } from "solid-js"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 const sampleDiff = [
   "--- a/file.txt",
@@ -371,7 +371,7 @@ test.skipIf(!supportsFfi)("falsy JSX children clear a line_number target without
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal } from "solid-js"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 const [show, setShow] = createSignal(true)
 const setup = await testRender(
@@ -402,7 +402,7 @@ test.skipIf(!supportsFfi)("clearing a diff removes the previously rendered panes
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal } from "solid-js"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 const sampleDiff = [
   "--- a/file.txt",
@@ -437,7 +437,7 @@ test.skipIf(!supportsFfi)("anchored text inserts keep raw string children in pla
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, For } from "solid-js"
-import { testRender } from "ax-tui/solid"
+import { testRender } from "@defai-digital/ax-tui/solid"
 
 let textRef
 const [items, setItems] = createSignal(["A", "B"])

@@ -57,7 +57,7 @@ function createSolidTransformPlugin(input = {}) {
         const file = Bun.file(path);
         const code = await file.text();
         const runtime = getSolidTransformRuntime();
-        const moduleName = input.moduleName ?? runtime.moduleName ?? "ax-tui/solid";
+        const moduleName = input.moduleName ?? runtime.moduleName ?? "@defai-digital/ax-tui/solid";
         const resolvePath = input.resolvePath ?? runtime.resolvePath;
         const contents = await transformSolidSource(code, {
           filename: path,

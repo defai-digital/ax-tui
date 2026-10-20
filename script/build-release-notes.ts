@@ -3,7 +3,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
-const JSR_PACKAGE_URL = "https://jsr.io/@defai-digital/ax-tui"
+const PACKAGE_URL = "https://github.com/orgs/defai-digital/packages/npm/package/ax-tui"
 const MAINTENANCE_URL = "https://github.com/defai-digital/ax-tui/blob/main/MAINTENANCE.md"
 
 /**
@@ -28,22 +28,18 @@ export function extractVersionSection(changelog: string, version: string): strin
 /**
  * Compose the GitHub release body for one ax-tui version.
  *
- * The GitHub release for a tag is the out-of-band carrier for the native
- * renderer libraries (JSR size limits). GitHub already lists the assets, so
- * the body explains what the release is, links the matching JSR package,
- * summarizes the version's changes from CHANGELOG.md, and points at the
- * maintenance docs — it never duplicates the asset list.
+ * The GitHub release preserves immutable native assets alongside the public
+ * GitHub Packages distribution, which also bundles the platform libraries.
  */
 export function buildBody(version: string, section: string): string {
   return [
     `# ax-tui v${version}`,
     "",
-    `Version-pinned native assets for the matching JSR package [\`@defai-digital/ax-tui@${version}\`](${JSR_PACKAGE_URL}).`,
+    `Public GitHub Packages release [\`@defai-digital/ax-tui@${version}\`](${PACKAGE_URL}).`,
     "",
-    "The JSR package ships JavaScript, type declarations, and `vendor/manifest.json` only — the native renderer",
-    "libraries exceed JSR size limits and are distributed here. `ax-tui/native` downloads the matching platform",
-    "asset from this release, verifies it against the manifest, and caches it locally. See",
-    `[MAINTENANCE.md](${MAINTENANCE_URL}) for the release process.`,
+    "The package includes JavaScript, type declarations, tree-sitter assets, and verified native libraries/licenses.",
+    "Normal installations load the bundled native library without downloading release assets. See",
+    `[MAINTENANCE.md](${MAINTENANCE_URL}) for registry authentication and the release process.`,
     "",
     "## What's changed",
     "",
@@ -52,9 +48,7 @@ export function buildBody(version: string, section: string): string {
     "## Install",
     "",
     "```sh",
-    "deno add jsr:@defai-digital/ax-tui",
-    "# or from an npm project",
-    "npx jsr add @defai-digital/ax-tui",
+    `pnpm add @defai-digital/ax-tui@${version} solid-js@1.9.17 web-tree-sitter@0.25.10`,
     "```",
     "",
     "The platform libraries are listed as release assets above; each platform also ships a matching `-LICENSE` file.",

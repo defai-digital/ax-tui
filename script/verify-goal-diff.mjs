@@ -8,8 +8,7 @@
  * 2. The range is nonempty and linear (no merge commits).
  * 3. Every changed path of every commit (deletions and renames included)
  *    falls inside the allowed maintained-source / generated-artifact set.
- * 4. package.json and jsr.json are byte-identical to BASELINE (public
- *    exports map / JSR imports map unchanged).
+ * 4. package.json is byte-identical to BASELINE (public exports map unchanged).
  *
  * Exit codes: 0 = pass, 1 = contract violation, 2 = usage/environment error.
  */
@@ -106,11 +105,11 @@ if (violations.length > 0) {
 }
 console.log("changed-path policy: all paths within allowed scope")
 
-// 4. Exports-map files unchanged.
-for (const file of ["package.json", "jsr.json"]) {
+// 4. Package manifest unchanged.
+for (const file of ["package.json"]) {
   const diff = git("diff", `${baseline}..HEAD`, "--", file).trim()
-  if (diff) fail(`${file} changed since baseline (exports/imports maps must stay untouched)`)
+  if (diff) fail(`${file} changed since baseline (public exports must stay untouched)`)
 }
-console.log("package.json and jsr.json unchanged since baseline")
+console.log("package.json unchanged since baseline")
 
 console.log(`PASS: ${commits.length} commit(s) satisfy the goal diff contract`)

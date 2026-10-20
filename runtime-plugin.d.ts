@@ -4,7 +4,7 @@
  * @module
  */
 export {};
-import { type BunPlugin } from "bun";
+import type { BunPlugin } from "bun";
 export type RuntimeModuleExports = Record<string, unknown>;
 export type RuntimeModuleLoader = () => RuntimeModuleExports | Promise<RuntimeModuleExports>;
 export type RuntimeModuleEntry = RuntimeModuleExports | RuntimeModuleLoader;

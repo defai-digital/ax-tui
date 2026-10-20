@@ -13,8 +13,8 @@ function runScenario(source: string): void {
 test.skipIf(!supportsFfi)("overlays render, resize, restore focus, and clean up native nodes", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { BoxRenderable, InputRenderable, TextRenderable, getOverlayManager, Renderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { BoxRenderable, InputRenderable, TextRenderable, getOverlayManager, Renderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 40, height: 12, useKittyKeyboard: null })
 const { renderer } = setup
 try {
@@ -68,8 +68,8 @@ try {
 test.skipIf(!supportsFfi)("overlay stack handles background closure, responsive hiding and external focus", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getOverlayManager } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getOverlayManager } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 40, height: 12, useKittyKeyboard: null })
 const { renderer } = setup
 try {
@@ -123,8 +123,8 @@ try {
 test.skipIf(!supportsFfi)("overlay destruction and reentrant focus changes leave no stale input handlers", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { BoxRenderable, InputRenderable, getOverlayManager } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { BoxRenderable, InputRenderable, getOverlayManager } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 30, height: 8, useKittyKeyboard: null })
 const { renderer } = setup
 try {
@@ -168,8 +168,8 @@ try {
 test.skipIf(!supportsFfi)("autocomplete uses native display-width offsets, preserves undo and rejects stale editor snapshots", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { TextareaRenderable, InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { TextareaRenderable, InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const editor = new TextareaRenderable(renderer, { id: "editor", initialValue: "中文😀 ./fi tail" })
@@ -221,8 +221,8 @@ try {
 test.skipIf(!supportsFfi)("overlay disposal cleans all entries and listeners even when focus callbacks throw", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getOverlayManager } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getOverlayManager } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const base = new InputRenderable(renderer, { id: "base" })
@@ -255,8 +255,8 @@ import assert from "node:assert/strict"
 import {
   InputRenderable, TextRenderable, getOverlayManager, AutocompleteController,
   createSlashCommandProvider, getEditorAutocompleteRequest, applyEditorAutocomplete,
-} from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+} from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 const { renderer } = setup
 const controller = new AutocompleteController(createSlashCommandProvider([{ name: "help" }]))
@@ -290,8 +290,8 @@ try {
 test.skipIf(!supportsFfi)("hiding an overlay tolerates closure from the restored focus callback", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getOverlayManager, Renderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getOverlayManager, Renderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const base = new InputRenderable(renderer, {})
@@ -313,8 +313,8 @@ try {
 test.skipIf(!supportsFfi)("failed overlay focus releases adopted content and restores application focus", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getOverlayManager, Renderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getOverlayManager, Renderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const base = new InputRenderable(renderer, {})
@@ -335,8 +335,8 @@ try {
 test.skipIf(!supportsFfi)("overlay closure respects application focus chosen by a blur callback", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getOverlayManager } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getOverlayManager } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const base = new InputRenderable(renderer, {})
@@ -358,8 +358,8 @@ try {
 test.skipIf(!supportsFfi)("overlay hiding completes even when focus restoration throws", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getOverlayManager } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getOverlayManager } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const base = new InputRenderable(renderer, {})
@@ -385,8 +385,8 @@ try {
 test.skipIf(!supportsFfi)("overlay resize updates every entry before reporting focus callback failures", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, TextRenderable, getOverlayManager } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, TextRenderable, getOverlayManager } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 const { renderer } = setup
 try {
@@ -417,8 +417,8 @@ try {
 test.skipIf(!supportsFfi)("autocomplete preserves edits and caret movement performed by input callbacks", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const input = new InputRenderable(renderer, { value: "/h" })
@@ -439,8 +439,8 @@ try {
 test.skipIf(!supportsFfi)("autocomplete positions the caret before notifying input observers", () => {
   runScenario(`
 import assert from "node:assert/strict"
-import { InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { InputRenderable, getEditorAutocompleteRequest, applyEditorAutocomplete } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const { renderer } = await createTestRenderer({ width: 40, height: 8, useKittyKeyboard: null })
 try {
   const input = new InputRenderable(renderer, { value: "/h", maxLength: 4 })

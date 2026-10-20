@@ -1,4 +1,3 @@
-// @ts-self-types="./components.d.ts"
 // solid/source/src/elements/catalogue.ts
 import {
   BoxRenderable,
@@ -13,7 +12,7 @@ import {
   TextAttributes,
   TextNodeRenderable,
   TextRenderable
-} from "ax-tui";
+} from "@defai-digital/ax-tui";
 var SpanRenderable = class extends TextNodeRenderable {
   constructor(_ctx, options) {
     super(options);

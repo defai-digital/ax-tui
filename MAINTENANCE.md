@@ -9,7 +9,7 @@ step in the development workflow.
 
 The official TypeScript 7.0.2 compiler checks the renderer (`src/`), Solid
 integration (`solid/source/`), native delivery (`native/source/`), and widgets.
-Solid TSX uses the Babel universal transform through `ax-tui/solid/transform`.
+Solid TSX uses the Babel universal transform through `@defai-digital/ax-tui/solid/transform`.
 The Node bundle selects Solid's reactive runtime; Bun retains its own entry.
 
 ```sh
@@ -18,7 +18,7 @@ pnpm run build
 pnpm run typecheck
 pnpm run check
 pnpm test
-pnpm run check:jsr
+pnpm run check:package
 ```
 
 `build:renderer` compiles the local source to a temporary directory, emits
@@ -78,13 +78,13 @@ Native source, Zig caches, and SDKs are excluded from runtime distributions.
 
 ## Runtime and packaging invariants
 
-Use documented package exports (`ax-tui`, `ax-tui/solid`, widget, native,
+Use documented package exports (`@defai-digital/ax-tui`, `@defai-digital/ax-tui/solid`, widget, native,
 testing, Yoga, and runtime-plugin subpaths). Keep `import.meta.url`-relative
 native, worker, and tree-sitter asset resolution intact. Preserve the
 `AX_CODE_TUI_*` public environment and runtime identity contracts.
 
 Native resolution maps platform, architecture, and `AX_CODE_TUI_LIBC` to a
-bundled library. When absent, `ax-tui/native` prepares a verified private cache
+bundled library. When absent, `@defai-digital/ax-tui/native` prepares a verified private cache
 from AX TUI's version-matched GitHub release. Binary size/SHA-256 and license
 SHA-256 must match the manifest. `AX_CODE_TUI_NATIVE_CACHE_DIR` overrides the
 cache; `AX_CODE_TUI_NATIVE_OFFLINE=1` forbids downloads. Invalid caches fail
@@ -107,23 +107,38 @@ require a new package version and new immutable release assets; do not
 replace assets attached to a previously published version.
 
 1. Add a version section to `CHANGELOG.md`; release notes are generated from it.
-2. Bump `package.json` and `jsr.json` together.
-3. Run all verification above, including native builds/tests when affected.
+2. Bump `package.json` for each new version. Versions already published to GitHub Packages are immutable.
+3. Run all verification above, including `check:package` and native builds/tests when affected.
 4. After approval, push the release commit and matching `v<version>` tag.
-5. `.github/workflows/jsr.yml` stages verified native libraries and licenses,
-   creates the release, checks existing assets byte-for-byte, and publishes
-   the JSR package only after native assets are available.
+5. `.github/workflows/packages.yml` stages verified native libraries and licenses,
+   creates the release, checks existing assets byte-for-byte, and publishes the
+   public `@defai-digital/ax-tui` package to `https://npm.pkg.github.com`.
+   The publish job uses `GITHUB_TOKEN` with `packages: write`.
 
-JSR exports JavaScript/declarations, widget source, tree-sitter assets, and
-`vendor/manifest.json`. Native binaries are delivered through GitHub Releases
-to stay within JSR size limits. Every `ax-tui` self-import must map to its local
-export in `jsr.json`; never introduce an unpublished npm self-dependency.
-Downstream bundlers should use `prepareNativeLibrary` from `ax-tui/native`
+The npm payload contains generated JavaScript/declarations, widget dist, tree-sitter assets,
+and all manifest-verified native libraries/licenses. `check:package` checks the actual npm
+pack file list, all export targets, excluded development/private files, and native hashes.
+Self-imports use `@defai-digital/ax-tui` and its exported subpaths. Legacy `ax-tui` consumer
+imports can use an npm alias; global runtime identities and native cache paths remain stable.
+Downstream bundlers should use `prepareNativeLibrary` from `@defai-digital/ax-tui/native`
 and preserve the verified library/license pair.
 
-The JSR page settings remain external to `jsr.json`: select the README as the
-readme source and use the package description. Runtime support is Node and
-Bun; the native renderer does not target web browsers or Cloudflare Workers.
+Configure the user-level `~/.npmrc` as described in [README.md](./README.md#install).
+For an approved local publication, load the token without adding it to any tracked file:
+
+```sh
+export NODE_AUTH_TOKEN="$(cat ~/.gh-packages)"
+pnpm run check:package
+pnpm run publish:github
+```
+
+The classic token needs `write:packages` for publishing and `read:packages` for installs.
+`publishConfig` pins the GitHub registry and public access. Verify the package visibility
+is `public` in GitHub Packages after publication. GitHub's package settings control the
+visibility of an existing package; npm's access flag alone does not replace that setting.
+The npm registry still requires a classic token with `read:packages` to install public
+packages. Consumer Actions can use `GITHUB_TOKEN` with `packages: read` when granted access.
+Runtime support is Node and Bun; the native renderer does not target web browsers or Cloudflare Workers.
 
 ## Product quality gates
 
@@ -145,7 +160,7 @@ PTY case and runs the native-buffer and on-demand scheduling regressions.
 The Quality workflow runs on branch pushes, pull requests, and release preflight.
 It requires Node FFI support, then checks TypeScript, native/source provenance,
 the FFI struct-layout contract, all generated output, runtime regressions, and
-the Linux JSR dry-run. It installs Zig from `.zig-version` and runs `test:native`
+the Linux npm payload verification. It installs Zig from `.zig-version` and runs `test:native`
 on Linux, macOS, and Windows. On macOS the installer copies the active SDK and
 adds `arm64-macos` beside `arm64e-macos` stub targets when Zig 0.15.2 would
 otherwise skip them. Linux, macOS, and Windows must pass before a release

@@ -1,4 +1,4 @@
-import { BaseRenderable, isTextNodeRenderable, TextNodeRenderable, TextRenderable, Yoga } from "ax-tui"
+import { BaseRenderable, isTextNodeRenderable, TextNodeRenderable, TextRenderable, Yoga } from "@defai-digital/ax-tui"
 
 type LayoutNodeProvider = {
   getLayoutNode?: () => Yoga.Node

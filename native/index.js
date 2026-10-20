@@ -1,4 +1,3 @@
-// @ts-self-types="./index.d.ts"
 /**
  * Manifest-verified native library delivery and cache for AX TUI.
  *

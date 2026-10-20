@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest"
 
-vi.mock("ax-tui", () => {
+vi.mock("@defai-digital/ax-tui", () => {
   class Renderable {
     ctx: unknown
     width: number | string = 0

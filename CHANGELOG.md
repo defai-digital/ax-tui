@@ -5,6 +5,14 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- Distribute `@defai-digital/ax-tui` through public GitHub Packages.
+  Use scoped imports or an npm alias for existing consumers.
+- Remove retired registry manifests, publishing tools, type annotations, and CI checks.
+- Bundle every supported native library and license in the npm package for offline loading.
+- Verify the npm payload, export targets, native hashes, and excluded development/private files before publication.
+
 ## [2.1.2] - 2026-10-18
 
 ### Fixed

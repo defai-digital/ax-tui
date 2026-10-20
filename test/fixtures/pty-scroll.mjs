@@ -2,7 +2,7 @@
 import assert from "node:assert/strict"
 import { Socket } from "node:net"
 import { createInterface } from "node:readline"
-import { createCliRenderer, TextRenderable, VirtualListRenderable } from "ax-tui"
+import { createCliRenderer, TextRenderable, VirtualListRenderable } from "@defai-digital/ax-tui"
 
 assert.ok(process.stdin.isTTY && process.stdout.isTTY)
 const control = new Socket({ fd: Number(process.argv[2]), readable: true, writable: true })

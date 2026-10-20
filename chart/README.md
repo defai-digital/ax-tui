@@ -18,11 +18,11 @@ changes.
 ## Usage
 
 ```ts
-import { ChartRenderable, SparklineRenderable } from "ax-tui/chart"
+import { ChartRenderable, SparklineRenderable } from "@defai-digital/ax-tui/chart"
 ```
 
 ```tsx
-import "ax-tui/chart/solid"
+import "@defai-digital/ax-tui/chart/solid"
 
 <sparkline data={[1, 4, 2, 8, 5]} color="#7ee787" />
 <gauge ratio={0.42} />

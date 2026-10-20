@@ -2,8 +2,8 @@ import assert from "node:assert/strict"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { ImageRenderable, InputRenderable, Renderable, TextRenderable, VirtualListRenderable, type AllocatorStats,
-  getCommandRegistry, getFocusManager, showCommandPalette, resolveRenderLib } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+  getCommandRegistry, getFocusManager, showCommandPalette, resolveRenderLib } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 
 export async function stressApplication(iterations = 1000, seed = 0xa871) {
   assert.ok(Number.isSafeInteger(iterations) && iterations >= 100 && iterations <= 100000)

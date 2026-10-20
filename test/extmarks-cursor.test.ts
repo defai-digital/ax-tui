@@ -6,7 +6,7 @@ const supportsFfi = spawnSync(process.execPath, ["--experimental-ffi", "-e", "re
 test.skipIf(!supportsFfi)("virtual extmark cursor skips preserve display offsets and buffer boundaries", () => {
   const result = spawnSync(process.execPath, ["--experimental-ffi", "--input-type=module", "-e", `
 import assert from "node:assert/strict"
-import { EditBuffer, EditorView } from "ax-tui"
+import { EditBuffer, EditorView } from "@defai-digital/ax-tui"
 const buffer = EditBuffer.create("unicode")
 const view = EditorView.create(buffer, 40, 4)
 try {

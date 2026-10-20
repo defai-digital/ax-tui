@@ -7,8 +7,8 @@ test.skipIf(!supportsFfi)("stickyScroll without an explicit start keeps the curr
   const result = spawnSync(process.execPath, [
     "--experimental-ffi", "--disable-warning=ExperimentalWarning", "--input-type=module", "-e", `
 import assert from "node:assert/strict"
-import { BoxRenderable, ScrollBoxRenderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { BoxRenderable, ScrollBoxRenderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 30, height: 12, useKittyKeyboard: null })
 const { renderer } = setup
 const settle = async () => {

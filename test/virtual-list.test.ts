@@ -7,8 +7,8 @@ function scenario(source: string): void {
   const result = spawnSync(process.execPath, ["--experimental-ffi", "--disable-warning=ExperimentalWarning",
     "--input-type=module", "-e", `
 import assert from "node:assert/strict"
-import { VirtualListRenderable, TextRenderable, InputRenderable, Renderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { VirtualListRenderable, TextRenderable, InputRenderable, Renderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 40, height: 12, useKittyKeyboard: null })
 const { renderer } = setup
 const settle = async () => {

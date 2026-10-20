@@ -1,17 +1,18 @@
 import { plugin as registerBunPlugin } from "bun";
-import * as coreRuntime from "ax-tui";
+import * as coreRuntime from "@defai-digital/ax-tui";
 import {
   createRuntimePlugin,
   isCoreRuntimeModuleSpecifier,
   runtimeModuleIdForSpecifier
-} from "ax-tui/runtime-plugin";
+} from "@defai-digital/ax-tui/runtime-plugin";
 import * as solidJsRuntime from "solid-js";
 import * as solidJsStoreRuntime from "solid-js/store";
-import * as solidRuntime from "ax-tui/solid";
+import * as solidRuntime from "@defai-digital/ax-tui/solid";
 import { ensureSolidTransformPlugin } from "./solid-plugin.js";
 const runtimePluginSupportInstalledKey = /* @__PURE__ */ Symbol.for("ax-code.tui.solid.runtime-plugin-support");
 const defaultRuntimeModules = {
   "ax-tui/solid": solidRuntime,
+  "@defai-digital/ax-tui/solid": solidRuntime,
   "solid-js": solidJsRuntime,
   "solid-js/store": solidJsStoreRuntime
 };
@@ -28,7 +29,7 @@ function assertCompatibleInstall(install, modules, options) {
   for (const specifier of Object.keys(modules)) {
     if (!install.specifiers.has(specifier)) {
       throw new Error(
-        `AX TUI Solid runtime plugin support is already installed without ${specifier}. Call ensureRuntimePluginSupport({ additional }) from ax-tui/solid/runtime-plugin-support/configure before importing ax-tui/solid/runtime-plugin-support.`
+        `AX TUI Solid runtime plugin support is already installed without ${specifier}. Call ensureRuntimePluginSupport({ additional }) from @defai-digital/ax-tui/solid/runtime-plugin-support/configure before importing @defai-digital/ax-tui/solid/runtime-plugin-support.`
       );
     }
   }
@@ -50,7 +51,7 @@ function ensureRuntimePluginSupport(options = {}) {
     return false;
   }
   ensureSolidTransformPlugin({
-    moduleName: runtimeModuleIdForSpecifier("ax-tui/solid"),
+    moduleName: runtimeModuleIdForSpecifier("@defai-digital/ax-tui/solid"),
     resolvePath(specifier) {
       if (!isCoreRuntimeModuleSpecifier(specifier) && !modules[specifier]) {
         return null;

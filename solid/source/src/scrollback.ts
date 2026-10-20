@@ -6,7 +6,7 @@ import {
   type ScrollbackRenderContext,
   type ScrollbackSnapshot,
   type ScrollbackWriter,
-} from "ax-tui"
+} from "@defai-digital/ax-tui"
 import { createSignal, type JSX } from "solid-js"
 import { RendererContext } from "./elements/index.js"
 import { _render as renderInternal, createComponent } from "./reconciler.js"

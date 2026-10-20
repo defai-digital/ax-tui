@@ -4,7 +4,7 @@
  * @module
  */
 export {}
-import { createComponent, createElement, spread } from "ax-tui/solid"
+import { createComponent, createElement, spread } from "@defai-digital/ax-tui/solid"
 import type {
   BoxProps,
   CodeProps,

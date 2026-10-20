@@ -1,6 +1,6 @@
 # ax-tui/spinner
 
-AX Code's animated spinner renderable, maintained as part of `ax-tui` with zero third-party runtime dependencies.
+AX Code's animated spinner renderable, maintained as part of `@defai-digital/ax-tui` with zero third-party runtime dependencies.
 
 ## Features
 
@@ -12,7 +12,7 @@ AX Code's animated spinner renderable, maintained as part of `ax-tui` with zero 
 ## Import
 
 ```ts
-import { SpinnerRenderable } from "ax-tui/spinner"
+import { SpinnerRenderable } from "@defai-digital/ax-tui/spinner"
 ```
 
 The root renderer and Solid adapter are sibling exports of the same workspace package.
@@ -22,7 +22,7 @@ See [`../MAINTENANCE.md`](../MAINTENANCE.md) for the shared ownership boundary a
 ## Usage
 
 ```ts
-import { SpinnerRenderable } from "ax-tui/spinner"
+import { SpinnerRenderable } from "@defai-digital/ax-tui/spinner"
 
 const spinner = new SpinnerRenderable(ctx, {
   name: "dots",
@@ -43,7 +43,7 @@ const spinner = new SpinnerRenderable(ctx, {
 ### Color effects
 
 ```ts
-import { createWave, createRainbow, createPulse } from "ax-tui/spinner"
+import { createWave, createRainbow, createPulse } from "@defai-digital/ax-tui/spinner"
 
 // Rainbow gradient across characters
 new SpinnerRenderable(ctx, { name: "aesthetic", color: createRainbow() })
@@ -58,7 +58,7 @@ new SpinnerRenderable(ctx, { name: "bouncingBar", color: createWave(["#00ff00", 
 ### SolidJS integration
 
 ```ts
-import "ax-tui/spinner/solid"
+import "@defai-digital/ax-tui/spinner/solid"
 
 // <spinner name="dots" color="cyan" /> is now available in JSX
 ```
@@ -67,7 +67,7 @@ import "ax-tui/spinner/solid"
 
 ### `SpinnerRenderable`
 
-Extends `Renderable` from `ax-tui`.
+Extends `Renderable` from `@defai-digital/ax-tui`.
 
 | Property            | Type                           | Description                           |
 | ------------------- | ------------------------------ | ------------------------------------- |
@@ -88,7 +88,7 @@ Extends `Renderable` from `ax-tui`.
 ### Presets
 
 ```ts
-import { getSpinnerPreset, getSpinnerNames, randomSpinner, presets } from "ax-tui/spinner"
+import { getSpinnerPreset, getSpinnerNames, randomSpinner, presets } from "@defai-digital/ax-tui/spinner"
 ```
 
 - `getSpinnerPreset(name)` — returns `SpinnerPreset | undefined`
@@ -99,7 +99,7 @@ import { getSpinnerPreset, getSpinnerNames, randomSpinner, presets } from "ax-tu
 ### Color utilities
 
 ```ts
-import { createStatic, createPulse, createWave, createRainbow } from "ax-tui/spinner"
+import { createStatic, createPulse, createWave, createRainbow } from "@defai-digital/ax-tui/spinner"
 ```
 
 - `createStatic(color)` — always returns the same color

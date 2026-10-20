@@ -1,7 +1,7 @@
-import { engine, PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "ax-tui"
+import { engine, PasteEvent, Selection, Timeline, type CliRenderer, type KeyEvent, type TimelineOptions } from "@defai-digital/ax-tui"
 import { createContext, createSignal, onCleanup, onMount, useContext } from "solid-js"
-import { getOverlayManager, RenderableEvents, type OverlayHandle, type OverlayOptions, type Renderable } from "ax-tui"
-import { getKeymap, type KeymapLayer } from "ax-tui"
+import { getOverlayManager, RenderableEvents, type OverlayHandle, type OverlayOptions, type Renderable } from "@defai-digital/ax-tui"
+import { getKeymap, type KeymapLayer } from "@defai-digital/ax-tui"
 
 export const RendererContext = createContext<CliRenderer>()
 

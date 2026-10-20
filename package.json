@@ -1,5 +1,5 @@
 {
-  "name": "ax-tui",
+  "name": "@defai-digital/ax-tui",
   "version": "2.1.2",
   "description": "SolidJS terminal UI framework with a TypeScript renderer and a locally built native backend",
   "license": "MIT",
@@ -176,8 +176,6 @@
     "check:chart-dist": "tsx script/check-tui-chart-dist.ts",
     "check:abi": "tsx script/native-abi-layout.ts --check",
     "check": "pnpm run check:independence && pnpm run check:vendor && pnpm run check:patches && pnpm run check:abi && pnpm run check:renderer-dist && pnpm run check:spinner-dist && pnpm run check:chart-dist",
-    "check:jsr": "jsr publish --dry-run",
-    "publish:jsr": "jsr publish",
     "test": "vitest run",
     "test:terminal": "node script/terminal-quality.ts",
     "test:stress": "node --experimental-ffi --expose-gc script/stress-application.ts",
@@ -187,7 +185,9 @@
     "check:renderer-dist": "tsx script/sync-renderer.ts --check",
     "build:native": "tsx script/build-native.ts",
     "test:native": "tsx script/build-native.ts --test",
-    "check:independence": "tsx script/check-independence.ts"
+    "check:independence": "tsx script/check-independence.ts",
+    "check:package": "tsx script/check-package.ts",
+    "publish:github": "npm publish --registry=https://npm.pkg.github.com --access=public"
   },
   "dependencies": {
     "@babel/core": "7.29.7",
@@ -208,7 +208,6 @@
     "@xterm/addon-unicode11": "0.9.0",
     "@xterm/headless": "6.0.0",
     "esbuild": "0.28.2",
-    "jsr": "0.14.3",
     "node-pty": "1.1.0",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
@@ -217,5 +216,13 @@
   "peerDependencies": {
     "solid-js": "1.9.17",
     "web-tree-sitter": "0.25.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/defai-digital/ax-tui.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
   }
 }

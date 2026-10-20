@@ -7,8 +7,8 @@ test.skipIf(!supportsFfi)("shortcut help renders snapshots and filters without t
   const result = spawnSync(process.execPath, ["--experimental-ffi", "--disable-warning=ExperimentalWarning",
     "--input-type=module", "-e", `
 import assert from "node:assert/strict"
-import { KeymapHelpRenderable, InputRenderable, Renderable, getKeymap } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { KeymapHelpRenderable, InputRenderable, Renderable, getKeymap } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 const setup = await createTestRenderer({ width: 40, height: 12, useKittyKeyboard: null })
 const { renderer } = setup
 try {

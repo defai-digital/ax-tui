@@ -16,7 +16,7 @@ test.skipIf(!supportsFfi)("post effects wrap correctly at buffer boundaries", ()
 
 const script = `
 import assert from "node:assert/strict"
-import { OptimizedBuffer, RGBA, DistortionEffect, CRTRollingBarEffect, CloudsEffect, FlamesEffect, RainbowTextEffect, applyAsciiArt } from "ax-tui"
+import { OptimizedBuffer, RGBA, DistortionEffect, CRTRollingBarEffect, CloudsEffect, FlamesEffect, RainbowTextEffect, applyAsciiArt } from "@defai-digital/ax-tui"
 
 const fg = RGBA.fromInts(255, 255, 255, 255)
 const bg = RGBA.fromInts(0, 0, 0, 255)

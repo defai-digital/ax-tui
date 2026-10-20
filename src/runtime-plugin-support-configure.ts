@@ -27,7 +27,7 @@ function assertCompatibleInstall(install: RuntimePluginSupportInstall, options: 
   for (const specifier of Object.keys(options.additional ?? {})) {
     if (!install.additionalSpecifiers.has(specifier)) {
       throw new Error(
-        `AX TUI Core runtime plugin support is already installed without ${specifier}. Call ensureRuntimePluginSupport({ additional }) from ax-tui/runtime-plugin-support/configure before importing ax-tui/runtime-plugin-support.`,
+        `AX TUI Core runtime plugin support is already installed without ${specifier}. Call ensureRuntimePluginSupport({ additional }) from @defai-digital/ax-tui/runtime-plugin-support/configure before importing @defai-digital/ax-tui/runtime-plugin-support.`,
       )
     }
   }

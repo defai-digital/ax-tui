@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Renderable, parseColor, resolveRenderLib } from "ax-tui";
+import { Renderable, parseColor, resolveRenderLib } from "@defai-digital/ax-tui";
 import presets, { getSpinnerPreset } from "./presets.js";
 import { maxFrameDisplayWidth } from "./utils.js";
 export { createPulse, createWave, createStatic, createRainbow, maxFrameDisplayWidth } from "./utils.js";

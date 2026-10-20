@@ -14,7 +14,7 @@ test("renderer build resolves Solid against newly staged core declarations, not 
       ...["src", "solid", "native/source"].map((name) =>
         cp(path.join(root, name), path.join(fixture, name), { recursive: true }),
       ),
-      ...["package.json", "jsr.json", "tsconfig.json", "tsconfig.build.json", "script/build-renderer.ts",
+      ...["package.json", "tsconfig.json", "tsconfig.build.json", "script/build-renderer.ts",
         "native/tsconfig.json", "native/tsconfig.build.json"].map((name) =>
         cp(path.join(root, name), path.join(fixture, name)),
       ),

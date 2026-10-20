@@ -40,7 +40,7 @@ record; they are not part of the normal build workflow.
 - `script/`: build, verification, packaging, and release staging tools.
 - `patches/`, `solid/patches/`: historical behavior contracts, now implemented in source.
 - `.github/workflows/`: `quality.yml` (three-OS validation; also the release
-  preflight) and `jsr.yml` (tag-driven native-asset and JSR publication).
+  preflight) and `packages.yml` (tag-driven native-asset and public GitHub Packages publication).
 - `.internal/`, `.ax-code/`, `.tmp/`: gitignored local working areas (design
   records, logs, release staging, agent memory); never committed or published.
 
@@ -64,7 +64,7 @@ TypeScript 7.0.2 is the development compiler; Solid's JSX transform uses Babel.
 - `pnpm run build:native --all`: build and stage all eight native targets.
 - `pnpm run build:native --target=linux-x64`: build one explicit target.
 - `pnpm run test:native`: run the native Zig suite. Quality runs this on every push with Zig pinned in `.zig-version`.
-- `pnpm run check:jsr`: dry-run the JSR publication payload.
+- `pnpm run check:package`: verify the public GitHub Packages publication payload.
 
 `AX_CODE_TUI_ZIG` selects the compiler executable. `AX_CODE_TUI_MACOS_SDK`
 selects a macOS SDK for native builds. See `MAINTENANCE.md` for SDK requirements.
@@ -94,11 +94,11 @@ Commit subjects use conventional-commit prefixes (`feat:`, `fix:`,
 Pushes, pull requests, and the release preflight run
 `.github/workflows/quality.yml` on Linux, macOS, and Windows, including the Zig
 suite and the FFI struct-layout contract. Pushing a
-`v<version>` tag runs `.github/workflows/jsr.yml`: it stages
+`v<version>` tag runs `.github/workflows/packages.yml`: it stages
 manifest-verified native assets, publishes them to the matching GitHub
-release with byte-for-byte re-verification, and only then publishes the JSR
-package via OIDC (`publish:jsr`). Release mechanics (CHANGELOG entry, bumping
-`package.json` and `jsr.json` together, verification, approval, tag) are
+release with byte-for-byte re-verification, and only then publishes the public GitHub Packages
+package with `GITHUB_TOKEN` (`publish:github`). Release mechanics (CHANGELOG entry, bumping
+`package.json`, verification, approval, tag) are
 documented in `MAINTENANCE.md` under Releases.
 
 ## Hard rules
@@ -113,10 +113,10 @@ documented in `MAINTENANCE.md` under Releases.
   hashes. Signed downstream bundles are verified before signing, not against
   unsigned hashes when loaded after signing.
 - Never commit secrets, `.internal/`, `.ax-code/`, Zig caches, or compiler/SDK installations.
-- JSR self-imports map to local exports in `jsr.json`, never to unpublished npm
-  self-packages. Exclude native binaries and development source from JSR payloads.
-- Publish verified, immutable native release assets before the matching JSR
-  version. Registry publication requires explicit user approval.
+- Package self-imports use `@defai-digital/ax-tui` and its public exports. Include
+  verified native binaries/licenses; exclude development source and private files.
+- Publish verified, immutable native release assets before the matching GitHub
+  Packages version. Keep the package public. Registry publication requires explicit user approval.
 - Use ESM and `import type`. Handwritten TypeScript follows the repo's
   Prettier style (no semicolons, double quotes, 120-column lines); Prettier
   is not a repo dependency, so match the surrounding files rather than

@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { connect } from "node:net"
 import { createRequire } from "node:module"
 import { createInterface } from "node:readline"
-import { createCliRenderer, InputRenderable, TextRenderable, VirtualListRenderable, getFocusManager } from "ax-tui"
+import { createCliRenderer, InputRenderable, TextRenderable, VirtualListRenderable, getFocusManager } from "@defai-digital/ax-tui"
 
 assert.ok(process.stdin.isTTY && process.stdout.isTTY)
 // Force a legacy output code page in this private ConPTY to exercise native UTF-8 setup.

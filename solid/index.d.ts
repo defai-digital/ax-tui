@@ -4,11 +4,11 @@
  * @module
  */
 export {};
-import { CliRenderer, type CliRendererConfig } from "ax-tui";
-import { type TestRendererOptions } from "ax-tui/testing";
+import { CliRenderer, type CliRendererConfig } from "@defai-digital/ax-tui";
+import { type TestRendererOptions } from "@defai-digital/ax-tui/testing";
 import type { JSX } from "./jsx-runtime.js";
 export declare const render: (node: () => JSX.Element, rendererOrConfig?: CliRenderer | CliRendererConfig) => Promise<void>;
-export declare const testRender: (node: () => JSX.Element, renderConfig?: TestRendererOptions) => Promise<import("ax-tui/testing").TestRendererSetup>;
+export declare const testRender: (node: () => JSX.Element, renderConfig?: TestRendererOptions) => Promise<import("@defai-digital/ax-tui/testing").TestRendererSetup>;
 export * from "./src/reconciler.js";
 export * from "./src/elements/index.js";
 export * from "./src/scrollback.js";

@@ -1,4 +1,4 @@
-import { BaseRenderable, TextNodeRenderable, Yoga } from "ax-tui";
+import { BaseRenderable, TextNodeRenderable, Yoga } from "@defai-digital/ax-tui";
 declare class SlotBaseRenderable extends BaseRenderable {
     constructor(id: string);
     add(obj: BaseRenderable | unknown, index?: number): number;

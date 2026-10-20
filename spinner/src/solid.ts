@@ -6,6 +6,6 @@
  * @module
  */
 import { SpinnerRenderable } from "./index.js"
-import { extend } from "ax-tui/solid"
+import { extend } from "@defai-digital/ax-tui/solid"
 
 extend({ spinner: SpinnerRenderable })

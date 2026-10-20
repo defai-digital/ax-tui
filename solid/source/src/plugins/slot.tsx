@@ -8,7 +8,7 @@ import {
   type ResolvedSlotRenderer,
   type SlotMode,
   type SlotRegistryOptions,
-} from "ax-tui"
+} from "@defai-digital/ax-tui"
 import { children, createMemo, createSignal, ErrorBoundary, For, onCleanup, splitProps, type JSX } from "solid-js"
 
 export type { SlotMode }

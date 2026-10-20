@@ -14,8 +14,8 @@ test.skipIf(!supportsFfi)("constructor options honor focusable:false and text ch
       "-e",
       `
 import assert from "node:assert/strict"
-import { BoxRenderable, SelectRenderable, TextNodeRenderable, TextRenderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { BoxRenderable, SelectRenderable, TextNodeRenderable, TextRenderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 
 const setup = await createTestRenderer({ width: 20, height: 10, useKittyKeyboard: null })
 const { renderer } = setup

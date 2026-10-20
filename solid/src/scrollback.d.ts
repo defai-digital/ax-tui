@@ -1,4 +1,4 @@
-import { type CliRenderer, type ScrollbackRenderContext, type ScrollbackWriter } from "ax-tui";
+import { type CliRenderer, type ScrollbackRenderContext, type ScrollbackWriter } from "@defai-digital/ax-tui";
 import { type JSX } from "solid-js";
 export interface SolidScrollbackWriterOptions {
     width?: number;

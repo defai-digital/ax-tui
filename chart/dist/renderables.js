@@ -1,4 +1,4 @@
-import { Renderable, parseColor } from "ax-tui";
+import { Renderable, parseColor } from "@defai-digital/ax-tui";
 import { layoutSparkline } from "./sparkline.js";
 import { layoutGauge } from "./gauge.js";
 import { layoutBarChart } from "./barchart.js";

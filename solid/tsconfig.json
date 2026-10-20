@@ -2,7 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "jsx": "preserve",
-    "jsxImportSource": "ax-tui/solid",
+    "jsxImportSource": "@defai-digital/ax-tui/solid",
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true
   },

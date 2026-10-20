@@ -26,7 +26,7 @@ import type {
   TextNodeRenderable,
   TextOptions,
   TextRenderable,
-} from "ax-tui"
+} from "@defai-digital/ax-tui"
 import type { Ref } from "solid-js"
 import type { JSX } from "../../jsx-runtime.js"
 

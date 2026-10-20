@@ -1,5 +1,5 @@
 const errorMessage =
-  "ax-tui/solid/bun-plugin is Bun-only and is not available in Node.js. Use Bun to import this entrypoint."
+  "@defai-digital/ax-tui/solid/bun-plugin is Bun-only and is not available in Node.js. Use Bun to import this entrypoint."
 
 export function ensureSolidTransformPlugin() {
   throw new Error(errorMessage)

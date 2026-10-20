@@ -32,7 +32,7 @@ const TUI_TRANSFORM_DEPENDENCIES = new Set([
 ])
 
 /**
- * Drop dependencies used exclusively by the public `ax-tui/solid/transform`
+ * Drop dependencies used exclusively by the public `@defai-digital/ax-tui/solid/transform`
  * entry from a precompiled downstream distribution. The package manifest keeps
  * these as production dependencies so the exported transform remains usable
  * when the source package is consumed directly.

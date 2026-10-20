@@ -14,8 +14,8 @@ test.skipIf(!supportsFfi)("Solid shortcut help reacts to metadata and stops upda
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, Show } from "solid-js"
-import { testRender, KeymapHelp } from "ax-tui/solid"
-import { Renderable } from "ax-tui"
+import { testRender, KeymapHelp } from "@defai-digital/ax-tui/solid"
+import { Renderable } from "@defai-digital/ax-tui"
 let help, updateBindings, updateQuery, updateWidth, toggle
 const setup = await testRender(() => {
   const [bindings, setBindings] = createSignal([{ id: "save", keys: ["ctrl+s"], description: "Save document" }])
@@ -67,8 +67,8 @@ test.skipIf(!supportsFfi)("Solid virtual lists update reactively and keymaps cle
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, Show } from "solid-js"
-import { testRender, VirtualList, useKeymap } from "ax-tui/solid"
-import { TextRenderable, Renderable, getKeymap, KeyEvent } from "ax-tui"
+import { testRender, VirtualList, useKeymap } from "@defai-digital/ax-tui/solid"
+import { TextRenderable, Renderable, getKeymap, KeyEvent } from "@defai-digital/ax-tui"
 let toggle, update, list, childOwner
 let childCalls = 0, siblingCalls = 0
 function Child() {
@@ -120,8 +120,8 @@ test.skipIf(!supportsFfi)("Solid feature owners release destroyed targets and st
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal } from "solid-js"
-import { testRender, VirtualList, useKeymap, useRenderer } from "ax-tui/solid"
-import { BoxRenderable, RenderableEvents, TextRenderable } from "ax-tui"
+import { testRender, VirtualList, useKeymap, useRenderer } from "@defai-digital/ax-tui/solid"
+import { BoxRenderable, RenderableEvents, TextRenderable } from "@defai-digital/ax-tui"
 let list, updateWidth, unregister
 const setup = await testRender(() => {
   const renderer = useRenderer()
@@ -163,7 +163,7 @@ async function runSolidScenario(source: string): Promise<void> {
           filename: "solid-lifecycle.tsx",
           moduleName: solidEntry,
           resolvePath: (specifier) =>
-            specifier === "ax-tui/solid" ? solidEntry : resolveNodeSolidRuntimeImport(specifier),
+            specifier === "@defai-digital/ax-tui/solid" ? solidEntry : resolveNodeSolidRuntimeImport(specifier),
         }),
         resolveDir: root,
         sourcefile: "solid-lifecycle.tsx",
@@ -212,8 +212,8 @@ test.skipIf(!supportsFfi)("Solid overlay cleanup closes only the current owner's
   await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, onMount, Show } from "solid-js"
-import { testRender, useOverlay, useRenderer } from "ax-tui/solid"
-import { InputRenderable } from "ax-tui"
+import { testRender, useOverlay, useRenderer } from "@defai-digital/ax-tui/solid"
+import { InputRenderable } from "@defai-digital/ax-tui"
 let toggle
 let childContent
 let siblingContent
@@ -261,8 +261,8 @@ test.skipIf(!supportsFfi)(
     await runSolidScenario(`
 import assert from "node:assert/strict"
 import { createSignal, For } from "solid-js"
-import { insertNode, testRender } from "ax-tui/solid"
-import { TextNodeRenderable } from "ax-tui"
+import { insertNode, testRender } from "@defai-digital/ax-tui/solid"
+import { TextNodeRenderable } from "@defai-digital/ax-tui"
 
 let updateItems
 let text
