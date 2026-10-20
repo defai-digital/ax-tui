@@ -6,21 +6,21 @@
     "commit": "b7e0bb9c3d2a75c2bc267d2af27b7237f734d13b",
     "license": "MIT"
   },
-  "builtAt": "2026-10-18T11:16:25.246Z",
+  "builtAt": "2026-10-20T02:08:12.266Z",
   "targets": {
     "darwin-arm64": {
       "os": "darwin",
       "cpu": "arm64",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "aarch64-macos",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "libaxtui.dylib",
-        "size": 3755440,
-        "sha256": "cb5ff54437c4b0a552c14ab70943855a3cc184afb648b1d661a3efaedbe54a8a"
+        "size": 3758624,
+        "sha256": "eed158fc6a932d3f18a0ce365939f84a1840c4433c7efaa5934e667f8b366184"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -28,15 +28,15 @@
       "os": "darwin",
       "cpu": "x64",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "x86_64-macos",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "libaxtui.dylib",
-        "size": 3732423,
-        "sha256": "463b3130660e0ca6fc685b2e799a345b1718c07dfe22b630a40ad05897aae134"
+        "size": 3739700,
+        "sha256": "759e15099981db5ae3b4ba7b50fdd7d0d590dba9863e0ce49f334f81d559e72c"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -44,15 +44,15 @@
       "os": "linux",
       "cpu": "arm64",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "aarch64-linux-gnu.2.17",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13808264,
-        "sha256": "997d88005bfdf832c5248b1df211010489edfa340ef287225459d86af10f4545"
+        "size": 13711192,
+        "sha256": "804ac8890ecc43959229026add7cc61338d7fa17dbafb88d4be1b73e2b897baf"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -61,15 +61,15 @@
       "cpu": "arm64",
       "libc": "musl",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "aarch64-linux-musl",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13674072,
-        "sha256": "dd525b5ca507bfb01096bb0a35e40d2ef5dee31b5ff4d617b715a9098ba84df2"
+        "size": 13611632,
+        "sha256": "ed1c27ca5a692f125d79036239271b4357300e9bb5fc95d22ae0c343aa7871a8"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -77,15 +77,15 @@
       "os": "linux",
       "cpu": "x64",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "x86_64-linux-gnu.2.17",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13572264,
-        "sha256": "60910cc1486e36e41f446d65ab2b1a85d4a1d98a259eb1253c2edde6e28d4ac5"
+        "size": 13476008,
+        "sha256": "e7cdd55ee85c0d2d41d693eb45cde82f928c53396914cf6930e6b044d3cdb58a"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -94,15 +94,15 @@
       "cpu": "x64",
       "libc": "musl",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "x86_64-linux-musl",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "libaxtui.so",
-        "size": 13439928,
-        "sha256": "e55c6a1d2c8dc5c92aac0fe91d4f01dce060c68de6c9672ada6cba22d387af3d"
+        "size": 13377000,
+        "sha256": "9ddb4f9f4a8bb7e59bc95c26f078605cec48cd71640e6994b273d6a0d9efbc90"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -110,15 +110,15 @@
       "os": "win32",
       "cpu": "arm64",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "aarch64-windows-gnu",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "axtui.dll",
-        "size": 3525120,
-        "sha256": "36d3d7ecffb57aa62e89179ace1ffdedd7e7aff653f2a9e8a2b7073ac23eec69"
+        "size": 3525632,
+        "sha256": "f2c3e208297ad9edfeb563b6f0b67c7ea099b195a8e8a3d8f382cefee1b8f367"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     },
@@ -126,15 +126,15 @@
       "os": "win32",
       "cpu": "x64",
       "build": {
-        "sourceSha256": "36f187e30f28643540c056cbe3fe64f5525eec2b70d6b116245866338cc04403",
+        "sourceSha256": "951cb416364f2db616b698f8997dd81c40f4749de0a8ffb31ecb45644390d968",
         "zigVersion": "0.15.2",
         "target": "x86_64-windows-gnu",
         "optimize": "ReleaseFast"
       },
       "lib": {
         "file": "axtui.dll",
-        "size": 3742208,
-        "sha256": "2d4e13bf9d0d8953ccc703bc7495c06febc5bf603217239f0398f422a08c63d0"
+        "size": 3742720,
+        "sha256": "0b4e46faa097a01e35861e44b8ca067a3c4e7dc713ccbbcd7f347cb7ac886ca5"
       },
       "licenseSha256": "c11ace53cd35c88f353e28bb626075329435e03a692f4a5457128be47ff66023"
     }

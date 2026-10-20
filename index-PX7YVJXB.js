@@ -5249,6 +5249,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   hasLoggedStdinParserError = false;
   animationRequest = /* @__PURE__ */ new Map();
   resizeTimeoutId = null;
+  pendingResize = null;
   capabilityTimeoutId = null;
   xtVersionWaiters = /* @__PURE__ */ new Set();
   splitStartupSeedTimeoutId = null;
@@ -6793,6 +6794,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     this.updateStdinParserProtocolContext({ startupCursorCprActive: false });
   }
   flushPendingSplitOutputBeforeTransition(forceFooterRepaint = false, options = {}) {
+    if (this.pendingResize !== null) this.applyPendingResize();
     const hasDeferredCapturedOutput = this.externalOutputQueue.size > 0 || this.pendingExternalOutputMode !== null;
     if (this._screenMode !== "split-footer" || this._splitHeight <= 0 || this._externalOutputMode !== "capture-stdout" && !(options.allowPassthrough && hasDeferredCapturedOutput)) {
       return;
@@ -7530,18 +7532,22 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   }
   handleResize(width, height) {
     if (this._isDestroyed) return;
-    if (this._splitHeight > 0) {
-      this.processResize(width, height);
-      return;
-    }
     if (this.resizeTimeoutId !== null) {
       this.clock.clearTimeout(this.resizeTimeoutId);
       this.resizeTimeoutId = null;
     }
-    this.resizeTimeoutId = this.clock.setTimeout(() => {
-      this.resizeTimeoutId = null;
-      this.processResize(width, height);
-    }, this.resizeDebounceDelay);
+    this.pendingResize = { width, height };
+    this.resizeTimeoutId = this.clock.setTimeout(() => this.applyPendingResize(), this.resizeDebounceDelay);
+  }
+  applyPendingResize() {
+    if (this.resizeTimeoutId !== null) this.clock.clearTimeout(this.resizeTimeoutId);
+    this.resizeTimeoutId = null;
+    const pending = this.pendingResize;
+    this.pendingResize = null;
+    if (pending !== null) {
+      this.processResize(pending.width, pending.height);
+      this.requestRender();
+    }
   }
   queryPixelResolution() {
     this.waitingForPixelResolution = true;
@@ -7606,7 +7612,6 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     this.root.resize(this.width, this.height);
     if (splitCaptureActive) {
       this.forceFullRepaintRequested = true;
-      this.flushPendingSplitOutputBeforeTransition();
     }
     this.emit("resize" /* RESIZE */, this.width, this.height);
     this.requestRender();
@@ -7622,6 +7627,9 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   resize(width, height) {
     if (this._isDestroyed) return;
     validateBufferDimensions(width, height);
+    if (this.resizeTimeoutId !== null) this.clock.clearTimeout(this.resizeTimeoutId);
+    this.resizeTimeoutId = null;
+    this.pendingResize = null;
     this.processResize(width, height);
   }
   setBackgroundColor(color) {
@@ -8135,7 +8143,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     }
     this.renderingNative = true;
     try {
-      if (this.isSplitCursorSeedFrameBlocked()) {
+      if (this.isSplitCursorSeedFrameBlocked() || this.pendingResize !== null && this._splitHeight > 0) {
         return "blocked";
       }
       if (this._splitHeight > 0 && this._externalOutputMode === "capture-stdout") {
