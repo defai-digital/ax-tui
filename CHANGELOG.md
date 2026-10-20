@@ -5,6 +5,8 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.1.4] - 2026-10-20
+
 ### Changed
 
 - Distribute `@defai-digital/ax-tui` through public GitHub Packages.
@@ -12,10 +14,6 @@ All notable changes to ax-tui are documented here. The format is based on
 - Remove retired registry manifests, publishing tools, type annotations, and CI checks.
 - Bundle every supported native library and license in the npm package for offline loading.
 - Verify the npm payload, export targets, native hashes, and excluded development/private files before publication.
-
-## [2.1.4] - 2026-10-20
-
-### Changed
 
 - Split-footer mode writes far less output: committing rows above the footer
   moves the footer with terminal line insertion instead of repainting it,

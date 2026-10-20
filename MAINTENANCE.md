@@ -115,6 +115,11 @@ replace assets attached to a previously published version.
    public `@defai-digital/ax-tui` package to `https://npm.pkg.github.com`.
    The publish job uses `GITHUB_TOKEN` with `packages: write`.
 
+For a version already released before the registry migration, preserve its existing tag and
+native assets. Qualify the migration at the current main commit, publish that version's verified
+npm tarball, and record the tested commit and tarball integrity. Later versions use the tag-driven
+workflow above.
+
 The npm payload contains generated JavaScript/declarations, widget dist, tree-sitter assets,
 and all manifest-verified native libraries/licenses. `check:package` checks the actual npm
 pack file list, all export targets, excluded development/private files, and native hashes.

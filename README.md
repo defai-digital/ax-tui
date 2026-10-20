@@ -34,11 +34,11 @@ For the local token stored in `~/.gh-packages`:
 
 ```sh
 export NODE_AUTH_TOKEN="$(cat ~/.gh-packages)"
-pnpm add @defai-digital/ax-tui@2.1.2 solid-js@1.9.17 web-tree-sitter@0.25.10
+pnpm add @defai-digital/ax-tui@2.1.4 solid-js@1.9.17 web-tree-sitter@0.25.10
 ```
 
 Existing projects can retain their `ax-tui` imports with the npm alias
-`ax-tui@npm:@defai-digital/ax-tui@2.1.2`. When using the Solid transform with this alias,
+`ax-tui@npm:@defai-digital/ax-tui@2.1.4`. When using the Solid transform with this alias,
 set its `moduleName` option to `"ax-tui/solid"` (and keep `jsxImportSource` as `"ax-tui/solid"`).
 New projects should use the scoped imports below.
 Node.js 26+ is required; native rendering additionally requires `--experimental-ffi`.
