@@ -144,3 +144,102 @@ The maintained native interface is now ABI 2: checked buffer resize reports
 allocation failure and preserves existing storage. All supported binaries are
 rebuilt from the corresponding local source and recorded in the manifest.
 Version 1.0.1 supplies this interface without changing the immutable v1.0.0 release assets.
+
+## Split-footer qualification test port
+
+Phase 0 deliberately adapts these MIT-licensed OpenTUI tests from commit
+`f8f608e2b9a41685d613a1156708ff06c826c3ce` (the reference checkout's clean HEAD):
+
+| Upstream source | AX TUI test entry and fixture |
+| --- | --- |
+| `packages/core/src/tests/renderer.scrollback-surface.test.ts` | `test/renderer-scrollback-surface.test.ts`, `test/fixtures/scrollback-surface.mjs` |
+| `packages/core/src/tests/renderer.native-scene-split.test.ts` | `test/renderer-split-footer.test.ts`, `test/fixtures/split-footer.mjs` |
+
+Source reference: `/Users/akiralam/code/ax-code/.internal/reference/opentui`.
+Copyright (c) 2025 opentui; the existing MIT notices in `LICENSE` remain intact.
+Only test material is adapted from this newer revision. Runtime fixes are AX
+implementations; no newer upstream runtime, native scene implementation, or
+binary is imported. `test/fixtures/split-footer-support.mjs` supplies AX-specific
+setup and recording helpers. Vitest launches Node's test runner with native FFI
+and assertions against public `ax-tui` / `ax-tui/testing` exports. Narrow private
+queue/feed access observes pending commits, snapshot ownership, and native drain
+completion; it is not an application integration API.
+
+Ported or adapted surface cases:
+
+- Reuse of the last rendered buffer, strengthened to assert snapshot ownership
+  after rerendering and surface destruction.
+- Initial and queued streaming highlighting settlement.
+- Markdown top-level stable blocks and custom heading block margins.
+- Inline first-line wrapping and Markdown block replacement. AX has no
+  `textAlign` option, so left-aligned wrapping is retained; center/right alignment
+  and their margin/alignment permutations are dropped.
+- Default trailing-newline behavior and tall snapshot layout, combined in one test.
+- Rejection of stale width and width-method geometry, followed by a valid rerender.
+- Added AX guards for unrendered/invalid/empty row ranges and renderer-owned cleanup.
+
+Dropped surface cases:
+
+- Loaded-image retention: the newer `ResourceContext` and native-scene image cells
+  are absent. AX images use terminal protocol controls/fallback rendering, not the
+  upstream retained image snapshot API.
+- Dynamic hyperlink capability changes in existing Markdown tables: AX lacks the
+  newer capability-reactive table representation and native-scene link registry.
+  Static Markdown block commits are covered; capability transition behavior is
+  not claimed.
+
+Ported or adapted native split cases:
+
+- All three 300-row producers; both 6,000-row captured stdout cases.
+- Both producers drained through frames, passthrough, resize, suspend, destroy,
+  and alternate-screen transition. AX drains synchronously during transitions;
+  `NativeSession`, `renderer.closed`, and driver idle are replaced by AX's native
+  span feed and its idle operation. Exact upstream frame batch size is not asserted.
+- Replay boundaries through frames, suspend, and destroy, including saved-line
+  clearing and a reset predicted tail.
+- All eleven captured stdout wrapping, wide-character, grapheme, tab, CRLF,
+  carriage-return, and continued-row snapshot cases; trailing-wide-cell tail prediction.
+- Atomic cleanup on captured stdout allocation failure, capture after destruction,
+  invalid `rowColumns`, and coercion of boolean flags.
+- Detached paint failure/retry inside a main frame, strengthened to reject a
+  stale buffer after a previously successful surface render.
+- Writer callback and invalid-geometry cleanup failures.
+- Removed-code settlement and prompt cancellation when the surface is destroyed
+  (located in the surface fixture). AX has no native driver disposal assertion.
+
+Dropped native split cases and limits:
+
+- The two bounded Session-capacity drain cases and oversized-Session-snapshot
+  rejection: AX has no `NativeSession` or configurable Session cell budget.
+- Last-animation-frame cancellation: AX has no renderer-owned
+  `requestAnimationFrame` / `cancelAnimationFrame` methods.
+- The 21-case `EmbeddedTerminalRenderable` colored screen matrix, including
+  zero/one-row panes and colored inline continuation: that renderable and native
+  scene span capture are absent. The POSIX/xterm scenarios below replace the
+  ordinary ASCII footer/resize/teardown coverage, not the degenerate pane or
+  colored/wide-character screen assertions. Unicode tests above verify commit
+  snapshots, not the complete terminal screen matrix.
+- The measurement-failure variant: AX has no native-scene `measureSnapshot`,
+  `setMeasureProvider`, or `invalidateIntrinsicSize` API.
+- Detached native driver destruction during child cleanup: AX has no detached
+  scene driver/disposed state. Surface/root destruction is checked separately.
+
+`test/pty-split-footer.test.ts` and `test/fixtures/pty-split-footer.{mjs,py}` are
+original AX tests using the existing Python standard-library PTY pattern. They
+check 1,000 surface rows exactly once and in order, footer growth, pending-commit
+width/height shrink and growth, 100 acknowledged OS resize events without intervening
+scheduled frames, and normal/SIGTERM teardown. The manual clock prevents a frame
+from accidentally draining the queue before each pending-output assertion;
+split-footer resize itself synchronously drains the queue. OSC barriers order the
+control ACKs against terminal bytes. The installed `@xterm/headless` development
+dependency checks the screen, cursor, and footer at checkpoints. Python checks
+restored termios flags after exit. Both teardown paths prohibit `ESC[2J` and
+alternate-screen switches, and SIGTERM must drain captured stdout before restoration.
+
+The inline fixture explicitly uses `clearOnShutdown: false` and `useThread: false`.
+The default `clearOnShutdown: true` intentionally clears the screen and is not
+suitable for preserving an inline transcript. Replay reset is tested separately
+because it intentionally clears the screen. POSIX tests skip Windows; two private
+server/pane tmux variants skip only when `tmux` is absent from PATH. Those variants
+record pane output rather than tmux's own alternate-screen client UI. This port
+makes no ConPTY, threaded-output, degenerate-pane, or image-scrollback claim.

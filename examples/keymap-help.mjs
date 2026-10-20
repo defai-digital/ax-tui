@@ -1,8 +1,8 @@
 // Run with Node 26+: node --experimental-ffi examples/keymap-help.mjs [--smoke]
 import {
   createCliRenderer, getKeymap, InputRenderable, InputRenderableEvents, KeymapHelpRenderable, TextRenderable,
-} from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+} from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 
 const smoke = process.argv.includes("--smoke")
 const test = smoke ? await createTestRenderer({ width: 48, height: 10, useKittyKeyboard: null }) : undefined

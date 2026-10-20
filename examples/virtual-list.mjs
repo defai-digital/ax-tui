@@ -1,6 +1,6 @@
 // Run with Node 26+: node --experimental-ffi examples/virtual-list.mjs [--smoke]
-import { createCliRenderer, getKeymap, TextRenderable, VirtualListRenderable } from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+import { createCliRenderer, getKeymap, TextRenderable, VirtualListRenderable } from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 
 const smoke = process.argv.includes("--smoke")
 const test = smoke ? await createTestRenderer({ width: 48, height: 12 }) : undefined

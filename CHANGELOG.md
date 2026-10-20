@@ -13,6 +13,32 @@ All notable changes to ax-tui are documented here. The format is based on
 - Bundle every supported native library and license in the npm package for offline loading.
 - Verify the npm payload, export targets, native hashes, and excluded development/private files before publication.
 
+## [2.1.4] - 2026-10-20
+
+### Changed
+
+- Split-footer mode writes far less output: committing rows above the footer
+  moves the footer with terminal line insertion instead of repainting it,
+  redundant SGR resets are gone, and a burst of resizes applies once with
+  pending rows held until the final geometry is known. A 200x60 footer with
+  20 commits fell from about 58 KB to about 2.6 KB written.
+
+## [2.1.3] - 2026-10-19
+
+### Fixed
+
+- Harden split-footer mode for inline transcripts: resize no longer scrubs
+  transcript rows above the footer, failed surface paints cannot commit stale
+  buffers, destroyed renderers cannot recapture stdout or leave settlement
+  waits pending, and scrollback commits reject invalid columns while keeping
+  CJK, grapheme, tab, and CRLF content intact.
+
+### Tests
+
+- Qualify split-footer and scrollback surfaces with tests adapted from
+  upstream OpenTUI plus POSIX PTY regressions (1,000 appended rows, resize
+  storms, teardown, SIGTERM); tmux variants run where tmux is installed.
+
 ## [2.1.2] - 2026-10-18
 
 ### Fixed

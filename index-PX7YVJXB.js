@@ -4942,8 +4942,6 @@ var ExternalOutputQueue = class {
     this.drop(this.commits.length);
   }
 };
-var CHAR_FLAG_CONTINUATION = 3221225472 >>> 0;
-var CHAR_FLAG_MASK = 3221225472 >>> 0;
 var ScrollbackSnapshotRenderContext = class extends EventEmitter4 {
   width;
   height;
@@ -5251,6 +5249,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   hasLoggedStdinParserError = false;
   animationRequest = /* @__PURE__ */ new Map();
   resizeTimeoutId = null;
+  pendingResize = null;
   capabilityTimeoutId = null;
   xtVersionWaiters = /* @__PURE__ */ new Set();
   splitStartupSeedTimeoutId = null;
@@ -5989,6 +5988,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     return this._externalOutputMode;
   }
   set externalOutputMode(mode) {
+    if (this._isDestroyed && mode === "capture-stdout") return;
     if (mode === "capture-stdout" && this.screenMode !== "split-footer") {
       throw new Error('externalOutputMode "capture-stdout" requires screenMode "split-footer"');
     }
@@ -6150,6 +6150,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     let surfaceWidthMethod = renderer.widthMethod;
     let surfaceDestroyed = false;
     let hasRendered = false;
+    const pendingSettlements = /* @__PURE__ */ new Set();
     let nextCommitStartOnNewLine = startOnNewLine;
     let backingBuffer = OptimizedBuffer.create(surfaceWidth, surfaceHeight, surfaceWidthMethod, {
       id: `scrollback-surface-buffer-${surfaceId}`
@@ -6199,35 +6200,27 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     const waitForPendingHighlights = async (pending, timeoutMs) => {
       await new Promise((resolve, reject) => {
         let settled = false;
-        const timeoutHandle = renderer.clock.setTimeout(() => {
-          if (settled) {
-            return;
-          }
+        const finish = (error) => {
+          if (settled) return;
           settled = true;
-          reject(new Error("ScrollbackSurface.settle timed out waiting for CodeRenderable highlighting"));
+          renderer.clock.clearTimeout(timeoutHandle);
+          pendingSettlements.delete(finish);
+          if (error) reject(error);
+          else resolve();
+        };
+        const timeoutHandle = renderer.clock.setTimeout(() => {
+          finish(new Error("ScrollbackSurface.settle timed out waiting for CodeRenderable highlighting"));
         }, timeoutMs);
+        pendingSettlements.add(finish);
         Promise.all(pending.map((renderable) => renderable.highlightingDone)).then(
-          () => {
-            if (settled) {
-              return;
-            }
-            settled = true;
-            renderer.clock.clearTimeout(timeoutHandle);
-            resolve();
-          },
-          (error) => {
-            if (settled) {
-              return;
-            }
-            settled = true;
-            renderer.clock.clearTimeout(timeoutHandle);
-            reject(error);
-          }
+          () => finish(),
+          (error) => finish(error instanceof Error ? error : new Error(String(error)))
         );
       });
     };
     const renderSurface = () => {
       assertNotDestroyed();
+      hasRendered = false;
       const width = renderer.width;
       const widthMethod = renderer.widthMethod;
       snapshotContext.width = width;
@@ -6318,6 +6311,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
         return;
       }
       surfaceDestroyed = true;
+      for (const finish of pendingSettlements) finish(new Error("ScrollbackSurface is destroyed"));
       renderer.off("destroy" /* DESTROY */, destroyListener);
       let destroyError = null;
       try {
@@ -6390,14 +6384,22 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
       throw new Error('writeToScrollback requires screenMode "split-footer" and externalOutputMode "capture-stdout"');
     }
     const snapshotContext = new ScrollbackSnapshotRenderContext(this.width, this.height, this.widthMethod);
-    const snapshot = write({
-      width: this.width,
-      widthMethod: this.widthMethod,
-      tailColumn: this.getPendingSplitTailColumn(),
-      renderContext: snapshotContext
-    });
-    if (!snapshot || !snapshot.root) {
-      throw new Error("writeToScrollback must return a snapshot root renderable");
+    let snapshot;
+    try {
+      snapshot = write({
+        width: this.width,
+        widthMethod: this.widthMethod,
+        tailColumn: this.getPendingSplitTailColumn(),
+        renderContext: snapshotContext
+      });
+      if (!snapshot || !snapshot.root) {
+        throw new Error("writeToScrollback must return a snapshot root renderable");
+      }
+    } catch (error) {
+      for (const node of Renderable.renderablesByNumber.values()) {
+        if (node.ctx === snapshotContext) node.destroyRecursively();
+      }
+      throw error;
     }
     let renderFailed = false;
     let snapshotRoot = null;
@@ -6493,7 +6495,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
       let x = limit;
       while (x > 0) {
         const cp = chars[y * snapshot.width + x - 1];
-        if (cp === 0 || (cp & CHAR_FLAG_MASK) === CHAR_FLAG_CONTINUATION) {
+        if (cp === 0) {
           x -= 1;
           continue;
         }
@@ -6551,6 +6553,9 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     if (this._screenMode !== "split-footer" || this._externalOutputMode !== "capture-stdout") {
       throw new Error('scrollback commit requires screenMode "split-footer" and externalOutputMode "capture-stdout"');
     }
+    if (options.rowColumns !== void 0 && !Number.isFinite(options.rowColumns)) {
+      throw new RangeError("scrollback rowColumns must be finite");
+    }
     const rowColumns = Math.min(
       Math.max(Math.trunc(options.rowColumns ?? options.snapshot.width), 0),
       options.snapshot.width
@@ -6558,8 +6563,8 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     this.enqueueSplitCommit({
       snapshot: options.snapshot,
       rowColumns,
-      startOnNewLine: options.startOnNewLine ?? true,
-      trailingNewline: options.trailingNewline ?? true
+      startOnNewLine: Boolean(options.startOnNewLine ?? true),
+      trailingNewline: Boolean(options.trailingNewline ?? true)
     });
     this.requestRender();
   }
@@ -6569,36 +6574,29 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
       this.emit("external_output" /* EXTERNAL_OUTPUT */, commit);
     }
   }
-  createStdoutSnapshotCommit(line, trailingNewline) {
+  createStdoutSnapshotCommit(line, rowColumns, trailingNewline) {
     const snapshotContext = new ScrollbackSnapshotRenderContext(this.width, 1, this.widthMethod);
-    const maxWidth = Math.max(1, this.width);
-    const lineCells = [...line];
-    const rowColumns = Math.min(lineCells.length, maxWidth);
-    const renderedLine = lineCells.slice(0, maxWidth).join("");
     const snapshotRoot = new RootRenderable(snapshotContext);
-    const snapshotRenderable = new TextRenderable(snapshotContext, {
-      id: "captured-stdout-snapshot",
-      position: "absolute",
-      left: 0,
-      top: 0,
-      width: Math.max(1, rowColumns),
-      height: 1,
-      content: renderedLine
-    });
-    const snapshotBuffer = OptimizedBuffer.create(Math.max(1, rowColumns), 1, this.widthMethod, {
-      id: "captured-stdout-snapshot"
-    });
+    let snapshotBuffer = null;
     try {
-      snapshotRoot.add(snapshotRenderable);
+      snapshotRoot.add(
+        new TextRenderable(snapshotContext, {
+          id: "captured-stdout-snapshot",
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: Math.max(1, rowColumns),
+          height: 1,
+          content: line
+        })
+      );
+      snapshotBuffer = OptimizedBuffer.create(Math.max(1, rowColumns), 1, this.widthMethod, {
+        id: "captured-stdout-snapshot"
+      });
       snapshotRoot.render(snapshotBuffer, 0);
-      return {
-        snapshot: snapshotBuffer,
-        rowColumns,
-        startOnNewLine: false,
-        trailingNewline
-      };
+      return { snapshot: snapshotBuffer, rowColumns, startOnNewLine: false, trailingNewline };
     } catch (error) {
-      snapshotBuffer.destroy();
+      snapshotBuffer?.destroy();
       throw error;
     } finally {
       snapshotRoot.destroyRecursively();
@@ -6607,44 +6605,81 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   splitStdoutRows(text) {
     const rows = [];
     let current = "";
-    for (const char of text) {
-      if (char === "\r") {
-        current = "";
-        continue;
-      }
-      if (char === "\n") {
+    for (const char of text.replace(/\r\n/g, "\n")) {
+      if (char === "\r") current = "";
+      else if (char === "\n") {
         rows.push({ line: current, trailingNewline: true });
         current = "";
-        continue;
-      }
-      current += char;
+      } else current += char;
     }
-    if (current.length > 0) {
-      rows.push({ line: current, trailingNewline: false });
-    }
+    if (current.length > 0) rows.push({ line: current, trailingNewline: false });
     return rows;
   }
   createStdoutSnapshotCommits(text) {
-    if (text.length === 0) {
-      return [];
-    }
+    if (text.length === 0) return [];
     const commits = [];
-    const chunkWidth = Math.max(1, this.width);
-    for (const row of this.splitStdoutRows(text)) {
-      const rowCells = [...row.line];
-      if (rowCells.length === 0) {
-        commits.push(this.createStdoutSnapshotCommit("", row.trailingNewline));
-        continue;
+    const width = Math.max(1, this.width);
+    let tail = this.getPendingSplitTailColumn();
+    const measurement = {};
+    const widths = /* @__PURE__ */ new Map();
+    const measure = (grapheme) => {
+      if (/^[ -~]$/.test(grapheme)) return 1;
+      const cached = widths.get(grapheme);
+      if (cached !== void 0) return cached;
+      measurement.buffer ??= TextBuffer.create(this.widthMethod);
+      measurement.view ??= TextBufferView.create(measurement.buffer);
+      measurement.buffer.setText(grapheme);
+      const columns = measurement.view.logicalLineInfo.lineWidthColsMax;
+      widths.set(grapheme, columns);
+      return columns;
+    };
+    try {
+      const segmenter = new Intl.Segmenter(void 0, { granularity: "grapheme" });
+      for (const row of this.splitStdoutRows(text)) {
+        let line = "";
+        let columns = 0;
+        const flush = (trailingNewline) => {
+          commits.push(this.createStdoutSnapshotCommit(line, columns, trailingNewline));
+          tail = trailingNewline ? 0 : tail + columns;
+          line = "";
+          columns = 0;
+        };
+        for (const { segment } of segmenter.segment(row.line)) {
+          if (segment === "	" && tail + columns >= width - 1) continue;
+          if (tail + columns >= width) {
+            if (columns > 0) flush(false);
+            tail = 0;
+          }
+          if (segment === "	") {
+            const spaces = Math.min(8 - (tail + columns) % 8, width - 1 - tail - columns);
+            line += " ".repeat(spaces);
+            columns += spaces;
+            continue;
+          }
+          const cells = measure(segment);
+          if (cells > width) {
+            throw new RangeError("captured stdout grapheme exceeds terminal width");
+          }
+          if (cells > width - tail - columns) {
+            const padding = width - tail - columns;
+            line += " ".repeat(padding);
+            columns += padding;
+            flush(false);
+            tail = 0;
+          }
+          line += segment;
+          columns += cells;
+        }
+        flush(row.trailingNewline);
       }
-      let offset = 0;
-      while (offset < rowCells.length) {
-        const chunk = rowCells.slice(offset, offset + chunkWidth).join("");
-        offset += chunkWidth;
-        const isLastChunk = offset >= rowCells.length;
-        commits.push(this.createStdoutSnapshotCommit(chunk, isLastChunk ? row.trailingNewline : false));
-      }
+      return commits;
+    } catch (error) {
+      for (const commit of commits) commit.snapshot.destroy();
+      throw error;
+    } finally {
+      measurement.view?.destroy();
+      measurement.buffer?.destroy();
     }
-    return commits;
   }
   flushPendingSplitCommits(forceFooterRepaint = false, drainAll = false) {
     const commits = this.externalOutputQueue.peek(drainAll ? Number.POSITIVE_INFINITY : this.maxSplitCommitsPerFrame);
@@ -6759,6 +6794,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     this.updateStdinParserProtocolContext({ startupCursorCprActive: false });
   }
   flushPendingSplitOutputBeforeTransition(forceFooterRepaint = false, options = {}) {
+    if (this.pendingResize !== null) this.applyPendingResize();
     const hasDeferredCapturedOutput = this.externalOutputQueue.size > 0 || this.pendingExternalOutputMode !== null;
     if (this._screenMode !== "split-footer" || this._splitHeight <= 0 || this._externalOutputMode !== "capture-stdout" && !(options.allowPassthrough && hasDeferredCapturedOutput)) {
       return;
@@ -7496,18 +7532,22 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   }
   handleResize(width, height) {
     if (this._isDestroyed) return;
-    if (this._splitHeight > 0) {
-      this.processResize(width, height);
-      return;
-    }
     if (this.resizeTimeoutId !== null) {
       this.clock.clearTimeout(this.resizeTimeoutId);
       this.resizeTimeoutId = null;
     }
-    this.resizeTimeoutId = this.clock.setTimeout(() => {
-      this.resizeTimeoutId = null;
-      this.processResize(width, height);
-    }, this.resizeDebounceDelay);
+    this.pendingResize = { width, height };
+    this.resizeTimeoutId = this.clock.setTimeout(() => this.applyPendingResize(), this.resizeDebounceDelay);
+  }
+  applyPendingResize() {
+    if (this.resizeTimeoutId !== null) this.clock.clearTimeout(this.resizeTimeoutId);
+    this.resizeTimeoutId = null;
+    const pending = this.pendingResize;
+    this.pendingResize = null;
+    if (pending !== null) {
+      this.processResize(pending.width, pending.height);
+      this.requestRender();
+    }
   }
   queryPixelResolution() {
     this.waitingForPixelResolution = true;
@@ -7516,7 +7556,8 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   }
   processResize(width, height) {
     if (width === this._terminalWidth && height === this._terminalHeight) return;
-    if (this._terminalIsSetup && this._controlState !== "explicit_suspended" /* EXPLICIT_SUSPENDED */ && !this.isSplitCursorSeedFrameBlocked()) {
+    const splitCaptureActive = this._screenMode === "split-footer" && this._externalOutputMode === "capture-stdout";
+    if (!splitCaptureActive && this._terminalIsSetup && this._controlState !== "explicit_suspended" /* EXPLICIT_SUSPENDED */ && !this.isSplitCursorSeedFrameBlocked()) {
       this.flushPendingSplitOutputBeforeTransition();
     }
     const pendingSplitFooterTransition = this.pendingSplitFooterTransition;
@@ -7541,7 +7582,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
       this._footerHeight
     );
     const splitFooterActive = this._screenMode === "split-footer";
-    if (splitFooterActive) {
+    if (splitFooterActive && !splitCaptureActive) {
       let clearStart = null;
       if (width < prevWidth && visiblePreviousSplitHeight > 0) {
         clearStart = Math.max(previousTerminalHeight - visiblePreviousSplitHeight * 2, 1);
@@ -7569,6 +7610,9 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     this.currentRenderBuffer = this.lib.getCurrentBuffer(this.rendererPtr);
     this._console.resize(this.width, this.height);
     this.root.resize(this.width, this.height);
+    if (splitCaptureActive) {
+      this.forceFullRepaintRequested = true;
+    }
     this.emit("resize" /* RESIZE */, this.width, this.height);
     this.requestRender();
   }
@@ -7583,6 +7627,9 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
   resize(width, height) {
     if (this._isDestroyed) return;
     validateBufferDimensions(width, height);
+    if (this.resizeTimeoutId !== null) this.clock.clearTimeout(this.resizeTimeoutId);
+    this.resizeTimeoutId = null;
+    this.pendingResize = null;
     this.processResize(width, height);
   }
   setBackgroundColor(color) {
@@ -8096,7 +8143,7 @@ var CliRenderer = class _CliRenderer extends EventEmitter4 {
     }
     this.renderingNative = true;
     try {
-      if (this.isSplitCursorSeedFrameBlocked()) {
+      if (this.isSplitCursorSeedFrameBlocked() || this.pendingResize !== null && this._splitHeight > 0) {
         return "blocked";
       }
       if (this._splitHeight > 0 && this._externalOutputMode === "capture-stdout") {

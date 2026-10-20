@@ -2,8 +2,8 @@
 import {
   BoxRenderable, InputRenderable, ImageRenderable, TextRenderable, createCliRenderer,
   getFocusManager, getCommandRegistry, getKeymap, showCommandPalette,
-} from "ax-tui"
-import { createTestRenderer } from "ax-tui/testing"
+} from "@defai-digital/ax-tui"
+import { createTestRenderer } from "@defai-digital/ax-tui/testing"
 
 const smoke = process.argv.includes("--smoke")
 const setup = smoke ? await createTestRenderer({ width: 64, height: 20, useKittyKeyboard: null }) : undefined
