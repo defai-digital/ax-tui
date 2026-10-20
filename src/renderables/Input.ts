@@ -126,10 +126,12 @@ export class InputRenderable extends TextareaRenderable {
     if (!sanitized) return
 
     const currentLength = this.plainText.length
-    const remaining = this._maxLength - currentLength
+    const selectedLength = this.hasSelection() ? this.getSelectedText().length : 0
+    const remaining = this._maxLength - currentLength + selectedLength
     if (remaining <= 0) return
 
     const toInsert = truncateInput(sanitized, remaining)
+    if (!toInsert) return
     super.insertText(toInsert)
     this.emit(InputRenderableEvents.INPUT, this.plainText)
   }
@@ -156,9 +158,10 @@ export class InputRenderable extends TextareaRenderable {
   }
 
   public override focus(): void {
-    super.focus()
-    if (this.isDestroyed || !this.focused) return
+    if (this.isDestroyed || this.focused || !this.focusable) return
+    // Capture the baseline before focus listeners can edit the input.
     this._lastCommittedValue = this.plainText
+    super.focus()
   }
 
   public override blur(): void {

@@ -5230,9 +5230,11 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     const sanitized = text.replace(/[\n\r]/g, "");
     if (!sanitized) return;
     const currentLength = this.plainText.length;
-    const remaining = this._maxLength - currentLength;
+    const selectedLength = this.hasSelection() ? this.getSelectedText().length : 0;
+    const remaining = this._maxLength - currentLength + selectedLength;
     if (remaining <= 0) return;
     const toInsert = truncateInput(sanitized, remaining);
+    if (!toInsert) return;
     super.insertText(toInsert);
     this.emit("input" /* INPUT */, this.plainText);
   }
@@ -5255,9 +5257,9 @@ var InputRenderable = class _InputRenderable extends TextareaRenderable {
     this.emit("input" /* INPUT */, this.plainText);
   }
   focus() {
-    super.focus();
-    if (this.isDestroyed || !this.focused) return;
+    if (this.isDestroyed || this.focused || !this.focusable) return;
     this._lastCommittedValue = this.plainText;
+    super.focus();
   }
   blur() {
     if (!this.isDestroyed) {
