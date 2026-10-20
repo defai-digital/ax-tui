@@ -353,7 +353,10 @@ export class TerminalPalette implements TerminalPaletteDetector {
 
   async detect(options?: GetPaletteOptions): Promise<TerminalColors> {
     const { timeout = 5000, size = 16 } = options || {}
-    const supported = await this.detectOSCSupport()
+    // Honor an explicit caller budget for the OSC support probe. When the
+    // caller did not pass one, keep the probe's short default so unsupported
+    // terminals are not held for the palette timeout.
+    const supported = await this.detectOSCSupport(options?.timeout)
 
     if (!supported) {
       return {

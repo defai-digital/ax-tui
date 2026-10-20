@@ -129,6 +129,9 @@ export function measureText({ text, font = "tiny" }: { text: string; font?: keyo
       } else {
         currentX += 1
       }
+      if (i < text.length - 1) {
+        currentX += fontDef.letterspace_size
+      }
       continue
     }
 
@@ -267,6 +270,9 @@ export function renderFontToFrameBuffer(
         currentX += spaceWidth
       } else {
         currentX += 1
+      }
+      if (i < text.length - 1) {
+        currentX += fontDef.letterspace_size
       }
       continue
     }

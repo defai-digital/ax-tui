@@ -41,3 +41,23 @@ test("SGR button-agnostic motion reports the codified button values per encoding
   expect(hover?.x).toBe(basicHover?.x)
   expect(hover?.y).toBe(basicHover?.y)
 })
+
+test("X10 button-held motion is reported as a drag", () => {
+  const parser = new MouseParser()
+  const basic = (buttonByte: number, x: number, y: number): Buffer =>
+    seq("\x1b[M" + String.fromCharCode(buttonByte + 32) + String.fromCharCode(x + 33) + String.fromCharCode(y + 33))
+
+  expect(parser.parseMouseEvent(basic(0, 1, 1))?.type).toBe("down")
+
+  // 32 = motion, low bits 0 = left button still held.
+  const drag = parser.parseMouseEvent(basic(32, 4, 2))
+  expect(drag?.type).toBe("drag")
+  expect(drag?.button).toBe(0)
+  expect(drag?.x).toBe(4)
+  expect(drag?.y).toBe(2)
+
+  // 35 = motion with button code 3 (no button held).
+  const hover = parser.parseMouseEvent(basic(35, 4, 2))
+  expect(hover?.type).toBe("move")
+  expect(hover?.button).toBe(-1)
+})

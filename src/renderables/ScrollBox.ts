@@ -435,19 +435,22 @@ export class ScrollBoxRenderable extends BoxRenderable {
       const elementStartOutside = elementStart < viewportStart
       const elementEndOutside = elementEnd > viewportEnd
 
+      if (!elementStartOutside && !elementEndOutside) {
+        return 0
+      }
+
       if (elementStartOutside && elementEndOutside) {
         return 0
       }
 
-      if ((elementStartOutside && elementSize < viewportSize) || (elementEndOutside && elementSize > viewportSize)) {
+      // An element at least as large as the viewport is aligned by its start.
+      // This also covers an equal-sized element sitting exactly on the
+      // viewport edge, where the strict comparisons above are both false.
+      if (elementSize >= viewportSize || elementStartOutside) {
         return elementStart - viewportStart
       }
 
-      if ((elementStartOutside && elementSize > viewportSize) || (elementEndOutside && elementSize < viewportSize)) {
-        return elementEnd - viewportEnd
-      }
-
-      return 0
+      return elementEnd - viewportEnd
     }
 
     const childTop = child.y

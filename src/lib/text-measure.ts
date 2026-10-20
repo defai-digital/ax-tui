@@ -25,8 +25,13 @@ export function createTextMeasureFunc(
     }
 
     const effectiveHeight = isNaN(height) ? 1 : height
+    // Yoga passes NaN height for Undefined sizing. Keep the sentinel for the
+    // native call, but do not use it to clamp an unconstrained result.
+    const hasHeightBound = heightMode !== MeasureMode.Undefined && !isNaN(height)
+    // A sub-column width must not fall through to the width=0 no-wrap sentinel.
+    const measureWidth = effectiveWidth > 0 ? Math.max(1, Math.floor(effectiveWidth)) : 0
 
-    const measureResult = view.measureForDimensions(Math.floor(effectiveWidth), Math.floor(effectiveHeight))
+    const measureResult = view.measureForDimensions(measureWidth, Math.floor(effectiveHeight))
 
     const measuredWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1
     const measuredHeight = measureResult ? Math.max(1, measureResult.lineCount) : 1
@@ -34,7 +39,7 @@ export function createTextMeasureFunc(
     if (widthMode === MeasureMode.AtMost && !isAbsolute()) {
       return {
         width: Math.min(effectiveWidth, measuredWidth),
-        height: Math.min(effectiveHeight, measuredHeight),
+        height: hasHeightBound ? Math.min(effectiveHeight, measuredHeight) : measuredHeight,
       }
     }
 

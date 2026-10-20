@@ -20,7 +20,12 @@ const found = fs
 if (!found) throw new Error("vendored native resolver missing: resolveVendoredNativeTarget() not found in ax-tui")
 const SRC: string = found
 
-function loadResolver(): (proc: { platform: string; arch: string; env: Record<string, string | undefined> }) => string {
+function loadResolver(): (proc: {
+  platform: string
+  arch: string
+  env: Record<string, string | undefined>
+  report?: { getReport: () => { header: { glibcVersionRuntime?: string } } }
+}) => string {
   const libc = SRC.match(/function validateLinuxLibcOverride\(\) \{[\s\S]*?\n\}/)
   const resolver = SRC.match(/function resolveVendoredNativeTarget\(\) \{[\s\S]*?\n\}/)
   if (!libc || !resolver) throw new Error("could not extract vendored native resolver functions")
@@ -43,6 +48,28 @@ describe("ax-tui vendored native resolver", () => {
       [{ platform: "linux", arch: "x64", env: { AX_CODE_TUI_LIBC: "musl" } }, "linux-x64-musl"],
       [{ platform: "linux", arch: "arm64", env: { AX_CODE_TUI_LIBC: "musl" } }, "linux-arm64-musl"],
       [{ platform: "linux", arch: "x64", env: { AX_CODE_TUI_LIBC: "glibc" } }, "linux-x64"],
+      [
+        { platform: "linux", arch: "x64", env: {}, report: { getReport: () => ({ header: {} }) } },
+        "linux-x64-musl",
+      ],
+      [
+        {
+          platform: "linux",
+          arch: "x64",
+          env: {},
+          report: { getReport: () => ({ header: { glibcVersionRuntime: "2.39" } }) },
+        },
+        "linux-x64",
+      ],
+      [
+        {
+          platform: "linux",
+          arch: "x64",
+          env: { AX_CODE_TUI_LIBC: "glibc" },
+          report: { getReport: () => ({ header: {} }) },
+        },
+        "linux-x64",
+      ],
       [{ platform: "win32", arch: "x64", env: {} }, "win32-x64"],
       [{ platform: "win32", arch: "arm64", env: {} }, "win32-arm64"],
     ]

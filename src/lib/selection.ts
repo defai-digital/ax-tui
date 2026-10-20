@@ -124,14 +124,20 @@ export class Selection {
       })
       .filter((renderable) => !renderable.isDestroyed)
 
+    const selectionBounds = this.bounds
+
     for (const renderable of selectedRenderables) {
       const text = renderable.getSelectedText()
       if (!text) continue
       const lines = text.split("\n")
+      // Selected text starts where the selection rectangle intersects the
+      // renderable, not necessarily at the renderable's own origin.
+      const startX = Math.max(renderable.x, selectionBounds.x)
+      const startY = Math.max(renderable.y, selectionBounds.y)
       for (let index = 0; index < lines.length; index += 1) {
-        const y = renderable.y + index
+        const y = startY + index
         const line = selectedTextsByLine.get(y) ?? []
-        line.push({ x: renderable.x, text: lines[index] })
+        line.push({ x: startX, text: lines[index] })
         selectedTextsByLine.set(y, line)
       }
     }

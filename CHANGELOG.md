@@ -5,6 +5,22 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- Report X10 button-held motion as a drag so basic-encoding terminals can extend text selections.
+- Align cross-renderable selected text with the selection rectangle instead of each renderable's origin.
+- Reveal equal-sized and taller partially visible children in `scrollChildIntoView()`.
+- Keep scrollbars without a scrollable range from consuming paging and navigation keys.
+- Detect cursor shape and color changes in the `cursorStyle` setter.
+- Leave the selection index and events untouched when moving through an empty `Select`.
+- Clear extmark undo snapshots when `setText`, `setTextOwned`, or `clearHistory` resets the text history.
+- Normalize HSV hues outside `[0, 360)` instead of returning black for negative rotations.
+- Apply an explicit palette timeout to the OSC support probe.
+- Keep ASCII font letterspacing consistent for glyphs missing from the font.
+- Locate single-character chunks in link detection so later links stay aligned.
+- Keep auto-height text measured at its full line count and wrap sub-column widths at one column.
+- Auto-select the musl native target on musl Linux hosts and report a missing bundled library clearly.
+
 ## [2.1.4] - 2026-10-20
 
 ### Changed

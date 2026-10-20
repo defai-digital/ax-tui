@@ -269,6 +269,8 @@ export class SelectRenderable extends Renderable {
   }
 
   public moveUp(steps: number = 1): void {
+    if (this._options.length === 0) return
+
     const newIndex = this._selectedIndex - steps
 
     if (newIndex >= 0) {
@@ -285,6 +287,8 @@ export class SelectRenderable extends Renderable {
   }
 
   public moveDown(steps: number = 1): void {
+    if (this._options.length === 0) return
+
     const newIndex = this._selectedIndex + steps
 
     if (newIndex < this._options.length) {

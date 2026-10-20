@@ -100,5 +100,47 @@ import { EditBuffer, EditorView } from "@defai-digital/ax-tui"
   }
 }
 
+// setText resets the native text history; extmark snapshots for the discarded
+// history must not resurface on a later undo().
+{
+  const buffer = EditBuffer.create("unicode")
+  const view = EditorView.create(buffer, 40, 4)
+  try {
+    buffer.setText("abcd")
+    const id = view.extmarks.create({ start: 3, end: 4, typeId: 5 })
+    buffer.insertText("X")
+    buffer.setText("zz")
+    assert.equal(buffer.canUndo(), false)
+
+    buffer.undo()
+    assert.equal(buffer.getText(), "zz")
+    assert.equal(view.extmarks.get(id), null)
+  } finally {
+    view.destroy()
+    buffer.destroy()
+  }
+}
+
+// clearHistory must also drop extmark undo snapshots so the next undo cannot
+// restore stale offsets while the text stays put.
+{
+  const buffer = EditBuffer.create("unicode")
+  const view = EditorView.create(buffer, 40, 4)
+  try {
+    buffer.setText("abcd")
+    const id = view.extmarks.create({ start: 3, end: 4, typeId: 5 })
+    buffer.insertText("X")
+    buffer.clearHistory()
+    assert.equal(buffer.canUndo(), false)
+
+    buffer.undo()
+    assert.equal(buffer.getText(), "Xabcd")
+    assert.deepEqual([view.extmarks.get(id).start, view.extmarks.get(id).end], [4, 5])
+  } finally {
+    view.destroy()
+    buffer.destroy()
+  }
+}
+
 console.log("extmark history checks passed")
 `

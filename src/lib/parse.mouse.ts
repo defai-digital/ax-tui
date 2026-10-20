@@ -208,7 +208,10 @@ export class MouseParser {
     let scrollInfo: ScrollInfo | undefined
 
     if (isMotion) {
-      type = "move"
+      // Basic encoding reports the held button in the low bits; code 3 means
+      // buttonless motion. Treat held-button motion as a drag so selection
+      // tracking, which only reacts to "drag", works with X10 reports too.
+      type = button === 3 ? "move" : "drag"
       actualButton = button === 3 ? -1 : button
     } else if (isScroll) {
       type = "scroll"

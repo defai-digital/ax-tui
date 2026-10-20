@@ -29,7 +29,7 @@ import {
   isTextNodeRenderable,
   mergeKeyAliases,
   mergeKeyBindings
-} from "./index-PX7YVJXB.js";
+} from "./index-MUWDIIPO.js";
 import {
   ASCIIFontSelectionHelper,
   ATTRIBUTE_BASE_BITS,
@@ -183,7 +183,7 @@ import {
   wrapWithDelegates,
   yellow,
   yoga_exports
-} from "./index-J2SDNWIO.js";
+} from "./index-UTATIG2C.js";
 
 // src/post/color-bytes.ts
 function toU8(value) {
@@ -8472,6 +8472,7 @@ var ScrollBarRenderable = class extends Renderable {
     }
   }
   handleKeyPress(key) {
+    if (this.scrollSize <= this.viewportSize) return false;
     switch (key.name) {
       case "left":
       case "h":
@@ -8933,16 +8934,16 @@ var ScrollBoxRenderable = class _ScrollBoxRenderable extends BoxRenderable {
       const viewportSize = viewportEnd - viewportStart;
       const elementStartOutside = elementStart < viewportStart;
       const elementEndOutside = elementEnd > viewportEnd;
+      if (!elementStartOutside && !elementEndOutside) {
+        return 0;
+      }
       if (elementStartOutside && elementEndOutside) {
         return 0;
       }
-      if (elementStartOutside && elementSize < viewportSize || elementEndOutside && elementSize > viewportSize) {
+      if (elementSize >= viewportSize || elementStartOutside) {
         return elementStart - viewportStart;
       }
-      if (elementStartOutside && elementSize > viewportSize || elementEndOutside && elementSize < viewportSize) {
-        return elementEnd - viewportEnd;
-      }
-      return 0;
+      return elementEnd - viewportEnd;
     };
     const childTop = child.y;
     const childBottom = child.y + child.height;
@@ -9474,6 +9475,7 @@ var SelectRenderable = class extends Renderable {
     return this._selectedIndex;
   }
   moveUp(steps = 1) {
+    if (this._options.length === 0) return;
     const newIndex = this._selectedIndex - steps;
     if (newIndex >= 0) {
       this._selectedIndex = newIndex;
@@ -9487,6 +9489,7 @@ var SelectRenderable = class extends Renderable {
     this.emit("selectionChanged" /* SELECTION_CHANGED */, this._selectedIndex, this.getSelectedOption());
   }
   moveDown(steps = 1) {
+    if (this._options.length === 0) return;
     const newIndex = this._selectedIndex + steps;
     if (newIndex < this._options.length) {
       this._selectedIndex = newIndex;

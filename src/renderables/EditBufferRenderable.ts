@@ -366,7 +366,13 @@ export abstract class EditBufferRenderable extends Renderable implements LineInf
 
   set cursorStyle(style: CursorStyleOptions) {
     const newStyle = style
-    if (this.cursorStyle.style !== newStyle.style || this.cursorStyle.blinking !== newStyle.blinking) {
+    const current = this._cursorStyle
+    if (
+      current.style !== newStyle.style ||
+      current.blinking !== newStyle.blinking ||
+      current.color !== newStyle.color ||
+      current.cursor !== newStyle.cursor
+    ) {
       this._cursorStyle = newStyle
       if (this._focused) {
         this.requestRender()

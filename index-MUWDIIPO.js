@@ -36,7 +36,7 @@ import {
   toArrayBuffer,
   treeSitterToTextChunks,
   validateBufferDimensions
-} from "./index-J2SDNWIO.js";
+} from "./index-UTATIG2C.js";
 
 // src/core/text-buffer-view.ts
 var TextBufferView = class _TextBufferView {
@@ -996,13 +996,15 @@ function createTextMeasureFunc(view, isAbsolute) {
       effectiveWidth = width;
     }
     const effectiveHeight = isNaN(height) ? 1 : height;
-    const measureResult = view.measureForDimensions(Math.floor(effectiveWidth), Math.floor(effectiveHeight));
+    const hasHeightBound = heightMode !== 0 /* Undefined */ && !isNaN(height);
+    const measureWidth = effectiveWidth > 0 ? Math.max(1, Math.floor(effectiveWidth)) : 0;
+    const measureResult = view.measureForDimensions(measureWidth, Math.floor(effectiveHeight));
     const measuredWidth = measureResult ? Math.max(1, measureResult.widthColsMax) : 1;
     const measuredHeight = measureResult ? Math.max(1, measureResult.lineCount) : 1;
     if (widthMode === 2 /* AtMost */ && !isAbsolute()) {
       return {
         width: Math.min(effectiveWidth, measuredWidth),
-        height: Math.min(effectiveHeight, measuredHeight)
+        height: hasHeightBound ? Math.min(effectiveHeight, measuredHeight) : measuredHeight
       };
     }
     return {
@@ -3856,7 +3858,8 @@ var EditBufferRenderable = class extends Renderable {
   }
   set cursorStyle(style) {
     const newStyle = style;
-    if (this.cursorStyle.style !== newStyle.style || this.cursorStyle.blinking !== newStyle.blinking) {
+    const current = this._cursorStyle;
+    if (current.style !== newStyle.style || current.blinking !== newStyle.blinking || current.color !== newStyle.color || current.cursor !== newStyle.cursor) {
       this._cursorStyle = newStyle;
       if (this._focused) {
         this.requestRender();

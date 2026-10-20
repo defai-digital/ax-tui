@@ -39,7 +39,7 @@ import {
   normalizeColumnWidth,
 } from "../src/lib/table-columns.js"
 import { ScrollBarRenderable } from "../src/renderables/ScrollBar.js"
-import { SelectRenderable } from "../src/renderables/Select.js"
+import { SelectRenderable, SelectRenderableEvents } from "../src/renderables/Select.js"
 import { SliderRenderable } from "../src/renderables/Slider.js"
 
 const ctx = {} as never
@@ -156,6 +156,25 @@ describe("scroll position boundaries", () => {
     bar.scrollPosition = 42.7
     expect(bar.scrollPosition).toBe(43)
   })
+
+  test("does not consume paging keys when there is no scrollable range", () => {
+    const bar = new ScrollBarRenderable(ctx, { orientation: "vertical", width: 1, height: 10 })
+    bar.scrollSize = 5
+    bar.viewportSize = 10
+
+    expect(bar.handleKeyPress({ name: "pagedown" } as never)).toBe(false)
+    expect(bar.handleKeyPress({ name: "pageup" } as never)).toBe(false)
+    expect(bar.handleKeyPress({ name: "end" } as never)).toBe(false)
+    expect(bar.handleKeyPress({ name: "home" } as never)).toBe(false)
+  })
+
+  test("still consumes paging keys when scrolling is possible", () => {
+    const bar = new ScrollBarRenderable(ctx, { orientation: "vertical", width: 1, height: 10 })
+    bar.scrollSize = 100
+    bar.viewportSize = 10
+
+    expect(bar.handleKeyPress({ name: "pagedown" } as never)).toBe(true)
+  })
 })
 
 describe("slider value boundaries", () => {
@@ -221,5 +240,19 @@ describe("select index boundaries", () => {
 
     expect(select.getSelectedIndex()).toBe(0)
     expect(select.getSelectedOption()?.name).toBe("A")
+  })
+
+  test("moving through empty options keeps index 0 and emits nothing", () => {
+    const select = new SelectRenderable(ctx, { width: 10, height: 4, options: [] })
+    const events: Array<{ index: number; option: unknown }> = []
+    select.on(SelectRenderableEvents.SELECTION_CHANGED, (index: number, option: unknown) => {
+      events.push({ index, option })
+    })
+
+    select.moveDown()
+    select.moveUp()
+
+    expect(select.getSelectedIndex()).toBe(0)
+    expect(events).toEqual([])
   })
 })

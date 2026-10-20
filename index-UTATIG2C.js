@@ -849,8 +849,9 @@ function rgbToHex(rgb) {
 }
 function hsvToRgb(h2, s, v) {
   let r = 0, g = 0, b = 0;
-  const i = Math.floor(h2 / 60) % 6;
-  const f = h2 / 60 - Math.floor(h2 / 60);
+  const normalizedHue = (h2 % 360 + 360) % 360;
+  const i = Math.floor(normalizedHue / 60) % 6;
+  const f = normalizedHue / 60 - Math.floor(normalizedHue / 60);
   const p = v * (1 - s);
   const q = v * (1 - f * s);
   const t2 = v * (1 - (1 - f) * s);
@@ -4005,6 +4006,9 @@ function measureText({ text, font = "tiny" }) {
       } else {
         currentX += 1;
       }
+      if (i < text.length - 1) {
+        currentX += fontDef.letterspace_size;
+      }
       continue;
     }
     let charWidth = 0;
@@ -4108,6 +4112,9 @@ function renderFontToFrameBuffer(buffer, {
         currentX += spaceWidth;
       } else {
         currentX += 1;
+      }
+      if (i < text.length - 1) {
+        currentX += fontDef.letterspace_size;
       }
       continue;
     }
@@ -7333,7 +7340,7 @@ var MouseParser = class _MouseParser {
     let actualButton;
     let scrollInfo;
     if (isMotion) {
-      type = "move";
+      type = button === 3 ? "move" : "drag";
       actualButton = button === 3 ? -1 : button;
     } else if (isScroll) {
       type = "scroll";
@@ -7449,14 +7456,17 @@ var Selection = class {
       }
       return a.x - b.x;
     }).filter((renderable) => !renderable.isDestroyed);
+    const selectionBounds = this.bounds;
     for (const renderable of selectedRenderables) {
       const text = renderable.getSelectedText();
       if (!text) continue;
       const lines = text.split("\n");
+      const startX = Math.max(renderable.x, selectionBounds.x);
+      const startY = Math.max(renderable.y, selectionBounds.y);
       for (let index = 0; index < lines.length; index += 1) {
-        const y = renderable.y + index;
+        const y = startY + index;
         const line = selectedTextsByLine.get(y) ?? [];
-        line.push({ x: renderable.x, text: lines[index] });
+        line.push({ x: startX, text: lines[index] });
         selectedTextsByLine.set(y, line);
       }
     }
@@ -11142,6 +11152,8 @@ var ExtmarksController = class {
   originalEditorViewDeleteSelectedText;
   originalUndo;
   originalRedo;
+  originalClearHistory;
+  originalSetTextOwned;
   constructor(editBuffer, editorView) {
     this.editBuffer = editBuffer;
     this.editorView = editorView;
@@ -11163,6 +11175,8 @@ var ExtmarksController = class {
     this.originalEditorViewDeleteSelectedText = editorView.deleteSelectedText.bind(editorView);
     this.originalUndo = editBuffer.undo.bind(editBuffer);
     this.originalRedo = editBuffer.redo.bind(editBuffer);
+    this.originalClearHistory = editBuffer.clearHistory.bind(editBuffer);
+    this.originalSetTextOwned = editBuffer.setTextOwned.bind(editBuffer);
     this.wrapCursorMovement();
     this.wrapDeletion();
     this.wrapInsertion();
@@ -11452,7 +11466,21 @@ var ExtmarksController = class {
         return;
       }
       this.clear();
+      this.history.clear();
       this.originalSetText(text);
+    };
+    this.editBuffer.setTextOwned = (text) => {
+      if (this.destroyed) {
+        this.originalSetTextOwned(text);
+        return;
+      }
+      this.clear();
+      this.history.clear();
+      this.originalSetTextOwned(text);
+    };
+    this.editBuffer.clearHistory = () => {
+      this.history.clear();
+      this.originalClearHistory();
     };
     this.editBuffer.replaceText = (text) => {
       if (this.destroyed) {
@@ -11789,6 +11817,8 @@ var ExtmarksController = class {
     this.editorView.deleteSelectedText = this.originalEditorViewDeleteSelectedText;
     this.editBuffer.undo = this.originalUndo;
     this.editBuffer.redo = this.originalRedo;
+    this.editBuffer.clearHistory = this.originalClearHistory;
+    this.editBuffer.setTextOwned = this.originalSetTextOwned;
     this.editBuffer.off("content-changed", this.onContentChanged);
     this.extmarks.clear();
     this.extmarksByTypeId.clear();
@@ -12036,7 +12066,7 @@ var TerminalPalette = class {
   }
   async detect(options) {
     const { timeout = 5e3, size = 16 } = options || {};
-    const supported = await this.detectOSCSupport();
+    const supported = await this.detectOSCSupport(options?.timeout);
     if (!supported) {
       return {
         palette: Array(size).fill(null),
@@ -12139,7 +12169,7 @@ function detectLinks(chunks, context) {
   if (ranges.length === 0) return chunks;
   let contentPos = 0;
   for (const chunk of chunks) {
-    if (chunk.text.length <= 1) continue;
+    if (chunk.text.length === 0) continue;
     const idx = content.indexOf(chunk.text, contentPos);
     if (idx < 0) continue;
     for (const range of ranges) {
@@ -13013,7 +13043,10 @@ function resolveVendoredNativeTarget() {
   if (process.platform === "linux") {
     validateLinuxLibcOverride();
     if (process.arch === "x64" || process.arch === "arm64") {
-      return process.env.AX_CODE_TUI_LIBC === "musl" ? `linux-${process.arch}-musl` : `linux-${process.arch}`;
+      const libc = process.env.AX_CODE_TUI_LIBC;
+      const report = process.report?.getReport?.();
+      const muslHost = libc === "musl" || (libc === void 0 || libc === "") && report !== void 0 && !report.header?.glibcVersionRuntime;
+      return muslHost ? `linux-${process.arch}-musl` : `linux-${process.arch}`;
     }
   }
   throw new Error(`AX TUI is not supported on the current platform: ${process.platform}-${process.arch}`);
@@ -13024,7 +13057,9 @@ if (isBunfsPath(targetLibPath)) {
   targetLibPath = targetLibPath.replaceAll("../", "");
 }
 if (!existsSync3(targetLibPath)) {
-  throw new Error(`AX TUI is not supported on the current platform: ${process.platform}-${process.arch}`);
+  throw new Error(
+    `AX TUI native library is missing at ${targetLibPath}; reinstall @defai-digital/ax-tui for ${process.platform}-${process.arch}`
+  );
 }
 registerEnvVar({
   name: "AX_CODE_TUI_DEBUG_FFI",

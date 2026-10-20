@@ -64,6 +64,8 @@ export class ExtmarksController {
   private originalEditorViewDeleteSelectedText: typeof EditorView.prototype.deleteSelectedText
   private originalUndo: typeof EditBuffer.prototype.undo
   private originalRedo: typeof EditBuffer.prototype.redo
+  private originalClearHistory: typeof EditBuffer.prototype.clearHistory
+  private originalSetTextOwned: typeof EditBuffer.prototype.setTextOwned
 
   constructor(editBuffer: EditBuffer, editorView: EditorView) {
     this.editBuffer = editBuffer
@@ -87,6 +89,8 @@ export class ExtmarksController {
     this.originalEditorViewDeleteSelectedText = editorView.deleteSelectedText.bind(editorView)
     this.originalUndo = editBuffer.undo.bind(editBuffer)
     this.originalRedo = editBuffer.redo.bind(editBuffer)
+    this.originalClearHistory = editBuffer.clearHistory.bind(editBuffer)
+    this.originalSetTextOwned = editBuffer.setTextOwned.bind(editBuffer)
 
     this.wrapCursorMovement()
     this.wrapDeletion()
@@ -452,8 +456,27 @@ export class ExtmarksController {
         return
       }
 
+      // Native setText resets the text undo history, so extmark snapshots for
+      // the old text must not survive and reappear on a later undo().
       this.clear()
+      this.history.clear()
       this.originalSetText(text)
+    }
+
+    this.editBuffer.setTextOwned = (text: string): void => {
+      if (this.destroyed) {
+        this.originalSetTextOwned(text)
+        return
+      }
+
+      this.clear()
+      this.history.clear()
+      this.originalSetTextOwned(text)
+    }
+
+    this.editBuffer.clearHistory = (): void => {
+      this.history.clear()
+      this.originalClearHistory()
     }
 
     this.editBuffer.replaceText = (text: string): void => {
@@ -875,6 +898,8 @@ export class ExtmarksController {
     this.editorView.deleteSelectedText = this.originalEditorViewDeleteSelectedText
     this.editBuffer.undo = this.originalUndo
     this.editBuffer.redo = this.originalRedo
+    this.editBuffer.clearHistory = this.originalClearHistory
+    this.editBuffer.setTextOwned = this.originalSetTextOwned
     this.editBuffer.off("content-changed", this.onContentChanged)
 
     this.extmarks.clear()

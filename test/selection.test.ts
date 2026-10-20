@@ -1,5 +1,15 @@
 import { describe, expect, test } from "vitest"
-import { ASCIIFontSelectionHelper, type LocalSelectionBounds } from "../src/lib/selection.js"
+import type { Renderable } from "../src/core/renderable.js"
+import { ASCIIFontSelectionHelper, Selection, type LocalSelectionBounds } from "../src/lib/selection.js"
+
+function textRenderable(x: number, y: number, selectedText: string): Renderable {
+  return {
+    x,
+    y,
+    isDestroyed: false,
+    getSelectedText: () => selectedText,
+  } as unknown as Renderable
+}
 
 function activeSelection(anchorX: number, anchorY: number, focusX: number, focusY: number): LocalSelectionBounds {
   return { anchorX, anchorY, focusX, focusY, isActive: true }
@@ -49,5 +59,18 @@ describe("ASCIIFontSelectionHelper", () => {
     helper.onLocalSelectionChanged(activeSelection(0, 10, 0, 8), 10, 5)
 
     expect(helper.hasSelection()).toBe(false)
+  })
+})
+
+describe("Selection.getSelectedText", () => {
+  test("aligns each renderable's first selected line with the selection rectangle", () => {
+    const selection = new Selection(textRenderable(0, 0, ""), { x: 0, y: 1 }, { x: 8, y: 2 })
+    selection.updateSelectedRenderables([
+      // Selection starts on the second row of this renderable.
+      textRenderable(0, 0, "b\nc"),
+      textRenderable(5, 1, "R\nS"),
+    ])
+
+    expect(selection.getSelectedText()).toBe("bR\ncS")
   })
 })

@@ -288,6 +288,10 @@ export class ScrollBarRenderable extends Renderable {
   }
 
   public handleKeyPress(key: KeyEvent): boolean {
+    // A scrollbar with nothing to scroll must not swallow paging/navigation
+    // keys that belong to a sibling axis or the host application.
+    if (this.scrollSize <= this.viewportSize) return false
+
     switch (key.name) {
       case "left":
       case "h":

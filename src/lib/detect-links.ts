@@ -32,12 +32,11 @@ export function detectLinks(
   if (ranges.length === 0) return chunks
 
   // Use content.indexOf to find each chunk's position in the original content.
-  // This handles concealed text correctly because concealed chunks are either
-  // empty (length 0, skipped) or single-char replacements (length 1, skipped).
-  // Non-concealed chunks with length > 1 are exact substrings of content in order.
+  // Empty concealed chunks are skipped; other chunks, including single-char
+  // text, are located in order so later positions stay aligned.
   let contentPos = 0
   for (const chunk of chunks) {
-    if (chunk.text.length <= 1) continue
+    if (chunk.text.length === 0) continue
 
     const idx = content.indexOf(chunk.text, contentPos)
     if (idx < 0) continue

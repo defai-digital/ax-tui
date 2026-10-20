@@ -92,7 +92,17 @@ function resolveVendoredNativeTarget(): NativeTarget {
   if (process.platform === "linux") {
     validateLinuxLibcOverride()
     if (process.arch === "x64" || process.arch === "arm64") {
-      return process.env.AX_CODE_TUI_LIBC === "musl" ? `linux-${process.arch}-musl` : `linux-${process.arch}`
+      const libc = process.env.AX_CODE_TUI_LIBC
+      // Match the build tooling: an unset override on a host without glibc
+      // means musl. Keep glibc when the runtime report is unavailable (Bun)
+      // or when the caller explicitly selected glibc.
+      const report = process.report?.getReport?.() as
+        | { header?: { glibcVersionRuntime?: string } }
+        | undefined
+      const muslHost =
+        libc === "musl" ||
+        ((libc === undefined || libc === "") && report !== undefined && !report.header?.glibcVersionRuntime)
+      return muslHost ? `linux-${process.arch}-musl` : `linux-${process.arch}`
     }
   }
   throw new Error(`AX TUI is not supported on the current platform: ${process.platform}-${process.arch}`)
@@ -116,7 +126,9 @@ if (isBunfsPath(targetLibPath)) {
 }
 
 if (!existsSync(targetLibPath)) {
-  throw new Error(`AX TUI is not supported on the current platform: ${process.platform}-${process.arch}`)
+  throw new Error(
+    `AX TUI native library is missing at ${targetLibPath}; reinstall @defai-digital/ax-tui for ${process.platform}-${process.arch}`,
+  )
 }
 
 registerEnvVar({

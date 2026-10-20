@@ -252,8 +252,11 @@ export function hsvToRgb(h: number, s: number, v: number): RGBA {
     g = 0,
     b = 0
 
-  const i = Math.floor(h / 60) % 6
-  const f = h / 60 - Math.floor(h / 60)
+  // Normalize the hue into [0, 360) so negative rotations and values past a
+  // full turn select a sector instead of falling through to black.
+  const normalizedHue = ((h % 360) + 360) % 360
+  const i = Math.floor(normalizedHue / 60) % 6
+  const f = normalizedHue / 60 - Math.floor(normalizedHue / 60)
   const p = v * (1 - s)
   const q = v * (1 - f * s)
   const t = v * (1 - (1 - f) * s)
