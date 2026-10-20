@@ -827,6 +827,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   private animationRequest: Map<number, FrameRequestCallback> = new Map()
 
   private resizeTimeoutId: TimerHandle | null = null
+  private pendingResize: { width: number; height: number } | null = null
   private capabilityTimeoutId: TimerHandle | null = null
   private xtVersionWaiters = new Set<() => void>()
   private splitStartupSeedTimeoutId: TimerHandle | null = null
@@ -2799,6 +2800,9 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     forceFooterRepaint: boolean = false,
     options: { allowSuspended?: boolean; allowPassthrough?: boolean; allowUnsetup?: boolean } = {},
   ): void {
+    // Lifecycle transitions must drain at the terminal's latest geometry,
+    // even when a resize debounce has not expired yet.
+    if (this.pendingResize !== null) this.applyPendingResize()
     const hasDeferredCapturedOutput = this.externalOutputQueue.size > 0 || this.pendingExternalOutputMode !== null
     if (
       this._screenMode !== "split-footer" ||
@@ -3775,20 +3779,26 @@ export class CliRenderer extends EventEmitter implements RenderContext {
 
   private handleResize(width: number, height: number): void {
     if (this._isDestroyed) return
-    if (this._splitHeight > 0) {
-      this.processResize(width, height)
-      return
-    }
-
     if (this.resizeTimeoutId !== null) {
       this.clock.clearTimeout(this.resizeTimeoutId)
       this.resizeTimeoutId = null
     }
 
-    this.resizeTimeoutId = this.clock.setTimeout(() => {
-      this.resizeTimeoutId = null
-      this.processResize(width, height)
-    }, this.resizeDebounceDelay)
+    this.pendingResize = { width, height }
+    this.resizeTimeoutId = this.clock.setTimeout(() => this.applyPendingResize(), this.resizeDebounceDelay)
+  }
+
+  private applyPendingResize(): void {
+    if (this.resizeTimeoutId !== null) this.clock.clearTimeout(this.resizeTimeoutId)
+    this.resizeTimeoutId = null
+    const pending = this.pendingResize
+    this.pendingResize = null
+    if (pending !== null) {
+      this.processResize(pending.width, pending.height)
+      // A burst can end at the original geometry. Resume any frame that was
+      // blocked during the burst even when processResize is a no-op.
+      this.requestRender()
+    }
   }
 
   private queryPixelResolution() {
@@ -3880,11 +3890,10 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     this._console.resize(this.width, this.height)
     this.root.resize(this.width, this.height)
     if (splitCaptureActive) {
-      // SIGWINCH arrives after the terminal has resized. Append queued snapshots
-      // using its new scroll region; the old geometry can overwrite transcript
-      // rows with a footer or a width-shrink scrub. Repaint only the live footer.
+      // Append queued snapshots in the next frame after layout has populated
+      // the resized buffer. Flushing here paints a blank footer first and then
+      // repaints it again with the live content.
       this.forceFullRepaintRequested = true
-      this.flushPendingSplitOutputBeforeTransition()
     }
     this.emit(CliRenderEvents.RESIZE, this.width, this.height)
     this.requestRender()
@@ -3901,6 +3910,9 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   public resize(width: number, height: number): void {
     if (this._isDestroyed) return
     validateBufferDimensions(width, height)
+    if (this.resizeTimeoutId !== null) this.clock.clearTimeout(this.resizeTimeoutId)
+    this.resizeTimeoutId = null
+    this.pendingResize = null
     this.processResize(width, height)
   }
 
@@ -4601,7 +4613,9 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     this.renderingNative = true
 
     try {
-      if (this.isSplitCursorSeedFrameBlocked()) {
+      if (this.isSplitCursorSeedFrameBlocked() || (this.pendingResize !== null && this._splitHeight > 0)) {
+        // The terminal has already resized. Keep queued rows until its final
+        // geometry is known instead of appending through obsolete margins.
         return "blocked"
       }
 

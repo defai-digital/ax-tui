@@ -1194,7 +1194,7 @@ pub const CliRenderer = struct {
             if (is_last_row and trailing_newline) {
                 // After a trailing newline, clear the destination row that becomes
                 // current so old footer text cannot flash through.
-                writer.writeAll(ansi.ANSI.reset) catch {};
+                // CRLF does not change SGR; the row terminator already reset it.
                 writer.writeAll(ansi.ANSI.eraseToEndOfLine) catch {};
             }
         }
@@ -1248,7 +1248,10 @@ pub const CliRenderer = struct {
         const targetFooterTopLine: u32 = @max(next_render_offset + 1, @as(u32, 1));
         // Footer redraw is only needed when offset changes (settling/pinning) or
         // when an explicit force was requested by the caller.
-        const redraw_footer = force or previousSurfaceOffset != next_render_offset;
+        // Inserting blank rows moves the existing footer intact. Its frame buffer
+        // remains the diff baseline at the new offset, including in a batch.
+        const move_footer = snapshot_has_content and next_render_offset > previousSurfaceOffset;
+        const redraw_footer = force or (previousSurfaceOffset != next_render_offset and !move_footer);
         // When split scrollback is settled at the pinned boundary, newlines/wraps from
         // appended output must scroll only the upper pane. Without a temporary DECSTBM
         // region, terminals advance into the footer rows and overwrite them in place.
@@ -1259,15 +1262,9 @@ pub const CliRenderer = struct {
 
         if (snapshot_has_content or force) {
             if (snapshot_has_content) {
-                // Clear rows that are transitioning from "footer surface" to scrollback before
-                // writing appended rows. If this happens after append, the clear itself is what
-                // gets scrolled and manifests as extra blank lines in history.
-                if (targetFooterTopLine > previousFooterTopLine) {
-                    var clear_line = previousFooterTopLine;
-                    while (clear_line < targetFooterTopLine) : (clear_line += 1) {
-                        ansi.ANSI.moveToOutput(writer, 1, clear_line) catch {};
-                        writer.writeAll("\x1b[2K") catch {};
-                    }
+                if (move_footer) {
+                    ansi.ANSI.moveToOutput(writer, 1, previousFooterTopLine) catch {};
+                    writer.print("\x1b[{d}L", .{next_render_offset - previousSurfaceOffset}) catch {};
                 }
 
                 if (use_bounded_scroll_region) {

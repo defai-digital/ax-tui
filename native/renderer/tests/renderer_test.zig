@@ -1381,14 +1381,13 @@ test "renderer - commitSplitFooterSnapshot settling phase moves footer downward"
     try snapshot.drawText("settle", 0, 0, fg, ansi.rgbaFromFloats(0.0, 0.0, 0.0, 0.0), 0);
 
     const appended = "settle";
-    // During settling we intentionally avoid bounded DECSTBM and instead clear rows
-    // that transition from footer surface to scrollback before append.
+    // During settling insert blank rows to relocate the existing footer intact.
+    // The footer frame remains valid for diffing at its new position.
     _ = cli_renderer.commitSplitFooterSnapshotBatched(snapshot, 6, false, true, 3, false, true, true);
 
     const output = test_cli_renderer.lastOutput();
     const settling_clear_index = std.mem.indexOf(u8, output, "\x1b[1;1H\x1b[J");
-    const stale_footer_clear_top_index = std.mem.indexOf(u8, output, "\x1b[1;1H\x1b[2K");
-    const stale_footer_clear_next_index = std.mem.indexOf(u8, output, "\x1b[2;1H\x1b[2K");
+    const footer_move_index = std.mem.indexOf(u8, output, "\x1b[1;1H\x1b[2L");
     const append_index = std.mem.indexOf(u8, output, appended);
     const scroll_region_reset_index = std.mem.indexOf(u8, output, "\x1b[r");
     const footer_clear_index = std.mem.indexOf(u8, output, "\x1b[3;1H\x1b[2K");
@@ -1397,15 +1396,14 @@ test "renderer - commitSplitFooterSnapshot settling phase moves footer downward"
 
     try std.testing.expectEqual(@as(u32, 2), cli_renderer.renderOffset);
     try std.testing.expect(settling_clear_index == null);
-    try std.testing.expect(stale_footer_clear_top_index != null);
-    try std.testing.expect(stale_footer_clear_next_index != null);
+    try std.testing.expect(footer_move_index != null);
     try std.testing.expect(append_index != null);
     try std.testing.expect(scroll_region_reset_index == null);
     try std.testing.expect(footer_clear_index == null);
     try std.testing.expect(footer_erase_below_index == null);
     try std.testing.expect(sync_index != null);
     try std.testing.expect(sync_index.? < append_index.?);
-    try std.testing.expect(stale_footer_clear_top_index.? < append_index.?);
+    try std.testing.expect(footer_move_index.? < append_index.?);
 }
 
 test "renderer - commitSplitFooterSnapshot multiline settling enables bounded scroll at pin" {
@@ -1919,7 +1917,7 @@ test "renderer - commitSplitFooterSnapshot does not emit NUL padding for short r
     const output = test_cli_renderer.lastOutput();
     try std.testing.expect(std.mem.indexOfScalar(u8, output, 0) == null);
     try std.testing.expect(std.mem.indexOf(u8, output, ansi.ANSI.eraseToEndOfLine) != null);
-    try std.testing.expect(std.mem.indexOf(u8, output, "\r\n\x1b[0m\x1b[K") != null);
+    try std.testing.expect(std.mem.indexOf(u8, output, "\x1b[0m\x1b[K\r\n\x1b[K") != null);
 }
 
 test "renderer - batched split commits share single sync frame" {

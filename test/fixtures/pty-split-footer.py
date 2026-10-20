@@ -2,7 +2,7 @@
 
 Every ACK is paired with an OSC output barrier. Resize delivery is acknowledged
 one signal at a time, so a 100-event burst cannot silently coalesce in the OS.
-The render clock stays paused; split-footer resize synchronously drains commits.
+The render clock stays paused during resize bursts, then advances to settle geometry.
 """
 import base64
 import errno
@@ -177,7 +177,7 @@ def main():
         harness.command("queue", start=800, end=1000)
         for event in range(100):
             state = harness.resize(40 + event % 2, 14 + event % 2, event + 3, drain=False)
-            assert state["pending"] == 0, state
+            assert state["pending"] == 200 and state["width"] == 60, state
         state = harness.command("resize", expected=102, width=41, height=15)
         assert state["signals"] >= 102 and state["pending"] == 0 and state["commits"] == 1000, state
         harness.command("idle")

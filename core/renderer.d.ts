@@ -261,6 +261,7 @@ export declare class CliRenderer extends EventEmitter implements RenderContext {
     private hasLoggedStdinParserError;
     private animationRequest;
     private resizeTimeoutId;
+    private pendingResize;
     private capabilityTimeoutId;
     private xtVersionWaiters;
     private splitStartupSeedTimeoutId;
@@ -501,6 +502,7 @@ export declare class CliRenderer extends EventEmitter implements RenderContext {
     private stopMemorySnapshotTimer;
     setMemorySnapshotInterval(interval: number): void;
     private handleResize;
+    private applyPendingResize;
     private queryPixelResolution;
     private processResize;
     /**
