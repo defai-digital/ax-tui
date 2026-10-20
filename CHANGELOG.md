@@ -5,6 +5,8 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.1.4] - 2026-10-20
+
 ### Changed
 
 - Split-footer mode writes far less output: committing rows above the footer
