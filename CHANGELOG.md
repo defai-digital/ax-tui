@@ -5,8 +5,13 @@ All notable changes to ax-tui are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.1.5] - 2026-10-20
+
 ### Fixed
 
+- Allow typing and pasting to replace selected input text at the maximum length, counting the replaced text as available space.
+- Leave input events and selected text untouched when truncation cannot fit a complete Unicode character.
+- Preserve input change notifications across repeated focus calls and edits made by focus listeners.
 - Report X10 button-held motion as a drag so basic-encoding terminals can extend text selections.
 - Align cross-renderable selected text with the selection rectangle instead of each renderable's origin.
 - Reveal equal-sized and taller partially visible children in `scrollChildIntoView()`.
