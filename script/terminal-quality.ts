@@ -110,6 +110,7 @@ export async function terminalQuality(tmux?: string) {
     const state = states.get(id)!
     lastState = state
     const screen = screens.get(id)!
+    if (process.platform === "win32") console.error("AX_TERMINAL_BARRIER", id, screen[0])
     states.delete(id)
     screens.delete(id)
     assert.ok(state.mounted <= state.height + 8, JSON.stringify(state))
@@ -134,6 +135,7 @@ export async function terminalQuality(tmux?: string) {
     // legacy system host loses emoji and counts combining marks as cells.
     child = spawn(tmux ?? process.execPath, tmux ? tmuxArgs : args,
     { cwd: root, cols: 48, rows: 16, name: env.TERM, env, useConpty: true, useConptyDll: true })
+    if (process.platform === "win32") console.error("AX_TERMINAL_SPAWNED")
     child.onExit(event => { exit = event })
     child.onData(data => {
       transcript += data
@@ -227,6 +229,7 @@ export async function terminalQuality(tmux?: string) {
       transcript: transcript.slice(-16000) }))
     throw error
   } finally {
+    if (process.platform === "win32") console.error("AX_TERMINAL_CLEANUP_START")
     try {
       if (child && process.platform === "win32") {
         // node-pty 1.1.0's bundled ConPTY kill path disposes its worker only
@@ -246,11 +249,13 @@ export async function terminalQuality(tmux?: string) {
         // On POSIX avoid signaling a potentially reused PID after child exit.
         child.kill()
       }
+      if (process.platform === "win32") console.error("AX_TERMINAL_CHILD_CLOSED")
     } finally {
       if (tmux) spawnSync(tmux, ["-L", tmuxSocket, "kill-server"], { stdio: "ignore", timeout: 5000 })
       control?.destroy()
       await new Promise<void>(resolve => server.close(() => resolve()))
       terminal.dispose()
+      if (process.platform === "win32") console.error("AX_TERMINAL_CLEANUP_COMPLETE")
     }
   }
 }
